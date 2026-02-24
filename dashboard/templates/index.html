@@ -735,6 +735,116 @@ td.match-none { color: var(--muted); font-style: italic; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
+/* ── Tablet / mobile controls (hidden on desktop) ───────────────────────── */
+.menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 6px;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.menu-btn:hover { background: var(--bg); }
+.menu-btn svg { display: block; }
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  z-index: 90;
+}
+.sidebar-overlay.visible { display: block; }
+
+/* Panel tab strip (PDF / Data toggle on tablet) */
+.main-tabs {
+  display: none;
+  flex-shrink: 0;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+.main-tab {
+  flex: 1;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  transition: color .1s, border-color .1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.main-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Tablet layout (≤ 900px) ─────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  /* Header: show menu button, compact stats */
+  .menu-btn { display: flex; }
+  .stats-bar { gap: 6px; }
+  .stat-chip span:not(.num) { display: none; }  /* hide labels, show numbers only */
+  .stat-chip { padding: 4px 8px; }
+
+  /* Sidebar: slide-out drawer */
+  aside {
+    position: fixed;
+    z-index: 100;
+    top: var(--hdr-h);
+    left: calc(-1 * var(--side-w) - 4px);
+    height: calc(100% - var(--hdr-h));
+    transition: left .25s ease, box-shadow .25s ease;
+    box-shadow: none;
+  }
+  aside.drawer-open {
+    left: 0;
+    box-shadow: 4px 0 24px rgba(0,0,0,.25);
+  }
+
+  /* Main area: stacked panels */
+  main { flex-direction: column; overflow: hidden; }
+
+  /* Show the PDF/Data tab strip */
+  .main-tabs { display: flex; }
+
+  /* PDF panel: full width, hidden until its tab is active */
+  .pdf-panel {
+    width: 100% !important;  /* override inline style from resizer */
+    max-width: 100%;
+    min-width: 0;
+    flex: 1;
+    border-right: none;
+    display: none;
+  }
+  .pdf-panel.panel-active { display: flex; }
+
+  /* Drag resizer: hidden on tablet */
+  .panel-resizer { display: none; }
+
+  /* Data panel: full width, hidden until its tab is active */
+  .data-panel {
+    display: none;
+    flex: 1;
+  }
+  .data-panel.panel-active { display: flex; }
+
+  /* Larger touch targets for buttons */
+  .btn { padding: 9px 14px; }
+  .side-item { padding: 12px 14px; }
+
+  /* Wider kv grid on tablet (single column) */
+  .kv-grid { grid-template-columns: 1fr; }
+  .kv-item { border-right: none !important; }
+  .kv-item:nth-last-child(-n+2) { border-bottom: 1px solid var(--border); }
+  .kv-item:last-child { border-bottom: none; }
+}
+
 /* ── Edit mode ──────────────────────────────────────────────────────────── */
 .edit-input {
   width: 100%;
@@ -839,6 +949,14 @@ td.match-none { color: var(--muted); font-style: italic; }
 
 <!-- ── Header ──────────────────────────────────────────────────────────── -->
 <header>
+  <!-- Hamburger: tablet only -->
+  <button class="menu-btn" id="menu-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6"  x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
   <div class="app-title">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -846,7 +964,7 @@ td.match-none { color: var(--muted); font-style: italic; }
       <line x1="16" y1="13" x2="8" y2="13"/>
       <line x1="16" y1="17" x2="8" y2="17"/>
     </svg>
-    Invoice Pipeline <span class="build-tag">build 2026-02-25-d</span>
+    Invoice Pipeline <span class="build-tag">build 2026-02-25-e</span>
   </div>
   <div class="stats-bar">
     <div class="stat-chip review" onclick="setTab('needs_review')" title="Filter: Needs Review">
@@ -871,6 +989,9 @@ td.match-none { color: var(--muted); font-style: italic; }
     <span id="live-label">Connecting…</span>
   </div>
 </header>
+
+<!-- Sidebar overlay (tablet: tap outside to close) -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
 <div class="body-wrap">
 
@@ -902,6 +1023,26 @@ td.match-none { color: var(--muted); font-style: italic; }
 
   <!-- ── Main ────────────────────────────────────────────────────────── -->
   <main>
+    <!-- Panel tabs: PDF ↔ Data (tablet only, hidden on desktop) -->
+    <div class="main-tabs" id="main-tabs">
+      <div class="main-tab" id="tab-pdf" onclick="setPanel('pdf')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        Original PDF
+      </div>
+      <div class="main-tab active" id="tab-data" onclick="setPanel('data')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        Extracted Data
+      </div>
+    </div>
+
     <!-- PDF Panel -->
     <div class="pdf-panel" id="pdf-panel">
       <div class="pdf-placeholder" id="pdf-placeholder">
@@ -917,7 +1058,7 @@ td.match-none { color: var(--muted); font-style: italic; }
     <div class="panel-resizer" id="panel-resizer" title="Drag to resize"></div>
 
     <!-- Data Panel -->
-    <div class="data-panel" id="data-panel">
+    <div class="data-panel panel-active" id="data-panel">
       <div class="no-selection">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="11" cy="11" r="8"/>
@@ -1031,6 +1172,8 @@ function setTab(tab) {
   document.getElementById('pdf-panel').innerHTML  = placeholderHtml();
   document.getElementById('data-panel').innerHTML = noSelectionHtml();
 
+  if (isTablet()) closeSidebar();
+
   poll();
 }
 
@@ -1127,6 +1270,8 @@ async function selectInvoice(stem) {
     const [result, pages] = await Promise.all([api.detail(stem), api.pages(stem)]);
     renderPdf(result, pages);
     renderData(result);
+    // On tablet: switch to data panel and close sidebar
+    if (isTablet()) { setPanel('data'); closeSidebar(); }
   } catch (e) {
     document.getElementById('pdf-panel').innerHTML  = errorHtml('Could not load PDF.');
     document.getElementById('data-panel').innerHTML = errorHtml('Could not load result: ' + e.message);
@@ -2054,6 +2199,45 @@ function kvEWide(label, id, value) {
     <div class="kv-label">${esc(label)}</div>
     <input id="${id}" class="edit-input" value="${esc(String(value ?? ''))}">
   </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Tablet: sidebar drawer
+// ════════════════════════════════════════════════════════════════════════════
+function isTablet() { return window.innerWidth <= 900; }
+
+function openSidebar() {
+  document.querySelector('aside').classList.add('drawer-open');
+  document.getElementById('sidebar-overlay').classList.add('visible');
+}
+function closeSidebar() {
+  document.querySelector('aside').classList.remove('drawer-open');
+  document.getElementById('sidebar-overlay').classList.remove('visible');
+}
+function toggleSidebar() {
+  const open = document.querySelector('aside').classList.contains('drawer-open');
+  open ? closeSidebar() : openSidebar();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Tablet: panel toggle (PDF ↔ Data)
+// ════════════════════════════════════════════════════════════════════════════
+function setPanel(name) {
+  const pdfPanel  = document.getElementById('pdf-panel');
+  const datPanel  = document.getElementById('data-panel');
+  const tabPdf    = document.getElementById('tab-pdf');
+  const tabDat    = document.getElementById('tab-data');
+  if (name === 'pdf') {
+    pdfPanel.classList.add('panel-active');
+    datPanel.classList.remove('panel-active');
+    tabPdf.classList.add('active');
+    tabDat.classList.remove('active');
+  } else {
+    datPanel.classList.add('panel-active');
+    pdfPanel.classList.remove('panel-active');
+    tabDat.classList.add('active');
+    tabPdf.classList.remove('active');
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
