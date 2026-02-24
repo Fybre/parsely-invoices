@@ -226,7 +226,10 @@ def _norm(key: str) -> str:
     return re.sub(r"[\s_\-\.]+", " ", str(key)).lower().strip()
 
 
-def _matches(header: str, key_set: set[str]) -> bool:
+def _matches(header, key_set: set[str]) -> bool:
+    # Guard: tables without a header row get integer column indices — skip them
+    if not isinstance(header, str):
+        return False
     # Exact match on the full normalised header
     if _norm(header) in key_set:
         return True
