@@ -315,8 +315,12 @@ main {
   inset: 0 -5px;  /* widen hit area without affecting layout */
   z-index: 1;
 }
-.pdf-panel::-webkit-scrollbar { width: 6px; }
-.pdf-panel::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
+.pdf-panel::-webkit-scrollbar { width: 8px; height: 8px; }
+.pdf-panel::-webkit-scrollbar-track { background: #b0b7c3; }
+.pdf-panel::-webkit-scrollbar-thumb { background: #6b7280; border-radius: 4px; }
+.pdf-panel::-webkit-scrollbar-corner { background: #b0b7c3; }
+.pdf-pages { cursor: grab; }
+.pdf-pages.panning { cursor: grabbing; }
 
 .pdf-toolbar {
   background: #374151;
@@ -2309,6 +2313,50 @@ function setPanel(name) {
     document.body.style.userSelect = '';
     localStorage.setItem(STORAGE_KEY, pdfPanel.style.width);
   });
+})();
+
+// ════════════════════════════════════════════════════════════════════════════
+// PDF pan (drag-to-scroll) + shift-wheel horizontal scroll
+// ════════════════════════════════════════════════════════════════════════════
+(function() {
+  const panel = document.getElementById('pdf-panel');
+  let panning = false, startX, startY, scrollLeft, scrollTop;
+
+  panel.addEventListener('mousedown', e => {
+    if (e.target.closest('.pdf-toolbar')) return;  // don't grab toolbar buttons
+    if (e.button !== 0) return;                    // left button only
+    panning   = true;
+    startX    = e.clientX;
+    startY    = e.clientY;
+    scrollLeft = panel.scrollLeft;
+    scrollTop  = panel.scrollTop;
+    document.body.style.userSelect = 'none';
+    const pages = document.getElementById('pdf-pages');
+    if (pages) pages.classList.add('panning');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!panning) return;
+    panel.scrollLeft = scrollLeft - (e.clientX - startX);
+    panel.scrollTop  = scrollTop  - (e.clientY - startY);
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!panning) return;
+    panning = false;
+    document.body.style.userSelect = '';
+    const pages = document.getElementById('pdf-pages');
+    if (pages) pages.classList.remove('panning');
+  });
+
+  // Shift+scroll → horizontal pan
+  panel.addEventListener('wheel', e => {
+    if (e.shiftKey) {
+      e.preventDefault();
+      panel.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
 })();
 
 // ════════════════════════════════════════════════════════════════════════════
