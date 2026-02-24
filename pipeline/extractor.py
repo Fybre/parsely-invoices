@@ -16,12 +16,39 @@ TableLineItemExtractor -- identifies the line items table in Docling's structure
 """
 from __future__ import annotations
 
+import json
 import logging
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
+def _load_column_keys() -> dict[str, set[str]]:
+    """
+    Load column header keyword sets from config/column_keys.json.
+    Falls back to the hardcoded defaults below if the file is missing or invalid.
+    The config directory is resolved via the CONFIG_DIR env var (default: /app/config),
+    which is mounted as a host volume so operators can edit it without a rebuild.
+    """
+    config_dir = Path(os.environ.get("CONFIG_DIR", Path(__file__).parent.parent / "config"))
+    config_path = config_dir / "column_keys.json"
+    if config_path.exists():
+        try:
+            with open(config_path) as fh:
+                data = json.load(fh)
+            keys = {
+                k: set(str(v).lower() for v in vals)
+                for k, vals in data.items()
+                if isinstance(vals, list) and not k.startswith("_")
+            }
+            logger.info("Loaded column_keys.json from %s", config_path)
+            return keys
+        except Exception as exc:
+            logger.warning("Could not load column_keys.json (%s) — using defaults", exc)
+    return {}
 
 
 # ---------------------------------------------------------------------------
@@ -204,22 +231,32 @@ class PlainTextExtractor:
 # ---------------------------------------------------------------------------
 
 # Canonical column-name sets (normalised: lowercase, collapsed whitespace)
-_DESCRIPTION_KEYS = {"description", "item", "details", "product", "service",
-                     "goods", "particulars", "desc", "name", "work", "task",
-                     "item description", "product description"}
-_QTY_KEYS         = {"qty", "quantity", "units", "no", "hours", "hrs", "count",
-                     "no.", "qty.", "order", "ordered", "supply", "supplied",
-                     "order qty", "supply qty", "delivered", "invoiced"}
-_UNIT_KEYS        = {"unit", "uom", "each", "measure", "unit of measure"}
-_UNIT_PRICE_KEYS  = {"unit price", "unit_price", "rate", "price", "unitprice",
-                     "unit cost", "each", "cost", "per unit", "charge",
-                     "unit rate", "price each"}
-_TOTAL_KEYS       = {"total", "amount", "line total", "linetotal", "ext",
-                     "extended", "net", "line amount", "nett", "extended amount",
-                     "total amount", "net amount"}
-_SKU_KEYS         = {"sku", "code", "item code", "part no", "part number",
-                     "part#", "ref", "product code", "cat no", "cat#",
-                     "item no", "item #", "item number", "job code"}
+_BUILTIN_KEYS: dict[str, set[str]] = {
+    "description": {"description", "item", "details", "product", "service",
+                    "goods", "particulars", "desc", "name", "work", "task",
+                    "item description", "product description"},
+    "sku":         {"sku", "code", "item code", "part no", "part number",
+                    "part#", "ref", "product code", "cat no", "cat#",
+                    "item no", "item #", "item number", "job code"},
+    "quantity":    {"qty", "quantity", "units", "no", "hours", "hrs", "count",
+                    "no.", "qty.", "order", "ordered", "supply", "supplied",
+                    "order qty", "supply qty", "delivered", "invoiced"},
+    "unit":        {"unit", "uom", "each", "measure", "unit of measure"},
+    "unit_price":  {"unit price", "unit_price", "rate", "price", "unitprice",
+                    "unit cost", "each", "cost", "per unit", "charge",
+                    "unit rate", "price each"},
+    "total":       {"total", "amount", "line total", "linetotal", "ext",
+                    "extended", "net", "line amount", "nett", "extended amount",
+                    "total amount", "net amount"},
+}
+
+_loaded = _load_column_keys()
+_DESCRIPTION_KEYS = _loaded.get("description") or _BUILTIN_KEYS["description"]
+_SKU_KEYS         = _loaded.get("sku")         or _BUILTIN_KEYS["sku"]
+_QTY_KEYS         = _loaded.get("quantity")    or _BUILTIN_KEYS["quantity"]
+_UNIT_KEYS        = _loaded.get("unit")        or _BUILTIN_KEYS["unit"]
+_UNIT_PRICE_KEYS  = _loaded.get("unit_price")  or _BUILTIN_KEYS["unit_price"]
+_TOTAL_KEYS       = _loaded.get("total")       or _BUILTIN_KEYS["total"]
 
 
 def _norm(key: str) -> str:

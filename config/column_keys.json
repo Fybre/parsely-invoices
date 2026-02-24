@@ -1,0 +1,42 @@
+{
+  "_comment": [
+    "Column header keywords used to identify line item table columns.",
+    "Parsely normalises headers to lowercase before matching, so entries here",
+    "should be lowercase.  Add any synonyms your invoice suppliers use.",
+    "Changes take effect immediately — no container rebuild required."
+  ],
+
+  "description": [
+    "description", "item", "details", "product", "service",
+    "goods", "particulars", "desc", "name", "work", "task",
+    "item description", "product description"
+  ],
+
+  "sku": [
+    "sku", "code", "item code", "part no", "part number",
+    "part#", "ref", "product code", "cat no", "cat#",
+    "item no", "item #", "item number", "job code"
+  ],
+
+  "quantity": [
+    "qty", "quantity", "units", "no", "hours", "hrs", "count",
+    "no.", "qty.", "order", "ordered", "supply", "supplied",
+    "order qty", "supply qty", "delivered", "invoiced"
+  ],
+
+  "unit": [
+    "unit", "uom", "each", "measure", "unit of measure"
+  ],
+
+  "unit_price": [
+    "unit price", "unit_price", "rate", "price", "unitprice",
+    "unit cost", "each", "cost", "per unit", "charge",
+    "unit rate", "price each"
+  ],
+
+  "total": [
+    "total", "amount", "line total", "linetotal", "ext",
+    "extended", "net", "line amount", "nett", "extended amount",
+    "total amount", "net amount"
+  ]
+}
