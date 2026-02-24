@@ -334,9 +334,12 @@ class TableLineItemExtractor:
                         if num is not None:
                             item[field_name] = num
 
-                # A valid line item must have a description or SKU —
-                # this filters out summary rows (e.g. "Total: 426.54" with no description)
-                if "description" in item or "sku" in item:
+                # A valid line item requires quantity + total (the minimum financials),
+                # and at least one of sku or description for identification.
+                # This filters out header echoes, subtotal rows, and blank rows.
+                has_financials = "quantity" in item and "total" in item
+                has_identity   = "sku" in item or "description" in item
+                if has_financials and has_identity:
                     items.append(item)
 
         return items
