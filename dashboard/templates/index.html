@@ -1358,6 +1358,11 @@ function renderPdf(result, pages) {
         <button class="btn-zoom" onclick="setPdfZoom(-25)" title="Zoom out">−</button>
         <span class="zoom-label" id="zoom-label">${S.pdfZoom}%</span>
         <button class="btn-zoom" onclick="setPdfZoom(+25)" title="Zoom in">+</button>
+        <button class="btn-zoom" onclick="fitPdfWidth()" title="Fit to width" style="margin-left:3px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M3 12h18M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/>
+          </svg>
+        </button>
       </div>
       <span class="pdf-pages-count">${pages.length} page${pages.length !== 1 ? 's' : ''}</span>
     </div>
@@ -1371,6 +1376,15 @@ function setPdfZoom(delta) {
   const label = document.getElementById('zoom-label');
   if (pages) { pages.style.width = S.pdfZoom + '%'; pages.style.minWidth = S.pdfZoom + '%'; }
   if (label) label.textContent = S.pdfZoom + '%';
+}
+
+function fitPdfWidth() {
+  S.pdfZoom = 100;
+  localStorage.setItem('pdf-zoom', 100);
+  const pages = document.getElementById('pdf-pages');
+  const label = document.getElementById('zoom-label');
+  if (pages) { pages.style.width = '100%'; pages.style.minWidth = '100%'; }
+  if (label) label.textContent = '100%';
 }
 
 // ════════════════════════════════════════════════════════════════════════════
