@@ -309,30 +309,64 @@ class TableLineItemExtractor:
 
         col_map = self._build_col_map(list(table[0].keys()))
         items: list[dict] = []
+        line_num = 0
 
-        for row_idx, row in enumerate(table):
-            first_val = _norm(str(list(row.values())[0])) if row else ""
-            if first_val in _DESCRIPTION_KEYS:
-                continue  # skip embedded header rows
+        for row in table:
+            # Expand rows where cells contain \n-separated stacked values
+            # (e.g. Fresh Computer Systems invoices pack all items into one row)
+            for sub_row in self._expand_stacked_row(row):
+                first_val = _norm(str(list(sub_row.values())[0])) if sub_row else ""
+                if first_val in _DESCRIPTION_KEYS:
+                    continue  # skip embedded header rows
 
-            item: dict = {"line_number": row_idx + 1}
-            for col, field_name in col_map.items():
-                raw = row.get(col)
-                if raw is None or str(raw).strip() in ("", "None", "-", "\u2013"):
-                    continue
-                val_str = str(raw).strip()
+                line_num += 1
+                item: dict = {"line_number": line_num}
+                for col, field_name in col_map.items():
+                    raw = sub_row.get(col)
+                    if raw is None or str(raw).strip() in ("", "None", "-", "\u2013"):
+                        continue
+                    val_str = str(raw).strip()
 
-                if field_name in ("description", "sku", "unit"):
-                    item[field_name] = val_str
-                elif field_name in ("quantity", "unit_price", "total"):
-                    num = _to_float(val_str)
-                    if num is not None:
-                        item[field_name] = num
+                    if field_name in ("description", "sku", "unit"):
+                        item[field_name] = val_str
+                    elif field_name in ("quantity", "unit_price", "total"):
+                        num = _to_float(val_str)
+                        if num is not None:
+                            item[field_name] = num
 
-            if "description" in item or "total" in item:
-                items.append(item)
+                # A valid line item must have a description or SKU —
+                # this filters out summary rows (e.g. "Total: 426.54" with no description)
+                if "description" in item or "sku" in item:
+                    items.append(item)
 
         return items
+
+    @staticmethod
+    def _expand_stacked_row(row: dict) -> list[dict]:
+        """
+        Detect rows where cells contain newline-separated stacked values and
+        expand them into individual rows.  Returns [row] unchanged when no
+        stacking is found (the common case — zero overhead).
+        """
+        if not row:
+            return [row]
+        max_parts = max(
+            (len(str(v).split('\n')) for v in row.values() if v is not None),
+            default=1,
+        )
+        if max_parts <= 1:
+            return [row]
+
+        keys = list(row.keys())
+        split_vals = [
+            str(row[k]).split('\n') if row.get(k) is not None else []
+            for k in keys
+        ]
+        return [
+            {key: (split_vals[j][i].strip() if i < len(split_vals[j]) else '')
+             for j, key in enumerate(keys)}
+            for i in range(max_parts)
+        ]
 
     def _build_col_map(self, headers: list[str]) -> dict[str, str]:
         mapping: dict[str, str] = {}
