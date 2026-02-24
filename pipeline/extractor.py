@@ -208,7 +208,8 @@ _DESCRIPTION_KEYS = {"description", "item", "details", "product", "service",
                      "goods", "particulars", "desc", "name", "work", "task",
                      "item description", "product description"}
 _QTY_KEYS         = {"qty", "quantity", "units", "no", "hours", "hrs", "count",
-                     "no.", "qty."}
+                     "no.", "qty.", "order", "ordered", "supply", "supplied",
+                     "order qty", "supply qty", "delivered", "invoiced"}
 _UNIT_KEYS        = {"unit", "uom", "each", "measure", "unit of measure"}
 _UNIT_PRICE_KEYS  = {"unit price", "unit_price", "rate", "price", "unitprice",
                      "unit cost", "each", "cost", "per unit", "charge",
@@ -334,12 +335,15 @@ class TableLineItemExtractor:
                         if num is not None:
                             item[field_name] = num
 
-                # A valid line item requires quantity + total (the minimum financials),
-                # and at least one of sku or description for identification.
-                # This filters out header echoes, subtotal rows, and blank rows.
-                has_financials = "quantity" in item and "total" in item
+                # A valid line item needs:
+                #   - total (mandatory — the line value)
+                #   - quantity OR unit_price (at least one numeric dimension)
+                #   - sku OR description (identification)
+                # This filters out header echoes, subtotal/summary rows, blank rows.
+                has_total      = "total" in item
+                has_dimension  = "quantity" in item or "unit_price" in item
                 has_identity   = "sku" in item or "description" in item
-                if has_financials and has_identity:
+                if has_total and has_dimension and has_identity:
                     items.append(item)
 
         return items
