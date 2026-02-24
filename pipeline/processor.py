@@ -31,6 +31,7 @@ from typing import Optional
 from config import Config
 from models.result import InvoiceProcessingResult
 from .database import Database
+from .custom_field_extractor import CustomFieldExtractor, load_custom_fields
 from .extractor import DoclingExtractor, PlainTextExtractor, TableLineItemExtractor
 from .llm_parser import LLMParser
 from .supplier_matcher import SupplierMatcher
@@ -64,6 +65,10 @@ class InvoiceProcessor:
             logger.info("Using PlainTextExtractor (speed mode)")
 
         self.table_line_item_extractor = TableLineItemExtractor()
+
+        # Custom fields (operator-defined via config/custom_fields.json)
+        self._custom_fields = load_custom_fields()
+        self._custom_field_extractor = CustomFieldExtractor(self._custom_fields)
 
         self.llm = LLMParser(
             model=self.config.llm_model,
@@ -117,7 +122,21 @@ class InvoiceProcessor:
 
         # Step 3: LLM extraction (metadata, or full if no pre-extracted items)
         logger.info("Step 3/5: LLM extraction (model=%s)", self.config.llm_model)
-        invoice = self.llm.parse(extraction, pre_extracted_line_items=pre_extracted_items)
+        invoice = self.llm.parse(
+            extraction,
+            pre_extracted_line_items=pre_extracted_items,
+            custom_fields=self._custom_fields,
+        )
+
+        # Merge custom field results: regex/table override LLM (more deterministic)
+        if self._custom_fields:
+            regex_hits  = self._custom_field_extractor.extract_from_text(extraction.markdown)
+            table_hits  = self._custom_field_extractor.extract_from_tables(extraction.tables)
+            # Priority: regex > table > llm (already in invoice.custom_fields)
+            merged = self._custom_field_extractor.merge(regex_hits, table_hits, invoice.custom_fields)
+            invoice.custom_fields = merged
+            if merged:
+                logger.info("Custom fields extracted: %s", list(merged.keys()))
 
         # Step 4: Match supplier
         logger.info("Step 4/5: Matching supplier")

@@ -1488,6 +1488,7 @@ function renderData(result) {
     ${mp ? poMatchCard(mp) : ''}
     ${discCard(disc)}
     ${notesCard(result)}
+    ${customFieldsCard(inv)}
 
     <div class="meta-footer">
       <span>📁 ${esc((result.source_file || '').split('/').pop() || '—')}</span>
@@ -1711,6 +1712,33 @@ function notesCard(result) {
     <div class="notes-save-row">
       <button class="btn-sm" onclick="saveNotes('${esc(stem)}')">Save Notes</button>
     </div>` : ''}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Custom fields card
+// ════════════════════════════════════════════════════════════════════════════
+function customFieldsCard(inv) {
+  const cf = inv.custom_fields || {};
+  const entries = Object.entries(cf).filter(([, v]) => v != null && String(v).trim() !== '');
+  if (!entries.length) return '';
+
+  const rows = entries.map(([k, v]) => {
+    // Convert snake_case key to Title Case label if no server-side label available
+    const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return `<div class="kv-row"><span class="kv-label">${esc(label)}</span><span class="kv-value">${esc(String(v))}</span></div>`;
+  }).join('');
+
+  return `<div class="card">
+    <div class="card-header">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      Custom Fields
+    </div>
+    <div class="kv-grid">${rows}</div>
   </div>`;
 }
 

@@ -22,6 +22,7 @@ from typing import Optional
 
 from models.invoice import ExtractedInvoice, LineItem
 from pipeline.extractor import ExtractionResult
+from pipeline.custom_field_extractor import CustomField
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +153,39 @@ Invoice (Markdown):
 
 
 # ---------------------------------------------------------------------------
+# Custom field prompt injection
+# ---------------------------------------------------------------------------
+
+def _custom_fields_prompt_addition(fields: list[CustomField]) -> tuple[str, str]:
+    """
+    Build the two prompt snippets needed to ask the LLM for custom fields.
+
+    Returns (instructions_block, schema_block):
+      - instructions_block: bullet list of field hints to insert into the prompt
+      - schema_block: JSON schema lines to add inside the return object
+    """
+    hints = [f for f in fields if f.llm_hint]
+    if not hints:
+        return "", ""
+
+    bullet_lines = "\n".join(
+        f'  - {f.name}: {f.llm_hint}' for f in hints
+    )
+    instructions = (
+        f'\nAlso extract these additional custom fields into the "custom_fields" object:\n'
+        f'{bullet_lines}\n'
+        f'Use null for any custom field not found in the invoice.\n'
+    )
+
+    schema_fields = ",\n    ".join(
+        f'"{f.name}": "string or null"' for f in hints
+    )
+    schema = f',\n  "custom_fields": {{\n    {schema_fields}\n  }}'
+
+    return instructions, schema
+
+
+# ---------------------------------------------------------------------------
 # LLMParser
 # ---------------------------------------------------------------------------
 
@@ -205,6 +239,7 @@ class LLMParser:
         self,
         extraction: ExtractionResult,
         pre_extracted_line_items: Optional[list[dict]] = None,
+        custom_fields: Optional[list[CustomField]] = None,
     ) -> ExtractedInvoice:
         """
         Parse an ExtractionResult into a validated ExtractedInvoice.
@@ -212,20 +247,40 @@ class LLMParser:
         If pre_extracted_line_items is provided, the LLM uses the
         metadata-only prompt and line items are merged in afterwards.
 
+        If custom_fields is provided, hints for fields with llm_hint are
+        appended to the prompt so the LLM can attempt to extract them.
+
         Raises ValueError if the model returns unparseable JSON after retries.
         """
         has_pre_extracted = bool(pre_extracted_line_items)
+
+        # Build custom field prompt additions (empty strings if no hints defined)
+        cf_instructions, cf_schema = _custom_fields_prompt_addition(custom_fields or [])
 
         if has_pre_extracted:
             logger.info(
                 "Using metadata-only prompt (%d line items pre-extracted from table)",
                 len(pre_extracted_line_items),
             )
-            prompt = _PROMPT_METADATA_ONLY.format(
-                invoice_markdown=extraction.markdown
-            )
+            base_prompt = _PROMPT_METADATA_ONLY
         else:
-            prompt = _PROMPT_FULL.format(invoice_markdown=extraction.markdown)
+            base_prompt = _PROMPT_FULL
+
+        # Inject custom field additions: instructions before the JSON schema block,
+        # schema snippet just before the closing }} of the return structure.
+        if cf_instructions:
+            # Insert instructions just before "Return a JSON object"
+            base_prompt = base_prompt.replace(
+                "Return a JSON object with exactly this structure:",
+                cf_instructions + "Return a JSON object with exactly this structure:"
+            )
+            # Insert schema fields just before the final closing }}
+            base_prompt = base_prompt.replace(
+                '"notes": "string or null"\n}}',
+                f'"notes": "string or null"{cf_schema}\n}}'
+            )
+
+        prompt = base_prompt.format(invoice_markdown=extraction.markdown)
 
         client = self._get_client()
         invoice: Optional[ExtractedInvoice] = None

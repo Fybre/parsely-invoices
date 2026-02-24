@@ -62,3 +62,7 @@ class ExtractedInvoice(BaseModel):
     payment_terms: Optional[str] = None     # e.g. "Net 30", "Due on Receipt"
     bank_details: Optional[str] = None      # BSB/account if present
     notes: Optional[str] = None
+
+    # Operator-defined custom fields (from config/custom_fields.json)
+    # Keys are field names as defined in the config; values are extracted strings.
+    custom_fields: dict = Field(default_factory=dict)
