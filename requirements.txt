@@ -1,0 +1,33 @@
+# ── Core invoice processing ────────────────────────────────────────────────
+# Accuracy-first PDF extraction (layout-aware, table-preserving, built-in OCR)
+docling>=2.0.0
+
+# LLM client — works with any OpenAI-compatible backend:
+#   Ollama (local):  LLM_BASE_URL=http://host.docker.internal:11434/v1  LLM_API_KEY=ollama
+#   OpenAI:          LLM_BASE_URL=https://api.openai.com/v1              LLM_API_KEY=sk-...
+#   Groq, Azure, etc. — same pattern
+openai>=1.0.0
+
+# Data models and validation
+pydantic>=2.0.0
+
+# ── Matching ───────────────────────────────────────────────────────────────
+# Fast fuzzy string matching (supplier names, PO line descriptions)
+rapidfuzz>=3.0.0
+
+# ── CLI ────────────────────────────────────────────────────────────────────
+click>=8.1.0
+
+# ── Speed-first fallback (optional, used when use_docling=False) ───────────
+pdfplumber>=0.10.0
+
+# ── Docling table export support ───────────────────────────────────────────
+# Docling uses pandas internally for export_to_dataframe()
+pandas>=2.0.0
+
+# ── Dashboard ───────────────────────────────────────────────────────────────
+# Web server for the visualisation dashboard
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+# PDF-to-image rendering (uses poppler-utils, already installed in the Docker image)
+pdf2image>=1.16.0

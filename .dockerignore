@@ -1,0 +1,37 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pycache
+
+# Development / test artefacts
+.env
+.env.*
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+Thumbs.db
+
+# Pipeline runtime directories (mounted as volumes — don't bake into image)
+invoices/
+output/
+
+# Large / sensitive data files
+data/*.csv
+
+# Documentation (not needed in image)
+README.md

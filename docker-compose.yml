@@ -1,0 +1,138 @@
+# ---------------------------------------------------------------------------
+# Invoice Processing Pipeline — Docker Compose
+# ---------------------------------------------------------------------------
+#
+# QUICK START — explicit commands (always override WATCH_MODE):
+#   docker compose run --rm pipeline check                     # verify setup
+#   docker compose run --rm pipeline process /app/invoices     # one-shot batch
+#   docker compose run --rm pipeline process /app/invoices/my_invoice.pdf
+#   docker compose run --rm pipeline watch /app/invoices       # continuous polling
+#
+# AUTO MODE via WATCH_MODE env var (set in .env or inline):
+#   WATCH_MODE=false  →  docker compose run --rm pipeline      # batch, then exit
+#   WATCH_MODE=true   →  docker compose up -d                  # long-running watch
+#
+# PROFILES:
+#   default          — pipeline connects to Ollama on the host machine
+#   with-ollama      — also starts an Ollama container (no host Ollama needed)
+#     docker compose --profile with-ollama up
+#
+# FIRST RUN NOTE:
+#   Docling will download its ML models (~1 GB) on the first invoice processed.
+#   They are stored in the 'docling-models' named volume and reused thereafter.
+# ---------------------------------------------------------------------------
+
+services:
+
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: invoice-pipeline:latest
+    # ---------------------------------------------------------------------
+    # Volume mounts
+    #   ./data        → read/write  (CSV data files)
+    #   ./invoices    → read-only   (input PDFs)
+    #   ./output      → read/write  (JSON results)
+    #   docling-models → named vol  (cached ML models, ~1 GB, downloaded once)
+    # ---------------------------------------------------------------------
+    volumes:
+      - ./data:/app/data
+      - ./invoices:/app/invoices:ro
+      - ./output:/app/output
+      - docling-models:/root/.cache/docling
+    environment:
+      # --- LLM connection (OpenAI-compatible API) ---
+      # Ollama on host (default):  LLM_BASE_URL=http://host.docker.internal:11434/v1  LLM_API_KEY=ollama
+      # Ollama sidecar profile:    LLM_BASE_URL=http://ollama:11434/v1                LLM_API_KEY=ollama
+      # OpenAI:                    LLM_BASE_URL=https://api.openai.com/v1             LLM_API_KEY=sk-...
+      # Groq:                      LLM_BASE_URL=https://api.groq.com/openai/v1        LLM_API_KEY=gsk_...
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+      LLM_MODEL: ${LLM_MODEL:-llama3.2}
+      LLM_API_KEY: ${LLM_API_KEY:-ollama}
+      # --- Extraction mode ---
+      USE_DOCLING: ${USE_DOCLING:-true}
+      # --- Watch / polling mode ---
+      # WATCH_MODE=false (default): run a single batch pass then exit
+      # WATCH_MODE=true:            poll continuously — use with `docker compose up -d`
+      WATCH_MODE: ${WATCH_MODE:-false}
+      POLL_INTERVAL: ${POLL_INTERVAL:-30}
+    # Allows the container to reach services on the host (needed on Linux)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # restart: unless-stopped   ← uncomment when using WATCH_MODE=true with `up -d`
+    profiles: []    # always available (no profile needed)
+
+
+  # -------------------------------------------------------------------------
+  # Dashboard — invoice visualisation UI
+  # Access at:  http://localhost:8080
+  #
+  # Reads from the same output/ and invoices/ volumes as the pipeline.
+  # Reuses the same image — no separate build needed.
+  # Start with:  docker compose up -d dashboard
+  # Or together: WATCH_MODE=true docker compose up -d
+  # -------------------------------------------------------------------------
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: invoice-pipeline:latest
+    entrypoint: ["python", "-m", "uvicorn"]
+    command: [
+      "dashboard.app:app",
+      "--host", "0.0.0.0",
+      "--port", "8080",
+      "--log-level", "warning"
+    ]
+    ports:
+      - "${DASHBOARD_PORT:-8080}:8080"
+    volumes:
+      - ./dashboard:/app/dashboard  # live reload — template changes need no rebuild
+      - ./invoices:/app/invoices    # rw — dashboard moves PDFs to export/ on approval
+      - ./output:/app/output        # rw — dashboard writes export files + reads pipeline.db
+    environment:
+      OUTPUT_DIR:   /app/output
+      INVOICES_DIR: /app/invoices
+      EXPORT_DIR:   /app/output/export
+    restart: unless-stopped
+    profiles: []    # always available
+
+
+  # -------------------------------------------------------------------------
+  # Optional: Ollama as a sidecar container
+  # Activate with:  docker compose --profile with-ollama up
+  #
+  # After starting, pull your model once:
+  #   docker compose exec ollama ollama pull llama3.2
+  # Then run the pipeline pointing at the sidecar:
+  #   docker compose --profile with-ollama run --rm \
+  #     -e LLM_BASE_URL=http://ollama:11434/v1 pipeline process /app/invoices
+  # -------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    profiles: [with-ollama]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    # Uncomment to use NVIDIA GPU:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+
+volumes:
+  # Docling layout + OCR models (~1 GB total, downloaded on first use)
+  docling-models:
+    driver: local
+
+  # Ollama LLM models (only used with 'with-ollama' profile)
+  ollama-models:
+    driver: local

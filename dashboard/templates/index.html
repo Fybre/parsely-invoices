@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice Pipeline Dashboard</title>
+<style>
+/* ── Reset & Variables ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --hdr-h:     56px;
+  --side-w:    300px;
+  --bg:        #f0f2f5;
+  --card:      #ffffff;
+  --sidebar:   #1a2035;
+  --side-item: #242d47;
+  --side-sel:  #2e3f6e;
+  --side-hov:  #1f2d4a;
+  --border:    #e2e6ea;
+  --text:      #1c2533;
+  --muted:     #6b7280;
+  --ok:        #16a34a;
+  --warn:      #d97706;
+  --err:       #dc2626;
+  --info:      #2563eb;
+  --ok-bg:     #dcfce7;
+  --warn-bg:   #fef3c7;
+  --err-bg:    #fee2e2;
+  --info-bg:   #dbeafe;
+  --accent:    #3b5bdb;
+  --exported:  #7c3aed;
+  --exported-bg: #ede9fe;
+  --radius:    8px;
+  --shadow:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+}
+
+/* ── Layout ────────────────────────────────────────────────────────────── */
+html, body { height: 100%; }
+body {
+  height: 100vh;
+  height: 100dvh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+header {
+  height: var(--hdr-h);
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 24px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow);
+  z-index: 10;
+}
+
+.app-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.app-title svg { opacity: .8; }
+.build-tag {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.stats-bar {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  align-items: center;
+}
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity .1s;
+}
+.stat-chip:hover { opacity: .8; }
+.stat-chip .num { font-size: 14px; font-weight: 700; }
+.stat-chip.review  { color: var(--warn);     background: var(--warn-bg);     border-color: #fde68a; }
+.stat-chip.ready   { color: var(--ok);       background: var(--ok-bg);       border-color: #bbf7d0; }
+.stat-chip.exported{ color: var(--exported); background: var(--exported-bg); border-color: #c4b5fd; }
+.stat-chip.total   { color: var(--info);     background: var(--info-bg);     border-color: #bfdbfe; }
+
+.live-badge {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .5; transform: scale(.8); }
+}
+
+/* ── Body layout ────────────────────────────────────────────────────────── */
+.body-wrap {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+aside {
+  width: var(--side-w);
+  background: var(--sidebar);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Status filter tabs */
+.side-tabs {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.side-tab {
+  flex: 1;
+  padding: 8px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  color: rgba(255,255,255,.4);
+  border-bottom: 2px solid transparent;
+  transition: color .1s, border-color .1s;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  white-space: nowrap;
+}
+.side-tab:hover { color: rgba(255,255,255,.7); }
+.side-tab.active {
+  color: #e2e8f0;
+  border-bottom-color: var(--accent);
+}
+.side-tab .tab-count {
+  display: inline-block;
+  margin-left: 3px;
+  padding: 0 4px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.6);
+  min-width: 16px;
+  text-align: center;
+}
+.side-tab.active .tab-count { background: var(--accent); color: #fff; }
+
+.side-search {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  flex-shrink: 0;
+}
+.side-search input {
+  width: 100%;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 7px 10px;
+  font-size: 12px;
+  outline: none;
+}
+.side-search input::placeholder { color: rgba(255,255,255,.35); }
+.side-search input:focus { border-color: var(--accent); background: rgba(255,255,255,.12); }
+
+.side-list {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.15) transparent;
+}
+.side-list::-webkit-scrollbar { width: 4px; }
+.side-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+
+.side-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  cursor: pointer;
+  transition: background .1s;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.side-item:hover  { background: var(--side-hov); }
+.side-item.active { background: var(--side-sel); border-left: 3px solid var(--accent); }
+
+.side-item-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.side-status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.side-status-dot.needs_review { background: var(--warn); }
+.side-status-dot.ready        { background: var(--ok); }
+.side-status-dot.exported     { background: #7c3aed; opacity: .6; }
+
+.side-inv-num {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-total {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.side-supplier {
+  font-size: 11px;
+  color: #64748b;
+  padding-left: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-date {
+  font-size: 10px;
+  color: #475569;
+  padding-left: 15px;
+}
+
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: rgba(255,255,255,.3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* ── Main content ───────────────────────────────────────────────────────── */
+main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── PDF panel ──────────────────────────────────────────────────────────── */
+.pdf-panel {
+  width: 42%;
+  min-width: 200px;
+  max-width: 75%;
+  min-height: 0;
+  background: #d1d5db;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: #9ca3af transparent;
+  flex-shrink: 0;
+}
+
+/* ── Resize handle ──────────────────────────────────────────────────────── */
+.panel-resizer {
+  width: 5px;
+  min-height: 0;
+  background: var(--border);
+  cursor: col-resize;
+  flex-shrink: 0;
+  position: relative;
+  transition: background .15s;
+  user-select: none;
+}
+.panel-resizer:hover,
+.panel-resizer.dragging { background: var(--accent); }
+.panel-resizer::after {
+  content: '';
+  position: absolute;
+  inset: 0 -5px;  /* widen hit area without affecting layout */
+  z-index: 1;
+}
+.pdf-panel::-webkit-scrollbar { width: 6px; }
+.pdf-panel::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
+
+.pdf-toolbar {
+  background: #374151;
+  color: #e2e8f0;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.pdf-filename {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pdf-pages-count { color: #9ca3af; white-space: nowrap; }
+
+.pdf-pages { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.pdf-page {
+  background: #fff;
+  box-shadow: var(--shadow-md);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.pdf-page img { width: 100%; display: block; }
+.pdf-page-label {
+  background: #374151;
+  color: #9ca3af;
+  font-size: 10px;
+  text-align: center;
+  padding: 3px;
+}
+
+.pdf-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #6b7280;
+  padding: 40px;
+  text-align: center;
+}
+.pdf-placeholder svg { opacity: .3; }
+.pdf-placeholder p { font-size: 12px; line-height: 1.5; }
+
+/* ── Data panel ─────────────────────────────────────────────────────────── */
+.data-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.data-panel::-webkit-scrollbar { width: 6px; }
+.data-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.no-selection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--muted);
+  text-align: center;
+  padding: 40px;
+}
+.no-selection svg { opacity: .25; }
+.no-selection h3 { font-size: 15px; font-weight: 600; color: var(--text); }
+.no-selection p  { font-size: 12px; line-height: 1.6; }
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+.card {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.card-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.card-scroll::-webkit-scrollbar { width: 5px; }
+.card-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.card.scroll-card.line-items-card .card-scroll { max-height: 340px; }
+.card.scroll-card.disc-card .card-scroll        { max-height: 260px; }
+
+.card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  background: #fafbfc;
+}
+.card-header .badge {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.badge.ok       { background: var(--ok-bg);       color: var(--ok);       }
+.badge.warn     { background: var(--warn-bg);      color: var(--warn);     }
+.badge.err      { background: var(--err-bg);       color: var(--err);      }
+.badge.info     { background: var(--info-bg);      color: var(--info);     }
+.badge.exported { background: var(--exported-bg);  color: var(--exported); }
+.badge.muted    { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+
+/* ── Workflow action bar ─────────────────────────────────────────────────── */
+.action-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  row-gap: 8px;
+  padding: 10px 14px;
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  flex-shrink: 0;
+}
+.action-bar .status-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid;
+}
+.status-pill.needs_review { background: var(--warn-bg);     color: var(--warn);     border-color: #fde68a; }
+.status-pill.ready        { background: var(--ok-bg);       color: var(--ok);       border-color: #bbf7d0; }
+.status-pill.exported     { background: var(--exported-bg); color: var(--exported); border-color: #c4b5fd; }
+.status-pill-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* Button group — right-aligned, wraps as a unit when space is tight */
+.action-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  white-space: nowrap;
+}
+.btn:hover   { opacity: .88; }
+.btn:active  { transform: scale(.97); }
+.btn:disabled{ opacity: .45; cursor: not-allowed; transform: none; }
+
+.btn-export {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-flag {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid #fde68a;
+}
+.btn-reprocess {
+  background: #f1f5f9;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.btn-delete {
+  background: var(--err-bg);
+  color: var(--err);
+  border: 1px solid #fca5a5;
+}
+.action-sep {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+.btn-exported-label {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── Status banner (extraction quality) ─────────────────────────────────── */
+.status-banner {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid;
+}
+.status-banner.ok   { background: var(--ok-bg);   color: var(--ok);   border-color: #86efac; }
+.status-banner.warn { background: var(--warn-bg); color: var(--warn); border-color: #fcd34d; }
+.status-banner.err  { background: var(--err-bg);  color: var(--err);  border-color: #fca5a5; }
+.status-banner .meta { margin-left: auto; font-weight: 400; color: var(--muted); font-size: 11px; }
+
+/* ── Grid for key-value pairs ───────────────────────────────────────────── */
+.kv-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.kv-item {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.kv-item:nth-child(even) { border-right: none; }
+.kv-item:nth-last-child(-n+2) { border-bottom: none; }
+.kv-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
+.kv-value { font-size: 13px; color: var(--text); font-weight: 500; word-break: break-word; }
+.kv-value.large { font-size: 18px; font-weight: 700; color: var(--accent); }
+.kv-value.missing { color: #cbd5e1; font-style: italic; font-weight: 400; }
+.kv-value .match-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.match-tag.ok   { background: var(--ok-bg);   color: var(--ok);   }
+.match-tag.warn { background: var(--warn-bg); color: var(--warn); }
+
+/* ── Notes card ─────────────────────────────────────────────────────────── */
+.notes-area {
+  width: 100%;
+  border: none;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text);
+  padding: 12px 16px;
+  background: transparent;
+  min-height: 60px;
+  outline: none;
+}
+.notes-area:focus { background: #fafbfc; }
+.notes-save-row {
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  background: #fafbfc;
+}
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 4px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+}
+.btn-sm:hover { background: var(--bg); }
+
+/* ── Sidebar actions footer ─────────────────────────────────────────────── */
+.side-actions {
+  padding: 10px 12px;
+  border-top: 1px solid rgba(255,255,255,.1);
+  flex-shrink: 0;
+}
+.btn-export-all {
+  width: 100%;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Line items table ───────────────────────────────────────────────────── */
+.items-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.items-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: #fafbfc;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  white-space: nowrap;
+}
+.items-table th:last-child,
+.items-table td:last-child { text-align: right; }
+.items-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.items-table tr:last-child td { border-bottom: none; }
+.items-table tr:hover td { background: var(--bg); }
+.items-table .sku  { font-size: 11px; color: var(--muted); }
+.items-table .mono { font-family: 'SF Mono', 'Fira Code', monospace; }
+.items-table .total-row td {
+  font-weight: 700;
+  background: #fafbfc;
+  border-top: 2px solid var(--border);
+}
+td.match-ok   { color: var(--ok); }
+td.match-warn { color: var(--warn); }
+td.match-none { color: var(--muted); font-style: italic; }
+
+/* ── Discrepancies ──────────────────────────────────────────────────────── */
+.disc-list { display: flex; flex-direction: column; gap: 0; }
+.disc-item {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.disc-item:last-child { border-bottom: none; }
+.disc-icon {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 800;
+  margin-top: 1px;
+}
+.disc-icon.err  { background: var(--err-bg);  color: var(--err);  }
+.disc-icon.warn { background: var(--warn-bg); color: var(--warn); }
+.disc-icon.info { background: var(--info-bg); color: var(--info); }
+.disc-body { flex: 1; }
+.disc-field { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 2px; }
+.disc-desc  { font-size: 12px; color: var(--text); line-height: 1.4; }
+
+/* ── Meta footer ────────────────────────────────────────────────────────── */
+.meta-footer {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  gap: 16px;
+  padding: 10px 16px;
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.meta-footer span { display: flex; align-items: center; gap: 5px; }
+
+/* ── Loading spinner ────────────────────────────────────────────────────── */
+.spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex: 1;
+  padding: 40px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.spin-ring {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Scrollbar global ───────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ── Edit mode ──────────────────────────────────────────────────────────── */
+.edit-input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: #fff;
+  outline: none;
+}
+.edit-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59,91,219,.12);
+}
+.btn-edit {
+  background: #f1f5f9;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-save-edit  { background: var(--accent); color: #fff; }
+.btn-cancel-edit { background: #f1f5f9; color: var(--muted); border: 1px solid var(--border); }
+
+.corrected-tag {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #dbeafe;
+  color: var(--info);
+  margin-left: 5px;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  vertical-align: middle;
+}
+
+/* Editable line items table */
+.edit-li-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.edit-li-table th {
+  text-align: left;
+  padding: 7px 8px;
+  background: #fafbfc;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  white-space: nowrap;
+}
+.edit-li-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.edit-li-table tr:last-child td { border-bottom: none; }
+.edit-li-table .edit-input { font-size: 12px; }
+.btn-row-del {
+  background: none;
+  border: none;
+  color: var(--err);
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1;
+  opacity: .65;
+}
+.btn-row-del:hover { opacity: 1; background: var(--err-bg); }
+.btn-add-row {
+  margin: 8px 12px;
+  padding: 6px 12px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px dashed var(--border);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  width: calc(100% - 24px);
+  text-align: center;
+}
+.btn-add-row:hover { background: var(--bg); color: var(--text); border-color: var(--accent); }
+
+.edit-mode-notice {
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--info);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<header>
+  <div class="app-title">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+    Invoice Pipeline <span class="build-tag">build 2026-02-25-d</span>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-chip review" onclick="setTab('needs_review')" title="Filter: Needs Review">
+      <span class="num" id="stat-review">—</span>
+      <span>Needs Review</span>
+    </div>
+    <div class="stat-chip ready" onclick="setTab('ready')" title="Filter: Ready">
+      <span class="num" id="stat-ready">—</span>
+      <span>Ready</span>
+    </div>
+    <div class="stat-chip exported" onclick="setTab('exported')" title="Filter: Exported">
+      <span class="num" id="stat-exported">—</span>
+      <span>Exported</span>
+    </div>
+    <div class="stat-chip total" onclick="setTab(null)" title="Show all">
+      <span class="num" id="stat-total">—</span>
+      <span>Total</span>
+    </div>
+  </div>
+  <div class="live-badge">
+    <div class="live-dot" id="live-dot"></div>
+    <span id="live-label">Connecting…</span>
+  </div>
+</header>
+
+<div class="body-wrap">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+  <aside>
+    <div class="side-tabs">
+      <div class="side-tab active" data-tab="all"          onclick="setTab(null)">All<span class="tab-count" id="tab-count-all">—</span></div>
+      <div class="side-tab"        data-tab="needs_review" onclick="setTab('needs_review')">Review<span class="tab-count" id="tab-count-review">—</span></div>
+      <div class="side-tab"        data-tab="ready"        onclick="setTab('ready')">Ready<span class="tab-count" id="tab-count-ready">—</span></div>
+      <div class="side-tab"        data-tab="exported"     onclick="setTab('exported')">Done<span class="tab-count" id="tab-count-exported">—</span></div>
+    </div>
+    <div class="side-search">
+      <input type="text" id="search-input" placeholder="Search invoices…" oninput="filterList()">
+    </div>
+    <div class="side-list" id="side-list">
+      <div class="empty-state">Loading invoices…</div>
+    </div>
+    <div class="side-actions" id="side-actions" style="display:none">
+      <button class="btn btn-export-all" id="export-all-btn" onclick="exportAll()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Export All Ready (<span id="export-all-count">0</span>)
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main ────────────────────────────────────────────────────────── -->
+  <main>
+    <!-- PDF Panel -->
+    <div class="pdf-panel" id="pdf-panel">
+      <div class="pdf-placeholder" id="pdf-placeholder">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <p>Select an invoice from the sidebar<br>to view the original document.</p>
+      </div>
+    </div>
+
+    <!-- Drag handle -->
+    <div class="panel-resizer" id="panel-resizer" title="Drag to resize"></div>
+
+    <!-- Data Panel -->
+    <div class="data-panel" id="data-panel">
+      <div class="no-selection">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <h3>No invoice selected</h3>
+        <p>Choose an invoice from the sidebar to see<br>extracted data, matched POs, and discrepancies.</p>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════════
+// State
+// ════════════════════════════════════════════════════════════════════════════
+const S = {
+  invoices:         [],    // full list from /api/invoices (for current tab)
+  filtered:         [],    // after search filter
+  selected:         null,  // stem string
+  activeTab:        null,  // null = all, or 'needs_review'|'ready'|'exported'
+  lastUpdated:      null,
+  pollErrors:       0,
+  stats:            {},
+  _autoSelectFirst: false, // set by setTab() — triggers first-item select after next poll
+  editing:          false, // edit mode active
+  editLineItems:    [],    // working copy of line items in edit mode
+  currentResult:    null,  // last-loaded full result (for edit / re-render)
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// API helpers
+// ════════════════════════════════════════════════════════════════════════════
+const api = {
+  get:    url           => fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+  post:   url           => fetch(url, { method: 'POST' }).then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.detail || r.status); }); return r.json(); }),
+  patch:  (url, body)   => fetch(url, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.detail || r.status); }); return r.json(); }),
+  del:    url           => fetch(url, { method: 'DELETE' }).then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.detail || r.status); }); return r.json(); }),
+
+  stats:   ()     => api.get('/api/stats'),
+  list:    (tab)  => api.get('/api/invoices' + (tab ? `?status=${encodeURIComponent(tab)}` : '')),
+  detail:  stem   => api.get(`/api/invoices/${encodeURIComponent(stem)}`),
+  pages:   stem   => api.get(`/api/invoices/${encodeURIComponent(stem)}/pages`),
+  export:        stem   => api.post(`/api/invoices/${encodeURIComponent(stem)}/export`),
+  reprocess:     stem   => api.post(`/api/invoices/${encodeURIComponent(stem)}/reprocess`),
+  deleteInvoice: stem   => api.del(`/api/invoices/${encodeURIComponent(stem)}`),
+  bulkExport: ()        => api.post('/api/bulk-export'),
+  setStatus: (stem, status) => api.patch(`/api/invoices/${encodeURIComponent(stem)}/status`, { status }),
+  saveNotes:       (stem, notes) => api.patch(`/api/invoices/${encodeURIComponent(stem)}/notes`, { notes }),
+  saveCorrections: (stem, corr)  => api.patch(`/api/invoices/${encodeURIComponent(stem)}/corrections`, { corrections: corr }),
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// Polling
+// ════════════════════════════════════════════════════════════════════════════
+async function poll() {
+  try {
+    const [stats, invoices] = await Promise.all([api.stats(), api.list(S.activeTab)]);
+
+    const hadNone    = S.invoices.length === 0;
+    S.invoices       = invoices;
+    S.stats          = stats;
+    S.pollErrors     = 0;
+    S.lastUpdated    = new Date();
+
+    renderStats(stats);
+    filterList();  // updates S.filtered
+
+    // Initial page load: auto-select the first invoice
+    if (hadNone && !S.selected && S.filtered.length > 0) {
+      selectInvoice(S.filtered[0].stem);
+    }
+
+    // Tab switch: auto-select the first invoice in the new queue
+    if (S._autoSelectFirst) {
+      S._autoSelectFirst = false;
+      if (S.filtered.length > 0) selectInvoice(S.filtered[0].stem);
+    }
+
+    updateLiveBadge(true);
+  } catch (e) {
+    S.pollErrors++;
+    updateLiveBadge(false);
+  }
+}
+
+function updateLiveBadge(ok) {
+  const dot   = document.getElementById('live-dot');
+  const label = document.getElementById('live-label');
+  if (!ok) { dot.style.background = 'var(--err)'; label.textContent = 'Connection error'; return; }
+  dot.style.background = 'var(--ok)';
+  const sec = S.lastUpdated ? Math.round((Date.now() - S.lastUpdated) / 1000) : 0;
+  label.textContent = sec < 5 ? 'Live' : `Updated ${sec}s ago`;
+}
+
+setInterval(() => S.lastUpdated && updateLiveBadge(true), 5000);
+
+// ════════════════════════════════════════════════════════════════════════════
+// Tab switching
+// ════════════════════════════════════════════════════════════════════════════
+function setTab(tab) {
+  S.activeTab        = tab;
+  S.selected         = null;
+  S._autoSelectFirst = true;  // auto-select first invoice after poll refreshes
+
+  document.querySelectorAll('.side-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === (tab || 'all'));
+  });
+
+  document.getElementById('pdf-panel').innerHTML  = placeholderHtml();
+  document.getElementById('data-panel').innerHTML = noSelectionHtml();
+
+  poll();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Stats bar
+// ════════════════════════════════════════════════════════════════════════════
+function renderStats(stats) {
+  setText('stat-review',   stats.needs_review ?? '—');
+  setText('stat-ready',    stats.ready        ?? '—');
+  setText('stat-exported', stats.exported     ?? '—');
+  setText('stat-total',    stats.total        ?? '—');
+
+  // Tab counts
+  setText('tab-count-all',      stats.total        ?? '—');
+  setText('tab-count-review',   stats.needs_review ?? '—');
+  setText('tab-count-ready',    stats.ready        ?? '—');
+  setText('tab-count-exported', stats.exported     ?? '—');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Sidebar list
+// ════════════════════════════════════════════════════════════════════════════
+function filterList() {
+  const q = document.getElementById('search-input').value.toLowerCase().trim();
+  S.filtered = q
+    ? S.invoices.filter(inv =>
+        [inv.invoice_number, inv.supplier_name, inv.matched_supplier,
+         inv.po_number, inv.matched_po, inv.stem]
+          .some(v => v && v.toLowerCase().includes(q))
+      )
+    : S.invoices;
+  renderList();
+}
+
+function renderList() {
+  const el = document.getElementById('side-list');
+  if (!S.filtered.length) {
+    el.innerHTML = `<div class="empty-state">${
+      S.invoices.length ? 'No results match your search.' : 'No invoices in this view.'
+    }</div>`;
+  } else {
+    el.innerHTML = S.filtered.map(inv => sideItemHtml(inv)).join('');
+    if (S.selected) {
+      const active = el.querySelector(`[data-stem="${CSS.escape(S.selected)}"]`);
+      if (active) active.classList.add('active');
+    }
+  }
+
+  // Show Export All button only in the Ready tab when there are items
+  const actionsEl  = document.getElementById('side-actions');
+  const countEl    = document.getElementById('export-all-count');
+  const showExport = S.activeTab === 'ready' && S.filtered.length > 0;
+  if (actionsEl) actionsEl.style.display = showExport ? '' : 'none';
+  if (countEl)   countEl.textContent     = S.filtered.length;
+}
+
+function sideItemHtml(inv) {
+  const status   = inv.status || 'needs_review';
+  const label    = inv.invoice_number ?? inv.stem ?? '(unknown)';
+  const supplier = inv.matched_supplier ?? inv.supplier_name ?? '—';
+  const total    = inv.total != null ? `${inv.currency || ''} ${fmt(inv.total)}`.trim() : '';
+  const date     = inv.invoice_date ?? '';
+
+  return `<div class="side-item" data-stem="${esc(inv.stem)}" onclick="selectInvoice('${esc(inv.stem)}')">
+    <div class="side-item-top">
+      <div class="side-status-dot ${status}"></div>
+      <span class="side-inv-num">${esc(label)}</span>
+      ${total ? `<span class="side-total">${esc(total)}</span>` : ''}
+    </div>
+    <div class="side-supplier">${esc(supplier)}</div>
+    ${date ? `<div class="side-date">${esc(date)}</div>` : ''}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Invoice selection
+// ════════════════════════════════════════════════════════════════════════════
+async function selectInvoice(stem) {
+  if (S.selected === stem) return;
+  if (S.editing) {
+    if (!confirm('You have unsaved edits. Leave without saving?')) return;
+    S.editing = false;
+  }
+  S.selected = stem;
+
+  document.querySelectorAll('.side-item').forEach(el =>
+    el.classList.toggle('active', el.dataset.stem === stem)
+  );
+
+  document.getElementById('pdf-panel').innerHTML  = spinnerHtml('Rendering PDF…');
+  document.getElementById('data-panel').innerHTML = spinnerHtml('Loading extraction…');
+
+  try {
+    const [result, pages] = await Promise.all([api.detail(stem), api.pages(stem)]);
+    renderPdf(result, pages);
+    renderData(result);
+  } catch (e) {
+    document.getElementById('pdf-panel').innerHTML  = errorHtml('Could not load PDF.');
+    document.getElementById('data-panel').innerHTML = errorHtml('Could not load result: ' + e.message);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Auto-advance after workflow actions
+// ════════════════════════════════════════════════════════════════════════════
+async function autoAdvance(stem, prevIndex) {
+  const stillInList = S.filtered.some(inv => inv.stem === stem);
+
+  if (stillInList) {
+    // Item is still in this queue (e.g. "all" tab, or status change within same queue).
+    // Re-fetch and re-render to reflect the new status without re-triggering the guard.
+    try {
+      const [result, pages] = await Promise.all([api.detail(stem), api.pages(stem)]);
+      renderPdf(result, pages);
+      renderData(result);
+    } catch (e) {
+      document.getElementById('data-panel').innerHTML = errorHtml('Could not reload: ' + e.message);
+    }
+  } else if (S.filtered.length > 0) {
+    // Item left the current queue — advance to the next position (or last if at end).
+    const nextIndex = Math.min(Math.max(prevIndex, 0), S.filtered.length - 1);
+    S.selected = null;  // clear so selectInvoice guard doesn't short-circuit
+    selectInvoice(S.filtered[nextIndex].stem);
+  } else {
+    // Queue is now empty.
+    S.selected = null;
+    document.getElementById('pdf-panel').innerHTML  = placeholderHtml();
+    document.getElementById('data-panel').innerHTML = noSelectionHtml();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PDF panel
+// ════════════════════════════════════════════════════════════════════════════
+function renderPdf(result, pages) {
+  const panel    = document.getElementById('pdf-panel');
+  const filename = result.source_file ? result.source_file.split('/').pop() : '(unknown)';
+
+  if (!pages || pages.length === 0) {
+    panel.innerHTML = `
+      <div class="pdf-toolbar">
+        <span class="pdf-filename">${esc(filename)}</span>
+        ${result.status === 'exported' ? `<span style="font-size:10px;color:#9ca3af">moved to export</span>` : ''}
+      </div>
+      <div class="pdf-placeholder" style="flex:1">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <p>${result.status === 'exported' ? 'PDF is in the export folder.' : 'PDF not available.'}</p>
+      </div>`;
+    return;
+  }
+
+  const pagesHtml = pages.map(p => `
+    <div class="pdf-page">
+      <img src="data:${p.mime};base64,${p.data}" alt="Page ${p.page}" loading="lazy">
+      ${pages.length > 1 ? `<div class="pdf-page-label">Page ${p.page}</div>` : ''}
+    </div>`).join('');
+
+  panel.innerHTML = `
+    <div class="pdf-toolbar">
+      <span class="pdf-filename">${esc(filename)}</span>
+      <span class="pdf-pages-count">${pages.length} page${pages.length !== 1 ? 's' : ''}</span>
+    </div>
+    <div class="pdf-pages">${pagesHtml}</div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Data panel
+// ════════════════════════════════════════════════════════════════════════════
+function renderData(result) {
+  S.currentResult = result;
+  const { inv, sup, corr } = mergeCorrections(result);
+  const bill  = inv.bill_to   || {};
+  const ms    = result.matched_supplier || null;
+  const mp    = result.matched_po       || null;
+  const disc  = result.discrepancies    || [];
+  const errs  = disc.filter(d => d.severity === 'error');
+  const warns = disc.filter(d => d.severity === 'warning');
+
+  const statusCls = errs.length  > 0 ? 'err' : warns.length > 0 ? 'warn' : 'ok';
+  const statusIcon= errs.length  > 0 ? '✗' : warns.length > 0 ? '⚠' : '✓';
+  const statusTxt = errs.length  > 0
+    ? `${errs.length} error${errs.length > 1 ? 's' : ''}, ${warns.length} warning${warns.length !== 1 ? 's' : ''}`
+    : warns.length > 0
+    ? `${warns.length} warning${warns.length > 1 ? 's' : ''}`
+    : 'All checks passed';
+
+  const totalDisplay = inv.total != null ? `${inv.currency || ''} ${fmt(inv.total)}`.trim() : null;
+
+  document.getElementById('data-panel').innerHTML = `
+
+    ${actionBarHtml(result)}
+
+    <!-- Extraction quality banner -->
+    <div class="status-banner ${statusCls}">
+      <span style="font-size:16px">${statusIcon}</span>
+      <span>${statusTxt}</span>
+      ${result.processing_time_seconds != null
+        ? `<span class="meta">Processed in ${result.processing_time_seconds}s · ${esc(result.llm_model_used || '')}</span>`
+        : ''}
+    </div>
+
+    <!-- Invoice details -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+          <line x1="1" y1="10" x2="23" y2="10"/>
+        </svg>
+        Invoice Details
+      </div>
+      <div class="kv-grid">
+        ${kv('Invoice Number', inv.invoice_number, !!corr.invoice_number)}
+        ${kv('Invoice Date',   inv.invoice_date,   !!corr.invoice_date)}
+        ${kv('Due Date',       inv.due_date,        !!corr.due_date)}
+        ${kv('PO Number',      inv.po_number,       !!corr.po_number)}
+        ${kv('Currency',       inv.currency,        !!corr.currency)}
+        ${kv('Subtotal',       inv.subtotal   != null ? fmtMoney(inv.currency, inv.subtotal)   : null, !!corr.subtotal)}
+        ${kv('Tax',            inv.tax_amount != null ? fmtMoney(inv.currency, inv.tax_amount) : null, !!corr.tax_amount)}
+        ${kvBig('Total',       totalDisplay, !!corr.total)}
+      </div>
+    </div>
+
+    <!-- Supplier -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+        </svg>
+        Supplier
+        ${ms
+          ? `<span class="badge ok">${esc(ms.supplier_name)}</span>`
+          : `<span class="badge warn">Unmatched</span>`}
+      </div>
+      <div class="kv-grid">
+        ${kv('Extracted Name', sup.name,  !!corr.supplier_name)}
+        ${kv('ABN / Tax ID',   sup.abn,   !!corr.supplier_abn)}
+        ${kv('Email',          sup.email, !!corr.supplier_email)}
+        ${kv('Phone',          sup.phone, !!corr.supplier_phone)}
+        ${ms ? kv('Matched ID',        ms.supplier_id)                                          : ''}
+        ${ms ? kv('Match Confidence',  ms.confidence != null ? ms.confidence + '%' : null)      : ''}
+        ${sup.address ? kvWide('Address', sup.address, !!corr.supplier_address) : ''}
+      </div>
+    </div>
+
+    ${bill.name || bill.address ? `
+    <!-- Bill To -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Bill To
+      </div>
+      <div class="kv-grid">
+        ${kv('Name',  bill.name)}
+        ${kv('Email', bill.email)}
+        ${bill.address ? kvWide('Address', bill.address) : ''}
+      </div>
+    </div>` : ''}
+
+    ${lineItemsCard(inv, mp, corr)}
+    ${mp ? poMatchCard(mp) : ''}
+    ${discCard(disc)}
+    ${notesCard(result)}
+
+    <div class="meta-footer">
+      <span>📁 ${esc((result.source_file || '').split('/').pop() || '—')}</span>
+      ${result.processed_at ? `<span>🕐 ${fmtDate(result.processed_at)}</span>` : ''}
+      ${result.exported_at  ? `<span>✅ Exported ${fmtDate(result.exported_at)}</span>` : ''}
+      ${result.raw_text_length ? `<span>📝 ${result.raw_text_length.toLocaleString()} chars</span>` : ''}
+      ${result.llm_model_used  ? `<span>🤖 ${esc(result.llm_model_used)}</span>` : ''}
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Action bar (workflow controls)
+// ════════════════════════════════════════════════════════════════════════════
+function actionBarHtml(result) {
+  const status = result.status || 'needs_review';
+
+  const pillLabel = {
+    needs_review: '⚠ Needs Review',
+    ready:        '✓ Ready',
+    exported:     '↗ Exported',
+  }[status] || status;
+
+  let actions = '';
+  if (status === 'exported') {
+    actions = `<span class="btn-exported-label">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      Exported ${result.exported_at ? fmtDate(result.exported_at) : ''}
+    </span>`;
+  } else {
+    // Reprocess button
+    actions += `<button class="btn btn-reprocess" onclick="reprocessInvoice('${esc(result.stem)}')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 1 0 .49-4"/>
+      </svg>
+      Reprocess
+    </button>`;
+    // Delete button
+    actions += `<button class="btn btn-delete" onclick="deleteInvoice('${esc(result.stem)}')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+        <path d="M10 11v6"/><path d="M14 11v6"/>
+        <path d="M9 6V4h6v2"/>
+      </svg>
+      Delete
+    </button>`;
+    // Edit button
+    actions += `<button class="btn btn-edit" onclick="startEdit(S.currentResult)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+      Edit
+    </button>`;
+    // Visual separator between destructive/edit and workflow actions
+    actions += `<div class="action-sep"></div>`;
+    // Flag / unflag button
+    if (status === 'ready') {
+      actions += `<button class="btn btn-flag" onclick="flagInvoice('${esc(result.stem)}')">
+        ⚑ Flag for Review
+      </button>`;
+    } else {
+      actions += `<button class="btn btn-flag" onclick="clearFlag('${esc(result.stem)}')">
+        ✓ Mark Ready
+      </button>`;
+    }
+    // Export button
+    actions += `<button class="btn btn-export" onclick="exportInvoice('${esc(result.stem)}')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      Export Invoice
+    </button>`;
+  }
+
+  return `<div class="action-bar">
+    <div class="status-pill ${status}">
+      <div class="status-pill-dot"></div>
+      ${pillLabel}
+    </div>
+    <div class="action-btns">${actions}</div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Workflow actions
+// ════════════════════════════════════════════════════════════════════════════
+async function exportInvoice(stem) {
+  const btn = document.querySelector('.btn-export');
+  if (btn) { btn.disabled = true; btn.textContent = 'Exporting…'; }
+  const prevIndex = S.filtered.findIndex(inv => inv.stem === stem);
+  try {
+    await api.export(stem);
+    await poll();               // refreshes S.filtered and sidebar counts
+    await autoAdvance(stem, prevIndex);
+  } catch (e) {
+    alert('Export failed: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Export Invoice'; }
+  }
+}
+
+async function flagInvoice(stem) {
+  const prevIndex = S.filtered.findIndex(inv => inv.stem === stem);
+  try {
+    await api.setStatus(stem, 'needs_review');
+    await poll();
+    await autoAdvance(stem, prevIndex);
+  } catch (e) {
+    alert('Failed to flag invoice: ' + e.message);
+  }
+}
+
+async function clearFlag(stem) {
+  const prevIndex = S.filtered.findIndex(inv => inv.stem === stem);
+  try {
+    await api.setStatus(stem, 'ready');
+    await poll();
+    await autoAdvance(stem, prevIndex);
+  } catch (e) {
+    alert('Failed to update status: ' + e.message);
+  }
+}
+
+async function exportAll() {
+  const count = S.filtered.length;
+  if (!count) return;
+  if (!confirm(`Export all ${count} ready invoice${count !== 1 ? 's' : ''}? This will move their PDFs to the export folder.`)) return;
+
+  const btn = document.getElementById('export-all-btn');
+  if (btn) { btn.disabled = true; btn.textContent = `Exporting ${count}…`; }
+
+  try {
+    const result = await api.bulkExport();
+    await poll();  // refresh counts + list (ready queue now empty)
+    S.selected = null;
+    document.getElementById('pdf-panel').innerHTML  = placeholderHtml();
+    document.getElementById('data-panel').innerHTML = `<div class="no-selection">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      <h3>${result.exported} invoice${result.exported !== 1 ? 's' : ''} exported</h3>
+      <p>All ready invoices have been moved to the export folder.</p>
+      ${result.errors && result.errors.length ? `<p style="color:var(--err);font-size:11px;margin-top:8px">${result.errors.length} error${result.errors.length !== 1 ? 's' : ''} — check logs.</p>` : ''}
+    </div>`;
+  } catch (e) {
+    alert('Bulk export failed: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = `Export All Ready (${count})`; }
+  }
+}
+
+async function reprocessInvoice(stem) {
+  if (!confirm('Reprocess this invoice? It will be removed from the list and re-submitted to the LLM on the next pipeline cycle. It will reappear once processing is complete.')) return;
+  const btn = document.querySelector('.btn-reprocess');
+  if (btn) { btn.disabled = true; btn.textContent = 'Queuing…'; }
+  const prevIndex = S.filtered.findIndex(inv => inv.stem === stem);
+  try {
+    await api.reprocess(stem);
+    await poll();               // status resets to needs_review, list updates
+    await autoAdvance(stem, prevIndex);
+  } catch (e) {
+    alert('Reprocess failed: ' + e.message);
+    if (btn) { btn.disabled = false; }
+  }
+}
+
+async function deleteInvoice(stem) {
+  if (!confirm('Delete this invoice? The PDF and all extracted data will be permanently removed. This cannot be undone.')) return;
+  const btn = document.querySelector('.btn-delete');
+  if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+  const prevIndex = S.filtered.findIndex(inv => inv.stem === stem);
+  try {
+    await api.deleteInvoice(stem);
+    await poll();               // record removed from list
+    await autoAdvance(stem, prevIndex);
+  } catch (e) {
+    alert('Delete failed: ' + e.message);
+    if (btn) { btn.disabled = false; }
+  }
+}
+
+async function saveNotes(stem) {
+  const ta = document.getElementById('notes-textarea');
+  if (!ta) return;
+  const notes = ta.value;
+  try {
+    await api.saveNotes(stem, notes);
+    ta.style.borderColor = 'var(--ok)';
+    setTimeout(() => { if (ta) ta.style.borderColor = ''; }, 1500);
+  } catch (e) {
+    alert('Failed to save notes: ' + e.message);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Notes card
+// ════════════════════════════════════════════════════════════════════════════
+function notesCard(result) {
+  const notes  = result.notes || '';
+  const stem   = result.stem  || '';
+  if (result.status === 'exported' && !notes) return '';
+
+  return `<div class="card">
+    <div class="card-header">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+      Operator Notes
+    </div>
+    <textarea id="notes-textarea" class="notes-area"
+      placeholder="Add notes about this invoice…"
+      ${result.status === 'exported' ? 'readonly' : ''}
+    >${esc(notes)}</textarea>
+    ${result.status !== 'exported' ? `
+    <div class="notes-save-row">
+      <button class="btn-sm" onclick="saveNotes('${esc(stem)}')">Save Notes</button>
+    </div>` : ''}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Card renderers (unchanged)
+// ════════════════════════════════════════════════════════════════════════════
+function lineItemsCard(inv, mp, corr={}) {
+  const items = inv.line_items || [];
+  const liCorrected = !!corr.line_items;
+  if (!items.length) {
+    return `<div class="card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        Line Items
+        <span class="badge muted">None extracted</span>
+        ${liCorrected ? '<span class="corrected-tag" style="margin-left:4px">edited</span>' : ''}
+      </div>
+    </div>`;
+  }
+
+  const matchMap = {};
+  if (mp && mp.line_matches) {
+    mp.line_matches.forEach(m => { if (m.invoice_line_index != null) matchMap[m.invoice_line_index] = m; });
+  }
+
+  const hasSku   = items.some(i => i.sku);
+  const hasMatch = Object.keys(matchMap).length > 0;
+
+  const rows = items.map((item, idx) => {
+    const match  = matchMap[idx];
+    const rowCls = match ? (match.price_match && match.qty_match ? '' : 'match-warn') : '';
+    return `<tr>
+      ${hasSku ? `<td class="sku mono">${esc(item.sku || '')}</td>` : ''}
+      <td>${esc(item.description || '—')}</td>
+      <td class="mono">${item.quantity   != null ? item.quantity   : '—'}</td>
+      <td class="mono">${item.unit_price != null ? fmt(item.unit_price) : '—'}</td>
+      <td class="mono">${item.line_total != null ? fmt(item.line_total) : '—'}</td>
+      ${hasMatch ? `<td class="${match ? (rowCls ? 'match-warn' : 'match-ok') : 'match-none'}">
+        ${match ? (rowCls ? '⚠ Mismatch' : '✓') : '—'}
+      </td>` : ''}
+    </tr>`;
+  }).join('');
+
+  const totalRow = inv.total != null ? `
+    <tr class="total-row">
+      ${hasSku ? '<td></td>' : ''}
+      <td colspan="3" style="text-align:right;padding-right:12px">Total</td>
+      <td class="mono">${fmt(inv.total)}</td>
+      ${hasMatch ? '<td></td>' : ''}
+    </tr>` : '';
+
+  return `<div class="card scroll-card line-items-card">
+    <div class="card-header">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+        <line x1="8" y1="18" x2="21" y2="18"/>
+        <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+        <line x1="3" y1="18" x2="3.01" y2="18"/>
+      </svg>
+      Line Items
+      <span class="badge info">${items.length}</span>
+      ${liCorrected ? '<span class="corrected-tag" style="margin-left:4px">edited</span>' : ''}
+    </div>
+    <div class="card-scroll">
+      <table class="items-table">
+        <thead><tr>
+          ${hasSku ? '<th>SKU</th>' : ''}
+          <th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th>
+          ${hasMatch ? '<th>PO Match</th>' : ''}
+        </tr></thead>
+        <tbody>${rows}${totalRow}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function poMatchCard(mp) {
+  const unmatched = mp.unmatched_invoice_lines || [];
+  const matched   = (mp.line_matches || []).length;
+  const badgeCls  = unmatched.length > 0 ? 'warn' : 'ok';
+  const badgeTxt  = unmatched.length > 0 ? `${unmatched.length} unmatched` : `${matched} matched`;
+
+  return `<div class="card scroll-card disc-card">
+    <div class="card-header">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="9 11 12 14 22 4"/>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+      </svg>
+      PO Match
+      <span class="badge ${badgeCls}">${esc(badgeTxt)}</span>
+    </div>
+    <div class="kv-grid">
+      ${kv('PO Number',   mp.po_number)}
+      ${kv('Lines Matched', matched > 0 ? matched + ' of ' + ((mp.line_matches||[]).length + unmatched.length) : null)}
+      ${kv('PO Total',    mp.po_total != null ? fmt(mp.po_total) : null)}
+      ${kv('Amount Diff', mp.total_difference != null ? fmt(mp.total_difference) : null)}
+    </div>
+    ${unmatched.length ? `
+    <div style="padding:10px 16px;border-top:1px solid var(--border)">
+      <div class="kv-label" style="margin-bottom:6px">Unmatched Invoice Lines</div>
+      ${unmatched.map(u => `<div style="font-size:12px;color:var(--warn);padding:2px 0">⚠ ${esc(String(u))}</div>`).join('')}
+    </div>` : ''}
+  </div>`;
+}
+
+function discCard(disc) {
+  if (!disc.length) {
+    return `<div class="card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Discrepancies
+        <span class="badge ok">None ✓</span>
+      </div>
+    </div>`;
+  }
+
+  const errs  = disc.filter(d => d.severity === 'error').length;
+  const warns = disc.filter(d => d.severity === 'warning').length;
+  const label = [errs ? `${errs} error${errs>1?'s':''}` : '', warns ? `${warns} warning${warns>1?'s':''}` : ''].filter(Boolean).join(', ');
+
+  const items = disc.map(d => {
+    const cls  = d.severity === 'error' ? 'err' : d.severity === 'warning' ? 'warn' : 'info';
+    const icon = d.severity === 'error' ? '✗'   : d.severity === 'warning' ? '!'   : 'i';
+    return `<div class="disc-item">
+      <div class="disc-icon ${cls}">${icon}</div>
+      <div class="disc-body">
+        ${d.field ? `<div class="disc-field">${esc(d.field)}</div>` : ''}
+        <div class="disc-desc">${esc(d.description || '')}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="card scroll-card disc-card">
+    <div class="card-header">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      Discrepancies
+      <span class="badge ${errs > 0 ? 'err' : 'warn'}">${label}</span>
+    </div>
+    <div class="card-scroll">
+      <div class="disc-list">${items}</div>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Template helpers
+// ════════════════════════════════════════════════════════════════════════════
+function kv(label, value, corrected=false) {
+  const tag = corrected ? `<span class="corrected-tag">edited</span>` : '';
+  const display = value != null && value !== ''
+    ? `<div class="kv-value">${esc(String(value))}${tag}</div>`
+    : `<div class="kv-value missing">—${tag}</div>`;
+  return `<div class="kv-item"><div class="kv-label">${esc(label)}</div>${display}</div>`;
+}
+function kvBig(label, value, corrected=false) {
+  const tag = corrected ? `<span class="corrected-tag">edited</span>` : '';
+  const display = value != null && value !== ''
+    ? `<div class="kv-value large">${esc(String(value))}${tag}</div>`
+    : `<div class="kv-value missing">—${tag}</div>`;
+  return `<div class="kv-item"><div class="kv-label">${esc(label)}</div>${display}</div>`;
+}
+function kvWide(label, value, corrected=false) {
+  const tag = corrected ? `<span class="corrected-tag">edited</span>` : '';
+  return `<div class="kv-item" style="grid-column:1/-1;border-right:none">
+    <div class="kv-label">${esc(label)}</div>
+    <div class="kv-value">${esc(String(value ?? ''))}${tag}</div>
+  </div>`;
+}
+
+function placeholderHtml() {
+  return `<div class="pdf-placeholder" id="pdf-placeholder">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+    </svg>
+    <p>Select an invoice to view the original document.</p>
+  </div>`;
+}
+function noSelectionHtml() {
+  return `<div class="no-selection">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <h3>No invoice selected</h3>
+    <p>Choose an invoice from the sidebar to see<br>extracted data, matched POs, and discrepancies.</p>
+  </div>`;
+}
+function spinnerHtml(msg) {
+  return `<div class="spinner"><div class="spin-ring"></div><span>${msg}</span></div>`;
+}
+function errorHtml(msg) {
+  return `<div class="spinner" style="color:var(--err)">${msg}</div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Formatting
+// ════════════════════════════════════════════════════════════════════════════
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmt(n) {
+  if (n == null) return '—';
+  return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtMoney(currency, n) {
+  if (n == null) return null;
+  return `${currency || ''} ${fmt(n)}`.trim();
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  } catch { return iso; }
+}
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Edit mode — corrections helpers
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Merge operator corrections onto extracted data for display.
+ * Returns { inv, sup, corr } where inv/sup reflect corrections.
+ */
+function mergeCorrections(result) {
+  const corr = result.corrections || {};
+  const inv  = Object.assign({}, result.extracted_invoice || {});
+  const sup  = Object.assign({}, inv.supplier || {});
+
+  // Scalar invoice fields
+  ['invoice_number','invoice_date','due_date','po_number',
+   'currency','subtotal','tax_amount','total'].forEach(k => {
+    if (corr[k] !== undefined) inv[k] = corr[k];
+  });
+
+  // Supplier fields
+  if (corr.supplier_name    !== undefined) sup.name    = corr.supplier_name;
+  if (corr.supplier_abn     !== undefined) sup.abn     = corr.supplier_abn;
+  if (corr.supplier_email   !== undefined) sup.email   = corr.supplier_email;
+  if (corr.supplier_phone   !== undefined) sup.phone   = corr.supplier_phone;
+  if (corr.supplier_address !== undefined) sup.address = corr.supplier_address;
+
+  // Line items (full replacement)
+  if (corr.line_items !== undefined) inv.line_items = corr.line_items;
+
+  inv.supplier = sup;
+  return { inv, sup, corr };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Edit mode — enter / exit / save
+// ════════════════════════════════════════════════════════════════════════════
+
+function startEdit(result) {
+  if (!result) return;
+  S.editing = true;
+  const { inv } = mergeCorrections(result);
+  // Deep-copy line items so we don't mutate the stored result
+  S.editLineItems = JSON.parse(JSON.stringify(inv.line_items || []));
+  renderEditData(result);
+}
+
+function cancelEdit() {
+  S.editing = false;
+  renderData(S.currentResult);
+}
+
+async function saveEdit(stem) {
+  syncEditLineItemsFromDOM();
+
+  const result     = S.currentResult;
+  const inv        = result.extracted_invoice || {};
+  const existingCorr = result.corrections || {};
+  const corr       = Object.assign({}, existingCorr);  // preserve prior corrections
+
+  // Helper to read an input value
+  const getVal = id => {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : undefined;
+  };
+  const getNum = id => {
+    const el = document.getElementById(id);
+    if (!el || el.value.trim() === '') return null;
+    const n = parseFloat(el.value.replace(/,/g, ''));
+    return isNaN(n) ? null : n;
+  };
+
+  // Scalar fields
+  const scalarMap = {
+    invoice_number:    getVal('edit-invoice_number'),
+    invoice_date:      getVal('edit-invoice_date'),
+    due_date:          getVal('edit-due_date'),
+    po_number:         getVal('edit-po_number'),
+    currency:          getVal('edit-currency'),
+    subtotal:          getNum('edit-subtotal'),
+    tax_amount:        getNum('edit-tax_amount'),
+    total:             getNum('edit-total'),
+    supplier_name:     getVal('edit-supplier_name'),
+    supplier_abn:      getVal('edit-supplier_abn'),
+    supplier_email:    getVal('edit-supplier_email'),
+    supplier_phone:    getVal('edit-supplier_phone'),
+    supplier_address:  getVal('edit-supplier_address'),
+  };
+  for (const [k, v] of Object.entries(scalarMap)) {
+    if (v !== undefined) corr[k] = v !== null ? v : '';
+  }
+
+  // Line items — always store if there are any or if original had some
+  const origItems = inv.line_items || [];
+  if (S.editLineItems.length > 0 || origItems.length > 0 || existingCorr.line_items) {
+    corr.line_items = S.editLineItems;
+  }
+
+  S.editing = false;
+  try {
+    await api.saveCorrections(stem, corr);
+    // Re-fetch to get the DB-persisted corrections
+    const [updated, pages] = await Promise.all([api.detail(stem), api.pages(stem)]);
+    renderPdf(updated, pages);
+    renderData(updated);
+  } catch (e) {
+    S.editing = true;
+    alert('Failed to save corrections: ' + e.message);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Edit mode — line item helpers
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Sync current DOM inputs back into S.editLineItems before mutating the array */
+function syncEditLineItemsFromDOM() {
+  const rows = document.querySelectorAll('#edit-li-tbody tr');
+  const items = [];
+  rows.forEach((tr, idx) => {
+    const get = cls => { const el = tr.querySelector('.' + cls); return el ? el.value.trim() : ''; };
+    const description = get('eli-desc');
+    const sku         = get('eli-sku');
+    const qtyStr      = get('eli-qty');
+    const upStr       = get('eli-up');
+    const totStr      = get('eli-tot');
+    const qty  = qtyStr  !== '' ? parseFloat(qtyStr.replace(/,/g, ''))  : null;
+    const up   = upStr   !== '' ? parseFloat(upStr.replace(/,/g, ''))   : null;
+    const tot  = totStr  !== '' ? parseFloat(totStr.replace(/,/g, ''))  : null;
+
+    const item = { line_number: idx + 1 };
+    if (description) item.description = description;
+    if (sku)         item.sku         = sku;
+    if (qty  != null && !isNaN(qty)) item.quantity   = qty;
+    if (up   != null && !isNaN(up))  item.unit_price = up;
+    if (tot  != null && !isNaN(tot)) item.line_total = tot;
+
+    // Only keep rows that have at least a description or a total
+    if (description || (tot != null && !isNaN(tot))) items.push(item);
+  });
+  S.editLineItems = items;
+}
+
+function addLineItem() {
+  syncEditLineItemsFromDOM();
+  S.editLineItems.push({ line_number: S.editLineItems.length + 1 });
+  renderEditLineItems();
+  // Focus the description field of the new row
+  const tbody = document.getElementById('edit-li-tbody');
+  if (tbody) {
+    const lastRow = tbody.lastElementChild;
+    if (lastRow) { const el = lastRow.querySelector('.eli-desc'); if (el) el.focus(); }
+  }
+}
+
+function removeLineItem(idx) {
+  syncEditLineItemsFromDOM();
+  S.editLineItems.splice(idx, 1);
+  renderEditLineItems();
+}
+
+function renderEditLineItems() {
+  const tbody = document.getElementById('edit-li-tbody');
+  if (tbody) tbody.innerHTML = editLineItemRowsHtml();
+  const cntEl = document.getElementById('edit-li-count');
+  if (cntEl) cntEl.textContent = S.editLineItems.length;
+}
+
+function editLineItemRowsHtml() {
+  if (!S.editLineItems.length) {
+    return `<tr><td colspan="6" style="padding:12px;text-align:center;color:var(--muted);font-style:italic">No line items — click "+ Add Line Item" to add one.</td></tr>`;
+  }
+  return S.editLineItems.map((item, idx) => `<tr>
+    <td><input class="edit-input eli-sku"  value="${esc(item.sku||'')}"  placeholder="SKU" style="min-width:70px"></td>
+    <td><input class="edit-input eli-desc" value="${esc(item.description||'')}" placeholder="Description" style="min-width:160px"></td>
+    <td><input class="edit-input eli-qty"  value="${item.quantity   != null ? item.quantity   : ''}" placeholder="0"    style="width:60px"></td>
+    <td><input class="edit-input eli-up"   value="${item.unit_price != null ? item.unit_price : ''}" placeholder="0.00" style="width:80px"></td>
+    <td><input class="edit-input eli-tot"  value="${item.line_total != null ? item.line_total : ''}" placeholder="0.00" style="width:80px"></td>
+    <td><button class="btn-row-del" onclick="removeLineItem(${idx})" title="Remove row">×</button></td>
+  </tr>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Edit mode — full edit panel renderer
+// ════════════════════════════════════════════════════════════════════════════
+
+function renderEditData(result) {
+  const { inv, sup } = mergeCorrections(result);
+  const stem = result.stem || '';
+
+  document.getElementById('data-panel').innerHTML = `
+    <div class="action-bar">
+      <div class="status-pill ${result.status || 'needs_review'}">
+        <div class="status-pill-dot"></div>
+        ✎ Editing
+      </div>
+      <div class="action-btns">
+        <button class="btn btn-cancel-edit" onclick="cancelEdit()">Cancel</button>
+        <button class="btn btn-save-edit" onclick="saveEdit('${esc(stem)}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Save Changes
+        </button>
+      </div>
+    </div>
+
+    <div class="edit-mode-notice">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      Editing extracted data. Changes are saved as corrections — the original extraction is preserved.
+    </div>
+
+    <!-- Invoice Details edit -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+          <line x1="1" y1="10" x2="23" y2="10"/>
+        </svg>
+        Invoice Details
+      </div>
+      <div class="kv-grid">
+        ${kvE('Invoice Number', 'edit-invoice_number', inv.invoice_number)}
+        ${kvE('Invoice Date',   'edit-invoice_date',   inv.invoice_date)}
+        ${kvE('Due Date',       'edit-due_date',        inv.due_date)}
+        ${kvE('PO Number',      'edit-po_number',       inv.po_number)}
+        ${kvE('Currency',       'edit-currency',        inv.currency)}
+        ${kvE('Subtotal',       'edit-subtotal',        inv.subtotal   != null ? inv.subtotal   : '')}
+        ${kvE('Tax',            'edit-tax_amount',      inv.tax_amount != null ? inv.tax_amount : '')}
+        ${kvE('Total',          'edit-total',           inv.total      != null ? inv.total      : '')}
+      </div>
+    </div>
+
+    <!-- Supplier edit -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+        </svg>
+        Supplier
+      </div>
+      <div class="kv-grid">
+        ${kvE('Name',         'edit-supplier_name',    sup.name)}
+        ${kvE('ABN / Tax ID', 'edit-supplier_abn',     sup.abn)}
+        ${kvE('Email',        'edit-supplier_email',   sup.email)}
+        ${kvE('Phone',        'edit-supplier_phone',   sup.phone)}
+        ${kvEWide('Address',  'edit-supplier_address', sup.address)}
+      </div>
+    </div>
+
+    <!-- Line items edit -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        Line Items
+        <span class="badge info" id="edit-li-count">${S.editLineItems.length}</span>
+      </div>
+      <div class="card-scroll" style="max-height:380px">
+        <table class="edit-li-table">
+          <thead><tr>
+            <th>SKU</th><th>Description</th><th>Qty</th>
+            <th>Unit Price</th><th>Total</th><th></th>
+          </tr></thead>
+          <tbody id="edit-li-tbody">${editLineItemRowsHtml()}</tbody>
+        </table>
+      </div>
+      <button class="btn-add-row" onclick="addLineItem()">+ Add Line Item</button>
+    </div>
+
+    ${notesCard(result)}
+    <div style="height:10px"></div>
+  `;
+}
+
+// Edit-mode kv helpers (input fields instead of read-only values)
+function kvE(label, id, value) {
+  return `<div class="kv-item">
+    <div class="kv-label">${esc(label)}</div>
+    <input id="${id}" class="edit-input" value="${esc(String(value ?? ''))}">
+  </div>`;
+}
+function kvEWide(label, id, value) {
+  return `<div class="kv-item" style="grid-column:1/-1;border-right:none">
+    <div class="kv-label">${esc(label)}</div>
+    <input id="${id}" class="edit-input" value="${esc(String(value ?? ''))}">
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Panel resizer
+// ════════════════════════════════════════════════════════════════════════════
+(function () {
+  const STORAGE_KEY = 'pdf-panel-width';
+  const resizer  = document.getElementById('panel-resizer');
+  const pdfPanel = document.getElementById('pdf-panel');
+  const main     = resizer.closest('main');
+
+  // Restore saved width
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) pdfPanel.style.width = saved;
+
+  let startX, startW;
+
+  resizer.addEventListener('mousedown', e => {
+    e.preventDefault();
+    startX = e.clientX;
+    startW = pdfPanel.getBoundingClientRect().width;
+    resizer.classList.add('dragging');
+    document.body.style.cursor    = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!resizer.classList.contains('dragging')) return;
+    const mainW  = main.getBoundingClientRect().width;
+    const delta  = e.clientX - startX;
+    const newPct = Math.min(75, Math.max(15, ((startW + delta) / mainW) * 100));
+    pdfPanel.style.width = newPct + '%';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!resizer.classList.contains('dragging')) return;
+    resizer.classList.remove('dragging');
+    document.body.style.cursor     = '';
+    document.body.style.userSelect = '';
+    localStorage.setItem(STORAGE_KEY, pdfPanel.style.width);
+  });
+})();
+
+// ════════════════════════════════════════════════════════════════════════════
+// Boot
+// ════════════════════════════════════════════════════════════════════════════
+poll();
+setInterval(poll, 6000);
+</script>
+</body>
+</html>
