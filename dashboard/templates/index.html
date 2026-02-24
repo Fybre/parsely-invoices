@@ -1958,16 +1958,12 @@ function cancelEdit() {
 async function saveEdit(stem) {
   syncEditLineItemsFromDOM();
 
-  const result     = S.currentResult;
-  const inv        = result.extracted_invoice || {};
-  const existingCorr = result.corrections || {};
-  const corr       = Object.assign({}, existingCorr);  // preserve prior corrections
+  const result  = S.currentResult;
+  const rawInv  = result.extracted_invoice || {};   // original extraction (no corrections)
+  const rawSup  = rawInv.supplier || {};
+  const corr    = {};   // only fields that actually changed
 
-  // Helper to read an input value
-  const getVal = id => {
-    const el = document.getElementById(id);
-    return el ? el.value.trim() : undefined;
-  };
+  const getVal = id => { const el = document.getElementById(id); return el ? el.value.trim() : undefined; };
   const getNum = id => {
     const el = document.getElementById(id);
     if (!el || el.value.trim() === '') return null;
@@ -1975,31 +1971,36 @@ async function saveEdit(stem) {
     return isNaN(n) ? null : n;
   };
 
-  // Scalar fields
-  const scalarMap = {
-    invoice_number:    getVal('edit-invoice_number'),
-    invoice_date:      getVal('edit-invoice_date'),
-    due_date:          getVal('edit-due_date'),
-    po_number:         getVal('edit-po_number'),
-    currency:          getVal('edit-currency'),
-    subtotal:          getNum('edit-subtotal'),
-    tax_amount:        getNum('edit-tax_amount'),
-    total:             getNum('edit-total'),
-    supplier_name:     getVal('edit-supplier_name'),
-    supplier_abn:      getVal('edit-supplier_abn'),
-    supplier_email:    getVal('edit-supplier_email'),
-    supplier_phone:    getVal('edit-supplier_phone'),
-    supplier_address:  getVal('edit-supplier_address'),
+  // Only add to corr when the new value differs from the raw original
+  const diffStr = (corrKey, newVal, origVal) => {
+    const o = origVal != null ? String(origVal).trim() : '';
+    const n = newVal  != null ? String(newVal).trim()  : '';
+    if (n !== o) corr[corrKey] = newVal;
   };
-  for (const [k, v] of Object.entries(scalarMap)) {
-    if (v !== undefined) corr[k] = v !== null ? v : '';
-  }
+  const diffNum = (corrKey, newVal, origVal) => {
+    const o = origVal != null ? Number(origVal) : null;
+    const n = newVal  != null ? Number(newVal)  : null;
+    if (n !== o) corr[corrKey] = newVal;
+  };
 
-  // Line items — always store if there are any or if original had some
-  const origItems = inv.line_items || [];
-  if (S.editLineItems.length > 0 || origItems.length > 0 || existingCorr.line_items) {
-    corr.line_items = S.editLineItems;
-  }
+  diffStr('invoice_number',   getVal('edit-invoice_number'),   rawInv.invoice_number);
+  diffStr('invoice_date',     getVal('edit-invoice_date'),     rawInv.invoice_date);
+  diffStr('due_date',         getVal('edit-due_date'),         rawInv.due_date);
+  diffStr('po_number',        getVal('edit-po_number'),        rawInv.po_number);
+  diffStr('currency',         getVal('edit-currency'),         rawInv.currency);
+  diffNum('subtotal',         getNum('edit-subtotal'),         rawInv.subtotal);
+  diffNum('tax_amount',       getNum('edit-tax_amount'),       rawInv.tax_amount);
+  diffNum('total',            getNum('edit-total'),            rawInv.total);
+  diffStr('supplier_name',    getVal('edit-supplier_name'),    rawSup.name);
+  diffStr('supplier_abn',     getVal('edit-supplier_abn'),     rawSup.abn);
+  diffStr('supplier_email',   getVal('edit-supplier_email'),   rawSup.email);
+  diffStr('supplier_phone',   getVal('edit-supplier_phone'),   rawSup.phone);
+  diffStr('supplier_address', getVal('edit-supplier_address'), rawSup.address);
+
+  // Line items — only save if they actually changed vs. the raw original
+  const rawItems = JSON.stringify(rawInv.line_items || []);
+  const newItems = JSON.stringify(S.editLineItems);
+  if (newItems !== rawItems) corr.line_items = S.editLineItems;
 
   S.editing = false;
   try {
