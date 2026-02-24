@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Invoice Pipeline Dashboard</title>
+<title>Parsely</title>
 <style>
 /* ── Reset & Variables ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -338,6 +338,15 @@ main {
   white-space: nowrap;
 }
 .pdf-pages-count { color: #9ca3af; white-space: nowrap; }
+.pdf-zoom-ctrl { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.btn-zoom {
+  background: #4b5563; border: 1px solid #6b7280; border-radius: 4px;
+  width: 22px; height: 22px; cursor: pointer; font-size: 15px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  color: #e2e8f0; padding: 0; flex-shrink: 0;
+}
+.btn-zoom:hover { background: #6b7280; }
+.zoom-label { font-size: 11px; color: #9ca3af; min-width: 34px; text-align: center; }
 
 .pdf-pages { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
 .pdf-page {
@@ -964,7 +973,7 @@ td.match-none { color: var(--muted); font-style: italic; }
       <line x1="16" y1="13" x2="8" y2="13"/>
       <line x1="16" y1="17" x2="8" y2="17"/>
     </svg>
-    Invoice Pipeline <span class="build-tag">build 2026-02-25-e</span>
+    Parsely <span class="build-tag">build 2026-02-25-f</span>
   </div>
   <div class="stats-bar">
     <div class="stat-chip review" onclick="setTab('needs_review')" title="Filter: Needs Review">
@@ -1088,6 +1097,7 @@ const S = {
   editing:          false, // edit mode active
   editLineItems:    [],    // working copy of line items in edit mode
   currentResult:    null,  // last-loaded full result (for edit / re-render)
+  pdfZoom:          100,   // PDF zoom level (%);
 };
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1339,9 +1349,23 @@ function renderPdf(result, pages) {
   panel.innerHTML = `
     <div class="pdf-toolbar">
       <span class="pdf-filename">${esc(filename)}</span>
+      <div class="pdf-zoom-ctrl">
+        <button class="btn-zoom" onclick="setPdfZoom(-25)" title="Zoom out">−</button>
+        <span class="zoom-label" id="zoom-label">${S.pdfZoom}%</span>
+        <button class="btn-zoom" onclick="setPdfZoom(+25)" title="Zoom in">+</button>
+      </div>
       <span class="pdf-pages-count">${pages.length} page${pages.length !== 1 ? 's' : ''}</span>
     </div>
-    <div class="pdf-pages">${pagesHtml}</div>`;
+    <div class="pdf-pages" id="pdf-pages" style="zoom:${S.pdfZoom}%">${pagesHtml}</div>`;
+}
+
+function setPdfZoom(delta) {
+  S.pdfZoom = Math.min(200, Math.max(50, S.pdfZoom + delta));
+  localStorage.setItem('pdf-zoom', S.pdfZoom);
+  const pages = document.getElementById('pdf-pages');
+  const label = document.getElementById('zoom-label');
+  if (pages) pages.style.zoom = S.pdfZoom + '%';
+  if (label) label.textContent = S.pdfZoom + '%';
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2253,6 +2277,10 @@ function setPanel(name) {
   // Restore saved width
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) pdfPanel.style.width = saved;
+
+  // Restore saved zoom
+  const savedZoom = parseInt(localStorage.getItem('pdf-zoom'), 10);
+  if (!isNaN(savedZoom)) S.pdfZoom = Math.min(200, Math.max(50, savedZoom));
 
   let startX, startW;
 
