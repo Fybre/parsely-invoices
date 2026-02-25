@@ -106,6 +106,7 @@ header {
 .stat-chip.total   { color: var(--info);     background: var(--info-bg);     border-color: #bfdbfe; }
 
 .live-badge {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -114,26 +115,31 @@ header {
   white-space: nowrap;
 }
 
-/* ── Upload button (header) ──────────────────────────────────────────────── */
-.upload-btn {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--accent);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background .15s, color .15s;
-  white-space: nowrap;
+/* ── Upload button (sidebar) ─────────────────────────────────────────────── */
+.side-upload {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
   flex-shrink: 0;
 }
-.upload-btn:hover  { background: var(--accent); color: #fff; }
-.upload-btn:disabled { opacity: .5; cursor: not-allowed; }
+.upload-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 6px;
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.85);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  white-space: nowrap;
+}
+.upload-btn:hover  { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); }
+.upload-btn:disabled { opacity: .45; cursor: not-allowed; }
 
 /* ── Toast notifications ─────────────────────────────────────────────────── */
 #toast-container {
@@ -1041,7 +1047,7 @@ td.match-none { color: var(--muted); font-style: italic; }
       <!-- right leaf -->
       <path d="M17 10 C15 7 15 4 17 2 C19 4 20 7 17 10Z" fill="currentColor" stroke="none"/>
     </svg>
-    Parsely <span class="build-tag">build 2026-02-25-h</span>
+    Parsely <span class="build-tag">build 2026-02-25-i</span>
   </div>
   <div class="stats-bar">
     <div class="stat-chip review" onclick="setTab('needs_review')" title="Filter: Needs Review">
@@ -1061,16 +1067,6 @@ td.match-none { color: var(--muted); font-style: italic; }
       <span>Total</span>
     </div>
   </div>
-  <button class="upload-btn" id="upload-btn" onclick="triggerUpload()" title="Upload an invoice PDF">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-      <polyline points="17 8 12 3 7 8"/>
-      <line x1="12" y1="3" x2="12" y2="15"/>
-    </svg>
-    <span id="upload-btn-label">Upload Invoice</span>
-  </button>
-  <input type="file" id="upload-input" accept=".pdf" style="display:none" onchange="handleUpload(this)">
-
   <div class="live-badge">
     <div class="live-dot" id="live-dot"></div>
     <span id="live-label">Connecting…</span>
@@ -1087,6 +1083,17 @@ td.match-none { color: var(--muted); font-style: italic; }
 
   <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
   <aside>
+    <div class="side-upload">
+      <button class="upload-btn" id="upload-btn" onclick="triggerUpload()" title="Upload an invoice PDF">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <span id="upload-btn-label">Upload Invoice</span>
+      </button>
+      <input type="file" id="upload-input" accept=".pdf" style="display:none" onchange="handleUpload(this)">
+    </div>
     <div class="side-tabs">
       <div class="side-tab active" data-tab="all"          onclick="setTab(null)">All<span class="tab-count" id="tab-count-all">—</span></div>
       <div class="side-tab"        data-tab="needs_review" onclick="setTab('needs_review')">Review<span class="tab-count" id="tab-count-review">—</span></div>
