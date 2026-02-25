@@ -363,23 +363,14 @@ class TableLineItemExtractor:
         """
         Return parsed line items from the best candidate table, or None if
         no suitable table is identified.
+
+        All candidate tables (score >= MIN_SCORE) are tried in descending score
+        order.  This means that if the first (highest-scored) table produces no
+        items — e.g. because a Docling stacked-row table uses an unusual line
+        ending — the next candidate (e.g. a pdfplumber table) is tried before
+        giving up.
         """
-        best = self._find_line_items_table(tables)
-        if best is None:
-            logger.debug("No line items table found in Docling output")
-            return None
-
-        items = self._parse_table(best)
-        if items:
-            logger.info(
-                "Direct table extraction: %d line items (LLM not needed for these)",
-                len(items),
-            )
-        return items or None
-
-    def _find_line_items_table(self, tables: list[list[dict]]) -> list[dict] | None:
-        best_table: list[dict] | None = None
-        best_score = 0
+        candidates: list[tuple[int, int, list[dict]]] = []  # (score, index, table)
         for i, table in enumerate(tables):
             if not table:
                 continue
@@ -388,15 +379,31 @@ class TableLineItemExtractor:
             logger.info(
                 "Table %d scoring: score=%d, rows=%d, keys=%s",
                 i + 1, score, len(table),
-                [str(k) for k in keys[:8]],  # first 8 keys for brevity
+                [str(k) for k in keys[:8]],
             )
-            if score > best_score:
-                best_score = score
-                best_table = table
-        if best_score >= self.MIN_SCORE:
-            logger.info("Best table selected: score=%d", best_score)
-            return best_table
-        logger.info("No table met MIN_SCORE=%d (best=%d)", self.MIN_SCORE, best_score)
+            if score >= self.MIN_SCORE:
+                candidates.append((score, i, table))
+
+        # Highest score first; ties broken by original order (stable sort)
+        candidates.sort(key=lambda x: (-x[0], x[1]))
+
+        for score, idx, table in candidates:
+            logger.info("Trying table %d (score=%d) for line item parsing", idx + 1, score)
+            items = self._parse_table(table)
+            if items:
+                logger.info(
+                    "Direct table extraction: %d line items from table %d "
+                    "(LLM not needed for these)",
+                    len(items), idx + 1,
+                )
+                return items
+
+        if not candidates:
+            logger.info("No table met MIN_SCORE=%d", self.MIN_SCORE)
+        else:
+            logger.info(
+                "No line items found across %d candidate table(s)", len(candidates)
+            )
         return None
 
     def _score_table(self, headers: list[str], row_count: int) -> int:
@@ -474,11 +481,16 @@ class TableLineItemExtractor:
         Detect rows where cells contain newline-separated stacked values and
         expand them into individual rows.  Returns [row] unchanged when no
         stacking is found (the common case — zero overhead).
+
+        Uses str.splitlines() rather than split('\\n') so that any line-ending
+        style is handled: \\n, \\r\\n, \\r, or Unicode line/paragraph separators
+        (\\u2028, \\u2029).  This matters because Docling may use different line
+        endings than pdfplumber.
         """
         if not row:
             return [row]
         max_parts = max(
-            (len(str(v).split('\n')) for v in row.values() if v is not None),
+            (len(str(v).splitlines()) for v in row.values() if v is not None),
             default=1,
         )
         if max_parts <= 1:
@@ -486,7 +498,7 @@ class TableLineItemExtractor:
 
         keys = list(row.keys())
         split_vals = [
-            str(row[k]).split('\n') if row.get(k) is not None else []
+            str(row[k]).splitlines() if row.get(k) is not None else []
             for k in keys
         ]
         return [
