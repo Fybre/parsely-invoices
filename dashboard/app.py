@@ -26,6 +26,7 @@ Endpoints
   GET  /api/health                      → liveness probe
 """
 import base64
+import csv
 import io
 import json
 import logging
@@ -104,11 +105,17 @@ def _apply_corrections(extracted: dict, corrections: dict) -> dict:
 # ---------------------------------------------------------------------------
 # Config from environment (mirrors pipeline config so volumes line up)
 # ---------------------------------------------------------------------------
-OUTPUT_DIR    = Path(os.getenv("OUTPUT_DIR",   "/app/output"))
-INVOICES_DIR  = Path(os.getenv("INVOICES_DIR", "/app/invoices"))
+OUTPUT_DIR    = Path(os.getenv("OUTPUT_DIR",   str(_PIPELINE_DIR / "output")))
+INVOICES_DIR  = Path(os.getenv("INVOICES_DIR", str(_PIPELINE_DIR / "invoices")))
+DATA_DIR      = Path(os.getenv("DATA_DIR",     str(_PIPELINE_DIR / "data")))
 EXPORT_DIR    = Path(os.getenv("EXPORT_DIR",   str(OUTPUT_DIR / "export")))
 DB_PATH       = Path(os.getenv("DB_PATH",      str(OUTPUT_DIR / "pipeline.db")))
 DASHBOARD_DIR = Path(__file__).parent
+
+# Data files
+SUPPLIERS_CSV = DATA_DIR / "suppliers.csv"
+PO_CSV        = DATA_DIR / "purchase_orders.csv"
+PO_LINES_CSV  = DATA_DIR / "purchase_order_lines.csv"
 
 # ---------------------------------------------------------------------------
 # Database (lazy — opened on first request so startup doesn't fail if DB
@@ -215,6 +222,11 @@ class CorrectionsUpdate(BaseModel):
 
 class NotesUpdate(BaseModel):
     notes: str
+
+
+class AdminDataUpdate(BaseModel):
+    headers: list[str]
+    rows: list[dict]
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -577,6 +589,107 @@ async def upload_invoice(file: UploadFile = File(...)):
     }
 
 
+# ── Admin API ────────────────────────────────────────────────────────────────
+
+@app.get("/api/admin/{tab}")
+def get_admin_data(tab: str):
+    path = {
+        "suppliers": SUPPLIERS_CSV,
+        "purchase_orders": PO_CSV,
+        "purchase_order_lines": PO_LINES_CSV
+    }.get(tab)
+
+    if not path:
+        raise HTTPException(404, "Invalid tab")
+
+    headers = {
+        "suppliers": ["id", "name", "abn", "acn", "email", "phone", "address", "aliases"],
+        "purchase_orders": [
+            "po_number", "supplier_id", "supplier_name", "issue_date",
+            "expected_delivery", "subtotal", "tax_amount", "total",
+            "currency", "status", "notes"
+        ],
+        "purchase_order_lines": [
+            "po_number", "line_number", "sku", "description",
+            "quantity", "unit", "unit_price", "total"
+        ]
+    }[tab]
+
+    rows = []
+    if path.exists():
+        with open(path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                rows.append(row)
+
+    return {"headers": headers, "rows": rows}
+
+
+@app.post("/api/admin/{tab}")
+def update_admin_data(tab: str, body: AdminDataUpdate):
+    path = {
+        "suppliers": SUPPLIERS_CSV,
+        "purchase_orders": PO_CSV,
+        "purchase_order_lines": PO_LINES_CSV
+    }.get(tab)
+
+    if not path:
+        raise HTTPException(404, "Invalid tab")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=body.headers)
+        writer.writeheader()
+        writer.writerows(body.rows)
+
+    return {"status": "ok"}
+
+
+@app.post("/api/admin/{tab}/upload")
+async def upload_admin_csv(tab: str, file: UploadFile = File(...)):
+    """Upload and overwrite a CSV data file."""
+    path = {
+        "suppliers": SUPPLIERS_CSV,
+        "purchase_orders": PO_CSV,
+        "purchase_order_lines": PO_LINES_CSV
+    }.get(tab)
+
+    if not path:
+        raise HTTPException(404, "Invalid tab")
+
+    if not file.filename.lower().endswith(".csv"):
+        raise HTTPException(400, "Only CSV files are accepted")
+
+    contents = await file.read()
+    if len(contents) == 0:
+        raise HTTPException(400, "Uploaded file is empty")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(contents)
+    
+    logger.info("Admin CSV uploaded and overwritten: %s", path)
+    return {"status": "ok", "filename": file.filename}
+
+
+@app.post("/api/admin/database/clear")
+def clear_database():
+    global _db
+    if DB_PATH.exists():
+        try:
+            # Try to remove WAL/SHM files too
+            for suffix in ["", "-wal", "-shm"]:
+                p = DB_PATH.with_suffix(DB_PATH.suffix + suffix)
+                if p.exists():
+                    p.unlink()
+            _db = None
+            return {"status": "ok"}
+        except Exception as e:
+            raise HTTPException(500, f"Failed to clear database: {e}")
+    else:
+        _db = None
+        return {"status": "ok", "message": "Database file did not exist"}
+
+
 # ── SPA ───────────────────────────────────────────────────────────────────────
 
 @app.get("/")
@@ -584,6 +697,21 @@ def index():
     html_path = DASHBOARD_DIR / "templates" / "index.html"
     if not html_path.exists():
         raise HTTPException(status_code=500, detail="Dashboard template not found")
+    return HTMLResponse(
+        content=html_path.read_text(encoding="utf-8"),
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma":        "no-cache",
+            "Expires":       "0",
+        },
+    )
+
+
+@app.get("/admin")
+def admin():
+    html_path = DASHBOARD_DIR / "templates" / "admin.html"
+    if not html_path.exists():
+        raise HTTPException(status_code=500, detail="Admin template not found")
     return HTMLResponse(
         content=html_path.read_text(encoding="utf-8"),
         headers={

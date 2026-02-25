@@ -94,9 +94,11 @@ services:
       - ./dashboard:/app/dashboard  # live reload — template changes need no rebuild
       - ./invoices:/app/invoices    # rw — dashboard moves PDFs to export/ on approval
       - ./output:/app/output        # rw — dashboard writes export files + reads pipeline.db
+      - ./data:/app/data            # rw — dashboard manages suppliers/PO CSVs
     environment:
       OUTPUT_DIR:   /app/output
       INVOICES_DIR: /app/invoices
+      DATA_DIR:     /app/data
       EXPORT_DIR:   /app/output/export
     restart: unless-stopped
     profiles: []    # always available

@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parsely — Admin</title>
+<style>
+/* ── Reset & Variables ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --hdr-h:     56px;
+  --bg:        #f0f2f5;
+  --card:      #ffffff;
+  --sidebar:   #1a2035;
+  --border:    #e2e6ea;
+  --text:      #1c2533;
+  --muted:     #6b7280;
+  --ok:        #16a34a;
+  --warn:      #d97706;
+  --err:       #dc2626;
+  --info:      #2563eb;
+  --ok-bg:     #dcfce7;
+  --warn-bg:   #fef3c7;
+  --err-bg:    #fee2e2;
+  --info-bg:   #dbeafe;
+  --accent:    #3b5bdb;
+  --radius:    8px;
+  --shadow:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+}
+
+/* ── Layout ────────────────────────────────────────────────────────────── */
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+header {
+  height: var(--hdr-h);
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 24px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow);
+  z-index: 10;
+}
+
+.app-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.app-title svg { opacity: .8; }
+
+.back-link {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.back-link:hover {
+  background: var(--card);
+  color: var(--text);
+}
+
+/* ── Main Layout ───────────────────────────────────────────────────────── */
+.main-wrap {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Sidebar (File Tabs) ──────────────────────────────────────────────── */
+aside {
+  width: 220px;
+  background: var(--sidebar);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.side-header {
+  padding: 16px 16px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,.4);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.side-tab {
+  padding: 10px 16px;
+  font-size: 12px;
+  color: rgba(255,255,255,.7);
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background .1s, color .1s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.side-tab:hover {
+  background: rgba(255,255,255,.05);
+  color: #fff;
+}
+.side-tab.active {
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  border-left-color: var(--accent);
+}
+
+.side-tab .icon {
+  width: 16px;
+  height: 16px;
+  opacity: .7;
+}
+
+.side-divider {
+  margin: 16px;
+  height: 1px;
+  background: rgba(255,255,255,.1);
+}
+
+.side-action {
+  padding: 10px 16px;
+  font-size: 12px;
+  color: rgba(255,255,255,.7);
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background .1s, color .1s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.side-action:hover {
+  background: rgba(255,255,255,.05);
+  color: #fff;
+}
+.side-action.danger {
+  color: #fca5a5;
+}
+.side-action.danger:hover {
+  background: rgba(220,38,38,.2);
+}
+
+/* ── Content Area ──────────────────────────────────────────────────────── */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.content-header {
+  padding: 16px 20px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.content-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.content-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.row-count {
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: 8px;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  white-space: nowrap;
+}
+.btn:hover   { opacity: .88; }
+.btn:active  { transform: scale(.97); }
+.btn:disabled{ opacity: .45; cursor: not-allowed; transform: none; }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-secondary {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-danger {
+  background: var(--err-bg);
+  color: var(--err);
+  border: 1px solid #fca5a5;
+}
+.btn-success {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border: 1px solid #bbf7d0;
+}
+
+/* ── Data Table ─────────────────────────────────────────────────────────── */
+.table-wrap {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.data-table th {
+  position: sticky;
+  top: 0;
+  background: #fafbfc;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  z-index: 1;
+}
+.data-table th:first-child { border-radius: var(--radius) 0 0 0; }
+.data-table th:last-child  { border-radius: 0 var(--radius) 0 0; }
+
+.data-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:last-child td:first-child { border-radius: 0 0 0 var(--radius); }
+.data-table tr:last-child td:last-child  { border-radius: 0 0 var(--radius) 0; }
+
+.data-table tr:hover td { background: var(--bg); }
+.data-table tr.editing td { background: #fffbeb; }
+
+.data-table input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: #fff;
+  outline: none;
+}
+.data-table input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59,91,219,.12);
+}
+
+.data-table .actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.data-table .btn-icon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.data-table .btn-icon:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+.data-table .btn-icon.delete:hover {
+  background: var(--err-bg);
+  color: var(--err);
+}
+
+/* ── Empty State ────────────────────────────────────────────────────────── */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--muted);
+  text-align: center;
+  padding: 40px;
+}
+.empty-state h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.empty-state p {
+  font-size: 12px;
+  line-height: 1.6;
+  max-width: 400px;
+}
+
+/* ── Database Panel ─────────────────────────────────────────────────────── */
+.db-panel {
+  padding: 20px;
+  max-width: 600px;
+}
+
+.db-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.db-card h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.db-card p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.db-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-box {
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+}
+.stat-box .value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+.stat-box .label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-top: 2px;
+}
+
+/* ── Toast notifications ───────────────────────────────────────────────── */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 340px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  pointer-events: all;
+  animation: toast-in .2s ease;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.toast.success { background: var(--ok-bg);   border: 1px solid #bbf7d0; color: #166534; }
+.toast.error   { background: var(--err-bg);  border: 1px solid #fecaca; color: #991b1b; }
+.toast.info    { background: var(--info-bg); border: 1px solid #bfdbfe; color: #1e40af; }
+.toast-icon { font-size: 14px; flex-shrink: 0; line-height: 1.4; }
+
+/* ── Modal ──────────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-overlay.visible { display: flex; }
+
+.modal {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  width: 90%;
+  max-width: 400px;
+  padding: 20px;
+}
+.modal h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.modal p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.table-wrap::-webkit-scrollbar { width: 8px; height: 8px; }
+.table-wrap::-webkit-scrollbar-thumb { background: #9ca3af; }
+
+/* ── Loading ────────────────────────────────────────────────────────────── */
+.spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 40px;
+  color: var(--muted);
+}
+.spin-ring {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="app-title">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="22" x2="12" y2="10"/>
+      <line x1="12" y1="17" x2="7"  y2="13"/>
+      <line x1="12" y1="14" x2="17" y2="10"/>
+      <path d="M12 10 C10 7 8 5 9 2 C11 3 13 5 12 10Z" fill="currentColor" stroke="none"/>
+      <path d="M7 13 C4 11 2 9 3 6 C5 7 8 9 7 13Z"    fill="currentColor" stroke="none"/>
+      <path d="M17 10 C15 7 15 4 17 2 C19 4 20 7 17 10Z" fill="currentColor" stroke="none"/>
+    </svg>
+    Parsely Admin
+  </div>
+  <a href="/" class="back-link">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </svg>
+    Back to Dashboard
+  </a>
+</header>
+
+<div class="main-wrap">
+  <aside>
+    <div class="side-header">Data Files</div>
+    <div class="side-tab active" data-tab="suppliers" onclick="setTab('suppliers')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      Suppliers
+    </div>
+    <div class="side-tab" data-tab="purchase_orders" onclick="setTab('purchase_orders')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+      Purchase Orders
+    </div>
+    <div class="side-tab" data-tab="purchase_order_lines" onclick="setTab('purchase_order_lines')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="8" y1="6" x2="21" y2="6"/>
+        <line x1="8" y1="12" x2="21" y2="12"/>
+        <line x1="8" y1="18" x2="21" y2="18"/>
+        <line x1="3" y1="6" x2="3.01" y2="6"/>
+        <line x1="3" y1="12" x2="3.01" y2="12"/>
+        <line x1="3" y1="18" x2="3.01" y2="18"/>
+      </svg>
+      PO Lines
+    </div>
+    
+    <div class="side-divider"></div>
+    
+    <div class="side-header">System</div>
+    <div class="side-tab" data-tab="database" onclick="setTab('database')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+      </svg>
+      Database
+    </div>
+  </aside>
+
+  <main id="main-content">
+    <!-- Content dynamically loaded here -->
+  </main>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- Confirmation Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3 id="modal-title">Confirm</h3>
+    <p id="modal-message">Are you sure?</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="modal-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// State
+const S = {
+  currentTab: 'suppliers',
+  data: {},
+  editing: null, // row index being edited
+  editValues: {}, // edited values
+};
+
+// API helpers
+const api = {
+  get:  url => fetch(url).then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); }),
+  post: (url, body) => fetch(url, { 
+    method: 'POST', 
+    headers: {'Content-Type':'application/json'}, 
+    body: JSON.stringify(body) 
+  }).then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.detail || r.statusText); }); return r.json(); }),
+  del:  url => fetch(url, { method: 'DELETE' }).then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); }),
+};
+
+// Toast notifications
+function toast(message, type='info') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ';
+  el.innerHTML = `<span class="toast-icon">${icon}</span><div class="toast-body">${message}</div>`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// Tab switching
+async function setTab(tab) {
+  S.currentTab = tab;
+  S.editing = null;
+  S.editValues = {};
+  
+  document.querySelectorAll('.side-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  
+  const main = document.getElementById('main-content');
+  
+  if (tab === 'database') {
+    renderDatabasePanel();
+    await loadDatabaseStats();
+  } else {
+    renderDataTable(tab);
+    await loadData(tab);
+  }
+}
+
+// Render data table view
+function renderDataTable(type) {
+  const titles = {
+    suppliers: 'Suppliers',
+    purchase_orders: 'Purchase Orders',
+    purchase_order_lines: 'Purchase Order Lines'
+  };
+  
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    <div class="content-header">
+      <div class="content-title">${titles[type]}<span class="row-count" id="row-count"></span></div>
+      <div class="content-actions">
+        <button class="btn btn-secondary" onclick="triggerCSVUpload('${type}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Upload CSV
+        </button>
+        <button class="btn btn-secondary" onclick="downloadCSV('${type}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download CSV
+        </button>
+        <button class="btn btn-primary" onclick="addRow()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add Row
+        </button>
+      </div>
+      <input type="file" id="csv-upload-input" accept=".csv" style="display:none" onchange="handleCSVUpload(this)">
+    </div>
+    <div class="table-wrap" id="table-wrap">
+      <div class="spinner"><div class="spin-ring"></div>Loading...</div>
+    </div>
+  `;
+}
+
+// Load data from API
+async function loadData(type) {
+  try {
+    const response = await api.get(`/api/admin/${type}`);
+    S.data[type] = response;
+    renderTable(type, response);
+    document.getElementById('row-count').textContent = `(${response.rows.length})`;
+  } catch (e) {
+    document.getElementById('table-wrap').innerHTML = `
+      <div class="empty-state">
+        <h3>Failed to load data</h3>
+        <p>${e.message}</p>
+      </div>
+    `;
+    toast('Failed to load data: ' + e.message, 'error');
+  }
+}
+
+// Render table
+function renderTable(type, data) {
+  const wrap = document.getElementById('table-wrap');
+  
+  if (!data.rows.length) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <h3>No data</h3>
+        <p>This file is empty. Click "Add Row" to add your first record.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const ths = data.headers.map(h => `<th>${esc(h)}</th>`).join('') + '<th style="width:80px">Actions</th>';
+  
+  const trs = data.rows.map((row, idx) => {
+    const isEditing = S.editing === idx;
+    const tds = data.headers.map(h => {
+      const val = isEditing ? (S.editValues[h] ?? row[h] ?? '') : (row[h] ?? '');
+      if (isEditing) {
+        return `<td><input type="text" value="${esc(val)}" oninput="onEditInput('${h}', this.value)" /></td>`;
+      }
+      return `<td>${esc(val)}</td>`;
+    }).join('');
+    
+    const actions = isEditing
+      ? `<td class="actions">
+          <button class="btn-icon" onclick="saveRow(${idx})" title="Save">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+          <button class="btn-icon" onclick="cancelEdit()" title="Cancel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </td>`
+      : `<td class="actions">
+          <button class="btn-icon" onclick="startEdit(${idx})" title="Edit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button class="btn-icon delete" onclick="deleteRow(${idx})" title="Delete">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            </svg>
+          </button>
+        </td>`;
+    
+    return `<tr class="${isEditing ? 'editing' : ''}" data-idx="${idx}">${tds}${actions}</td></tr>`;
+  }).join('');
+  
+  wrap.innerHTML = `
+    <table class="data-table">
+      <thead><tr>${ths}</tr></thead>
+      <tbody>${trs}</tbody>
+    </table>
+  `;
+}
+
+// Edit functions
+function startEdit(idx) {
+  S.editing = idx;
+  S.editValues = {...S.data[S.currentTab].rows[idx]};
+  renderTable(S.currentTab, S.data[S.currentTab]);
+}
+
+function cancelEdit() {
+  S.editing = null;
+  S.editValues = {};
+  renderTable(S.currentTab, S.data[S.currentTab]);
+}
+
+function onEditInput(field, value) {
+  S.editValues[field] = value;
+}
+
+async function saveRow(idx) {
+  try {
+    const data = S.data[S.currentTab];
+    data.rows[idx] = S.editValues;
+    
+    await api.post(`/api/admin/${S.currentTab}`, {
+      headers: data.headers,
+      rows: data.rows
+    });
+    
+    S.editing = null;
+    S.editValues = {};
+    renderTable(S.currentTab, data);
+    toast('Row saved successfully', 'success');
+  } catch (e) {
+    toast('Failed to save: ' + e.message, 'error');
+  }
+}
+
+async function deleteRow(idx) {
+  if (!confirm('Delete this row? This cannot be undone.')) return;
+  
+  try {
+    const data = S.data[S.currentTab];
+    data.rows.splice(idx, 1);
+    
+    await api.post(`/api/admin/${S.currentTab}`, {
+      headers: data.headers,
+      rows: data.rows
+    });
+    
+    S.editing = null;
+    renderTable(S.currentTab, data);
+    document.getElementById('row-count').textContent = `(${data.rows.length})`;
+    toast('Row deleted', 'success');
+  } catch (e) {
+    toast('Failed to delete: ' + e.message, 'error');
+  }
+}
+
+async function addRow() {
+  try {
+    const data = S.data[S.currentTab];
+    const newRow = {};
+    data.headers.forEach(h => newRow[h] = '');
+    data.rows.push(newRow);
+    
+    await api.post(`/api/admin/${S.currentTab}`, {
+      headers: data.headers,
+      rows: data.rows
+    });
+    
+    renderTable(S.currentTab, data);
+    document.getElementById('row-count').textContent = `(${data.rows.length})`;
+    
+    // Start editing the new row
+    startEdit(data.rows.length - 1);
+    
+    // Scroll to bottom
+    setTimeout(() => {
+      const wrap = document.querySelector('.table-wrap');
+      wrap.scrollTop = wrap.scrollHeight;
+    }, 10);
+    
+    toast('New row added', 'success');
+  } catch (e) {
+    toast('Failed to add row: ' + e.message, 'error');
+  }
+}
+
+function downloadCSV(type) {
+  const data = S.data[type];
+  if (!data || !data.rows.length) {
+    toast('No data to download', 'error');
+    return;
+  }
+  
+  // Build CSV
+  const lines = [data.headers.join(',')];
+  data.rows.forEach(row => {
+    const vals = data.headers.map(h => {
+      const v = row[h] ?? '';
+      // Escape values containing commas or quotes
+      if (v.includes(',') || v.includes('"') || v.includes('\n')) {
+        return '"' + v.replace(/"/g, '""') + '"';
+      }
+      return v;
+    });
+    lines.push(vals.join(','));
+  });
+  
+  const blob = new Blob([lines.join('\n')], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${type}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  toast('CSV downloaded', 'success');
+}
+
+function triggerCSVUpload() {
+  document.getElementById('csv-upload-input').click();
+}
+
+function handleCSVUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  showModal(
+    'Overwrite Data?',
+    `Are you sure you want to upload "${file.name}"? This will COMPLETELY OVERWRITE all existing ${S.currentTab} data. This cannot be undone.`,
+    () => performCSVUpload(file)
+  );
+  
+  // Reset input so the same file can be selected again
+  input.value = '';
+}
+
+async function performCSVUpload(file) {
+  closeModal();
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  try {
+    const response = await fetch(`/api/admin/${S.currentTab}/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.detail || response.statusText);
+    }
+    
+    toast('CSV uploaded and data overwritten', 'success');
+    await loadData(S.currentTab);
+  } catch (e) {
+    toast('Upload failed: ' + e.message, 'error');
+  }
+}
+
+// Database panel
+function renderDatabasePanel() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    <div class="content-header">
+      <div class="content-title">Database Management</div>
+    </div>
+    <div class="db-panel" id="db-panel">
+      <div class="spinner"><div class="spin-ring"></div>Loading...</div>
+    </div>
+  `;
+}
+
+async function loadDatabaseStats() {
+  try {
+    const stats = await api.get('/api/stats');
+    const panel = document.getElementById('db-panel');
+    
+    panel.innerHTML = `
+      <div class="db-card">
+        <h3>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+          </svg>
+          Pipeline Database
+        </h3>
+        <p>All extracted invoice data is stored in the SQLite database. Clearing the database will remove all processed invoices, corrections, and notes. The source PDFs will remain in the invoices folder.</p>
+        
+        <div class="db-stats">
+          <div class="stat-box">
+            <div class="value">${stats.total || 0}</div>
+            <div class="label">Total</div>
+          </div>
+          <div class="stat-box">
+            <div class="value" style="color:var(--warn)">${stats.needs_review || 0}</div>
+            <div class="label">Needs Review</div>
+          </div>
+          <div class="stat-box">
+            <div class="value" style="color:var(--ok)">${stats.ready || 0}</div>
+            <div class="label">Ready</div>
+          </div>
+          <div class="stat-box">
+            <div class="value" style="color:#7c3aed">${stats.exported || 0}</div>
+            <div class="label">Exported</div>
+          </div>
+        </div>
+        
+        <button class="btn btn-danger" onclick="confirmClearDatabase()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          </svg>
+          Clear Database
+        </button>
+      </div>
+      
+      <div class="db-card">
+        <h3>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          File Locations
+        </h3>
+        <p>Current data file paths (mounted from host):</p>
+        <div style="background:var(--bg);padding:12px;border-radius:6px;font-family:monospace;font-size:11px;line-height:1.6;color:var(--text)">
+          <div><strong>Data Files:</strong> /app/data/</div>
+          <div style="margin-left:12px">• suppliers.csv</div>
+          <div style="margin-left:12px">• purchase_orders.csv</div>
+          <div style="margin-left:12px">• purchase_order_lines.csv</div>
+          <div style="margin-top:8px"><strong>Database:</strong> /app/output/pipeline.db</div>
+          <div style="margin-top:8px"><strong>Invoices:</strong> /app/invoices/</div>
+          <div style="margin-top:8px"><strong>Exports:</strong> /app/output/export/</div>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    document.getElementById('db-panel').innerHTML = `
+      <div class="db-card">
+        <h3>Error</h3>
+        <p>Failed to load database stats: ${e.message}</p>
+      </div>
+    `;
+  }
+}
+
+function confirmClearDatabase() {
+  showModal(
+    'Clear Database?',
+    'This will permanently delete ALL invoice records, corrections, and notes. This action cannot be undone. The source PDFs will not be affected.',
+    clearDatabase
+  );
+}
+
+async function clearDatabase() {
+  closeModal();
+  try {
+    await api.post('/api/admin/database/clear', {});
+    toast('Database cleared successfully', 'success');
+    await loadDatabaseStats();
+  } catch (e) {
+    toast('Failed to clear database: ' + e.message, 'error');
+  }
+}
+
+// Modal functions
+function showModal(title, message, onConfirm) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-message').textContent = message;
+  document.getElementById('modal-confirm').onclick = onConfirm;
+  document.getElementById('modal-overlay').classList.add('visible');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('visible');
+}
+
+// Escape HTML
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Initialize
+setTab('suppliers');
+</script>
+
+</body>
+</html>
