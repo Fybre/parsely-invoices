@@ -34,6 +34,7 @@ import os
 import re
 import shutil
 import sys
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -52,6 +53,64 @@ if str(_PIPELINE_DIR) not in sys.path:
 from pipeline.database import Database, STATUS_NEEDS_REVIEW, STATUS_READY  # noqa: E402
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# CSV Matchers (lazy loaded, can be reloaded via API)
+# Thread-safe implementation using locks
+# ---------------------------------------------------------------------------
+_matchers: Optional[dict] = None
+_matchers_lock = threading.Lock()
+
+
+def _load_matchers() -> dict:
+    """Load or reload the CSV matchers from disk."""
+    from pipeline.supplier_matcher import SupplierMatcher
+    from pipeline.po_matcher import POMatcher
+    
+    return {
+        "suppliers": SupplierMatcher(SUPPLIERS_CSV),
+        "po": POMatcher(PO_CSV, PO_LINES_CSV),
+    }
+
+
+def get_matchers() -> dict:
+    """Get the current matchers, loading them if needed.
+    
+    Uses double-checked locking pattern for thread safety.
+    """
+    global _matchers
+    
+    # Fast path - no lock needed if already loaded
+    if _matchers is not None:
+        return _matchers
+    
+    # Slow path - acquire lock and load
+    with _matchers_lock:
+        # Check again after acquiring lock
+        if _matchers is None:
+            _matchers = _load_matchers()
+        return _matchers
+
+
+def reload_matchers() -> dict:
+    """Atomically reload matchers from disk.
+    
+    Returns the new matchers. Any concurrent reads will get either
+    the old or new matchers, but never a partially constructed state.
+    """
+    global _matchers
+    
+    # Load new matchers outside the lock to minimize hold time
+    new_matchers = _load_matchers()
+    
+    with _matchers_lock:
+        # Atomic assignment - readers will see either old or new, never partial
+        old_matchers = _matchers
+        _matchers = new_matchers
+        
+    # Old matchers can be garbage collected now if no references remain
+    return new_matchers
 
 
 # ---------------------------------------------------------------------------
@@ -313,6 +372,26 @@ def get_pages(stem: str):
     pages = _render_pages(pdf_path)
     _PAGE_CACHE[stem] = {"mtime": mtime, "pages": pages}
     return pages
+
+
+@app.get("/api/invoices/{stem}/pdf")
+def get_raw_pdf(stem: str):
+    """Serve the raw PDF file for native browser viewing."""
+    from fastapi.responses import FileResponse
+    rec = get_db().get_invoice(stem)
+    if not rec:
+        raise HTTPException(status_code=404, detail=f"Invoice not found: {stem}")
+
+    pdf_path = _find_pdf(rec.get("source_file", ""), stem)
+    if pdf_path is None or not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="PDF file not found")
+
+    return FileResponse(
+        path=pdf_path,
+        media_type="application/pdf",
+        filename=f"{stem}.pdf",
+        content_disposition_type="inline"
+    )
 
 
 @app.post("/api/invoices/{stem}/export")
@@ -590,6 +669,110 @@ async def upload_invoice(file: UploadFile = File(...)):
 
 
 # ── Admin API ────────────────────────────────────────────────────────────────
+# NOTE: Specific routes (/status, /reload, /database/clear) must be defined
+# BEFORE generic routes (/{tab}) or FastAPI will match them incorrectly.
+
+# Cache for CSV metadata
+_csv_meta_cache: dict[str, dict] = {}
+
+
+def _get_csv_metadata(path: Path) -> dict:
+    """Get metadata for a CSV file (with caching)."""
+    if not path.exists():
+        return {"exists": False, "mtime": None, "size": 0, "rows": 0}
+    
+    stat = path.stat()
+    mtime = stat.st_mtime
+    
+    # Check cache
+    cached = _csv_meta_cache.get(str(path))
+    if cached and cached.get("mtime") == mtime:
+        return cached
+    
+    # Count rows
+    rows = 0
+    try:
+        with open(path, newline="", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader)  # Skip header
+            rows = sum(1 for _ in reader)
+    except Exception:
+        pass
+    
+    meta = {
+        "exists": True,
+        "mtime": mtime,
+        "mtime_iso": datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat(),
+        "size": stat.st_size,
+        "rows": rows,
+    }
+    _csv_meta_cache[str(path)] = meta
+    return meta
+
+
+@app.get("/api/admin/status")
+def get_admin_status():
+    """Get status of CSV files - modification times, row counts, etc."""
+    return {
+        "suppliers": _get_csv_metadata(SUPPLIERS_CSV),
+        "purchase_orders": _get_csv_metadata(PO_CSV),
+        "purchase_order_lines": _get_csv_metadata(PO_LINES_CSV),
+    }
+
+
+@app.post("/api/admin/reload")
+def reload_csv_files():
+    """Reload CSV files from disk into memory for matching.
+    
+    Thread-safe: uses atomic replacement to avoid race conditions with
+    concurrent invoice processing.
+    """
+    global _csv_meta_cache
+    
+    # Clear metadata cache
+    _csv_meta_cache.clear()
+    
+    # Reload matchers (thread-safe atomic replacement)
+    try:
+        new_matchers = reload_matchers()
+        logger.info("CSV files reloaded: suppliers=%d, pos=%d", 
+                    len(new_matchers["suppliers"].suppliers),
+                    len(new_matchers["po"].purchase_orders))
+    except Exception as e:
+        logger.error("Failed to reload CSV files: %s", e)
+        raise HTTPException(500, f"Failed to reload CSV files: {e}")
+    
+    # Return fresh metadata
+    return {
+        "status": "ok",
+        "files": {
+            "suppliers": _get_csv_metadata(SUPPLIERS_CSV),
+            "purchase_orders": _get_csv_metadata(PO_CSV),
+            "purchase_order_lines": _get_csv_metadata(PO_LINES_CSV),
+        }
+    }
+
+
+@app.post("/api/admin/database/clear")
+def clear_database():
+    global _db
+    if DB_PATH.exists():
+        try:
+            # Try to remove WAL/SHM files too
+            for suffix in ["", "-wal", "-shm"]:
+                p = DB_PATH.with_suffix(DB_PATH.suffix + suffix)
+                if p.exists():
+                    p.unlink()
+            _db = None
+            return {"status": "ok"}
+        except Exception as e:
+            raise HTTPException(500, f"Failed to clear database: {e}")
+    else:
+        _db = None
+        return {"status": "ok", "message": "Database file did not exist"}
+
+
+# Generic tab routes (defined AFTER specific routes above)
 
 @app.get("/api/admin/{tab}")
 def get_admin_data(tab: str):
@@ -669,25 +852,6 @@ async def upload_admin_csv(tab: str, file: UploadFile = File(...)):
     
     logger.info("Admin CSV uploaded and overwritten: %s", path)
     return {"status": "ok", "filename": file.filename}
-
-
-@app.post("/api/admin/database/clear")
-def clear_database():
-    global _db
-    if DB_PATH.exists():
-        try:
-            # Try to remove WAL/SHM files too
-            for suffix in ["", "-wal", "-shm"]:
-                p = DB_PATH.with_suffix(DB_PATH.suffix + suffix)
-                if p.exists():
-                    p.unlink()
-            _db = None
-            return {"status": "ok"}
-        except Exception as e:
-            raise HTTPException(500, f"Failed to clear database: {e}")
-    else:
-        _db = None
-        return {"status": "ok", "message": "Database file did not exist"}
 
 
 # ── SPA ───────────────────────────────────────────────────────────────────────

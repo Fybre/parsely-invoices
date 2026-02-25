@@ -616,9 +616,44 @@ const api = {
     method: 'POST', 
     headers: {'Content-Type':'application/json'}, 
     body: JSON.stringify(body) 
-  }).then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.detail || r.statusText); }); return r.json(); }),
+  }).then(r => { 
+    if (!r.ok) {
+      return r.json().then(e => {
+        // Handle different error response formats
+        let msg = r.statusText;
+        if (e.detail) {
+          if (typeof e.detail === 'string') {
+            msg = e.detail;
+          } else if (Array.isArray(e.detail)) {
+            msg = e.detail.map(d => typeof d === 'string' ? d : JSON.stringify(d)).join(', ');
+          } else {
+            msg = JSON.stringify(e.detail);
+          }
+        }
+        throw new Error(msg);
+      }).catch(err => {
+        // If JSON parsing fails, throw status text
+        if (err.message !== r.statusText) throw err;
+        throw new Error(r.statusText);
+      });
+    }
+    return r.json();
+  }),
   del:  url => fetch(url, { method: 'DELETE' }).then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); }),
 };
+
+// Add spinner styles for buttons
+const spinnerStyle = document.createElement('style');
+spinnerStyle.textContent = `
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin-ring {
+    animation: spin 0.7s linear infinite;
+    border: 3px solid var(--border);
+    border-top-color: currentColor;
+    border-radius: 50%;
+  }
+`;
+document.head.appendChild(spinnerStyle);
 
 // Toast notifications
 function toast(message, type='info') {
@@ -1007,6 +1042,27 @@ async function loadDatabaseStats() {
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
           </svg>
+          CSV File Status
+          <button class="btn btn-primary" style="margin-left:auto;font-size:11px;padding:4px 10px" onclick="reloadCSVFiles()" title="Reload CSV files into pipeline memory">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+            Reload into Pipeline
+          </button>
+        </h3>
+        <p>Edit the CSV files below, then click "Reload into Pipeline" to apply changes immediately. New invoices will use the updated data.</p>
+        <div id="csv-status-list" style="display:flex;flex-direction:column;gap:10px">
+          <div style="color:var(--muted);font-size:12px">Loading...</div>
+        </div>
+      </div>
+      
+      <div class="db-card">
+        <h3>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
           File Locations
         </h3>
         <p>Current data file paths (mounted from host):</p>
@@ -1072,8 +1128,79 @@ function esc(s) {
     .replace(/"/g, '&quot;');
 }
 
+// CSV Status and Reload functions
+async function reloadCSVFiles() {
+  const btn = document.querySelector('.db-card .btn-primary');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = `<div class="spin-ring" style="width:12px;height:12px;border-width:2px;display:inline-block"></div> Reloading...`;
+  btn.disabled = true;
+  
+  try {
+    const result = await api.post('/api/admin/reload', {});
+    toast('CSV files reloaded successfully', 'success');
+    await loadCSVStatus(); // Refresh the display
+  } catch (e) {
+    toast('Failed to reload: ' + e.message, 'error');
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+}
+
+async function loadCSVStatus() {
+  try {
+    const status = await api.get('/api/admin/status');
+    const container = document.getElementById('csv-status-list');
+    
+    const files = [
+      { key: 'suppliers', name: 'Suppliers', path: 'suppliers.csv' },
+      { key: 'purchase_orders', name: 'Purchase Orders', path: 'purchase_orders.csv' },
+      { key: 'purchase_order_lines', name: 'PO Lines', path: 'purchase_order_lines.csv' },
+    ];
+    
+    container.innerHTML = files.map(f => {
+      const meta = status[f.key];
+      if (!meta || !meta.exists) {
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--err)"></div>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:12px">${f.name}</div>
+            <div style="font-size:11px;color:var(--muted)">${f.path} — Not found</div>
+          </div>
+        </div>`;
+      }
+      
+      const mtime = new Date(meta.mtime_iso);
+      const timeStr = mtime.toLocaleString();
+      const sizeKB = (meta.size / 1024).toFixed(1);
+      
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--ok)"></div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:12px">${f.name}</div>
+          <div style="font-size:11px;color:var(--muted)">${f.path} • ${sizeKB} KB • Modified: ${timeStr}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:16px;font-weight:700;color:var(--text)">${meta.rows}</div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase">rows</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    document.getElementById('csv-status-list').innerHTML = 
+      `<div style="color:var(--err);font-size:12px">Failed to load status: ${e.message}</div>`;
+  }
+}
+
 // Initialize
 setTab('suppliers');
+
+// Load CSV status when database panel is shown
+const originalRenderDatabasePanel = renderDatabasePanel;
+renderDatabasePanel = function() {
+  originalRenderDatabasePanel();
+  loadCSVStatus();
+};
 </script>
 
 </body>

@@ -19,7 +19,9 @@ An AI-powered invoice processing pipeline that extracts structured data from PDF
   - Dates: future-dated, stale (>90 days), overdue, due before invoice date
   - PO: not found, supplier mismatch, total exceeded, quantity/price mismatches
   - Data quality: missing invoice number, supplier, total; negative or zero amounts
-- **Web dashboard** — review, correct, and approve invoices; upload PDFs directly from the browser
+- **Web dashboard** — review, correct, and approve invoices; upload PDFs directly from the browser; dark mode support
+- **Admin page** — edit suppliers, POs, and PO lines in-browser; reload data without restarting
+- **PO line lookup** — in edit mode, view PO lines and copy SKU/description to invoice line items
 - **Custom fields** — define site-specific fields (e.g. strata reference, job number) extracted alongside standard fields
 - **SQLite-backed state** — all results, corrections, and approvals stored in a single database; no per-invoice JSON files cluttering the filesystem
 - **Export on approval** — approved invoices written to `output/export/` as JSON + PDF for downstream system pickup
@@ -230,10 +232,23 @@ Key features:
 - **Upload** — drag-and-drop or click to upload a PDF directly from the browser; the pipeline picks it up on the next poll cycle
 - **Review** — side-by-side PDF viewer and extracted data panel; flag invoices for review or mark them ready
 - **Correct** — edit any extracted field inline; corrections are stored separately and applied on export
+- **PO Lookup** — in edit mode, view PO lines and copy data to invoice line items for quick correction
 - **Export** — approve individual invoices or bulk-export all ready invoices; exports land in `output/export/` as `<stem>.json` + `<stem>.pdf`
 - **Reprocess** — clear the record and let the pipeline re-extract from scratch
+- **Dark mode** — toggle between light and dark themes
 
 The dashboard reads from the same `output/pipeline.db` database that the pipeline writes to. Both services can run simultaneously.
+
+### Admin Page
+
+Access the admin page at **http://localhost:8080/admin** to manage reference data:
+
+- **Edit CSV files** — suppliers, purchase orders, and PO lines can be edited directly in the browser
+- **Upload CSV** — replace entire data files with a CSV upload
+- **Reload into Pipeline** — after editing data files, click to reload them into the running pipeline without restarting
+- **Database** — view pipeline stats and clear the database if needed
+
+> **Note:** CSV files are loaded into memory at startup. After making changes via the admin page, you must click **"Reload into Pipeline"** for the changes to take effect for new invoices.
 
 ---
 
@@ -271,7 +286,8 @@ parsely-invoices/
 │
 ├── dashboard/
 │   ├── app.py                   FastAPI backend
-│   └── templates/index.html     Single-page dashboard UI
+│   ├── templates/index.html     Single-page dashboard UI
+│   └── templates/admin.html     Admin page for CSV/data management
 │
 ├── data/                        Reference CSVs (gitignored — add your own)
 │   ├── suppliers.csv

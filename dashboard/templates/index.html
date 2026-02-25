@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Parsely</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20 C12 18 12 16 12 14 C12 12 12 10 13 8' fill='none'/%3E%3Cpath d='M12 15 C9 15 7 13 7 10 C7 7 9 5 12 6 C11 8 10 10 11 12 C12 13 13 14 12 15Z' fill='%2316a34a' stroke='none' opacity='0.9'/%3E%3Cpath d='M12 12 C15 12 17 10 17 7 C17 4 15 3 12 4 C13 6 14 8 13 10 C12 11 11 11 12 12Z' fill='%2316a34a' stroke='none' opacity='0.9'/%3E%3Cpath d='M13 8 C11 6 12 4 14 3 C15 4 15 6 13 8Z' fill='%2316a34a' stroke='none'/%3E%3Cpath d='M11 13 C9 12 9 10 10 9 C11 10 12 12 11 13Z' fill='%2316a34a' stroke='none' opacity='0.7'/%3E%3Cpath d='M13 10 C15 9 15 7 14 6 C13 7 12 9 13 10Z' fill='%2316a34a' stroke='none' opacity='0.7'/%3E%3C/svg%3E">
 <style>
 /* ── Reset & Variables ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,6 +34,25 @@
   --radius:    8px;
   --shadow:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
   --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+}
+
+/* Dark mode theme */
+[data-theme="dark"] {
+  --bg:        #0f172a;
+  --card:      #1e293b;
+  --sidebar:   #0f172a;
+  --side-item: #1e293b;
+  --side-sel:  #334155;
+  --side-hov:  #2d3748;
+  --border:    #334155;
+  --text:      #e2e8f0;
+  --muted:     #94a3b8;
+  --ok-bg:     rgba(22, 163, 74, 0.2);
+  --warn-bg:   rgba(217, 119, 6, 0.2);
+  --err-bg:    rgba(220, 38, 38, 0.2);
+  --info-bg:   rgba(37, 99, 235, 0.2);
+  --shadow:    0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.4), 0 2px 4px rgba(0,0,0,.3);
 }
 
 /* ── Layout ────────────────────────────────────────────────────────────── */
@@ -65,13 +85,16 @@ header {
 .app-title {
   font-size: 15px;
   font-weight: 700;
-  color: var(--accent);
+  color: #16a34a; /* Parsley green */
   white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.app-title svg { opacity: .8; }
+.app-title svg { 
+  opacity: 1;
+  color: #16a34a; /* Parsley green */
+}
 .build-tag {
   font-size: 10px;
   color: var(--muted);
@@ -113,6 +136,38 @@ header {
   font-size: 11px;
   color: var(--muted);
   white-space: nowrap;
+}
+
+/* Theme toggle button */
+.btn-theme {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-theme:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+.btn-theme .icon-sun {
+  display: none;
+}
+.btn-theme .icon-moon {
+  display: block;
+}
+/* In dark mode: show sun, hide moon */
+[data-theme="dark"] .btn-theme .icon-sun {
+  display: block;
+}
+[data-theme="dark"] .btn-theme .icon-moon {
+  display: none;
 }
 
 /* ── Upload button (sidebar) ─────────────────────────────────────────────── */
@@ -347,13 +402,10 @@ main {
   max-width: 75%;
   min-height: 0;
   background: #d1d5db;
-  overflow-y: auto;
-  overflow-x: auto;
   display: flex;
   flex-direction: column;
-  scrollbar-width: thin;
-  scrollbar-color: #9ca3af transparent;
   flex-shrink: 0;
+  overflow: hidden; /* Viewer inside iframe handles its own scrolling */
 }
 
 /* ── Resize handle ──────────────────────────────────────────────────────── */
@@ -375,12 +427,6 @@ main {
   inset: 0 -5px;  /* widen hit area without affecting layout */
   z-index: 1;
 }
-.pdf-panel::-webkit-scrollbar { width: 8px; height: 8px; }
-.pdf-panel::-webkit-scrollbar-track { background: #b0b7c3; }
-.pdf-panel::-webkit-scrollbar-thumb { background: #6b7280; border-radius: 4px; }
-.pdf-panel::-webkit-scrollbar-corner { background: #b0b7c3; }
-.pdf-pages { cursor: grab; }
-.pdf-pages.panning { cursor: grabbing; }
 
 .pdf-toolbar {
   background: #374151;
@@ -392,8 +438,6 @@ main {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  position: sticky;
-  top: 0;
   z-index: 2;
 }
 .pdf-filename {
@@ -402,31 +446,191 @@ main {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.pdf-pages-count { color: #9ca3af; white-space: nowrap; }
-.pdf-zoom-ctrl { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-.btn-zoom {
-  background: #4b5563; border: 1px solid #6b7280; border-radius: 4px;
-  width: 22px; height: 22px; cursor: pointer; font-size: 15px; line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-  color: #e2e8f0; padding: 0; flex-shrink: 0;
+.pdf-zoom-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.btn-zoom:hover { background: #6b7280; }
-.zoom-label { font-size: 11px; color: #9ca3af; min-width: 34px; text-align: center; }
-
-.pdf-pages { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
-.pdf-page {
-  background: #fff;
-  box-shadow: var(--shadow-md);
+.btn-zoom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 4px;
+  background: rgba(255,255,255,0.08);
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-zoom:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.3);
+}
+.btn-zoom.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-zoom svg {
+  display: block;
+}
+.zoom-label {
+  min-width: 42px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+/* Supplier lookup button in edit mode */
+.btn-lookup {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-lookup:hover {
+  background: #bfdbfe;
+  border-color: #93c5fd;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.hidden {
+  display: none;
+}
+
+/* Modal dialog */
+.modal-dialog {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
-.pdf-page img { width: 100%; display: block; }
-.pdf-page-label {
-  background: #374151;
-  color: #9ca3af;
-  font-size: 10px;
+.modal-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fafbfc;
+}
+.modal-header h3 {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+.modal-search {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.modal-search input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+}
+.modal-search input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59,91,219,.12);
+}
+.supplier-list {
+  padding: 0;
+}
+.supplier-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background 0.1s;
+}
+.supplier-item:hover {
+  background: var(--bg);
+}
+.supplier-item.selected {
+  background: #dbeafe;
+}
+.supplier-info {
+  flex: 1;
+  min-width: 0;
+}
+.supplier-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.supplier-meta {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.supplier-abn {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: #dbeafe;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.modal-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: #fafbfc;
+}
+.modal-empty {
+  padding: 40px;
   text-align: center;
-  padding: 3px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .pdf-placeholder {
@@ -450,7 +654,7 @@ main {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 20px;
+  padding: 0 20px 20px 20px; /* No top padding - action bar handles it */
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -538,8 +742,29 @@ main {
   background: var(--card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.1);
   flex-shrink: 0;
+  /* Sticky positioning - stays at top while scrolling */
+  position: sticky;
+  top: 10px;
+  z-index: 100;
+  margin-top: 10px;
+}
+/* Extra background and stronger shadow to cover content scrolling underneath */
+.action-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  z-index: -1;
+}
+[data-theme="dark"] .action-bar {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+}
+[data-theme="dark"] .action-bar::before {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
 }
 .action-bar .status-pill {
   display: flex;
@@ -1006,10 +1231,6 @@ td.match-none { color: var(--muted); font-style: italic; }
 
 .edit-mode-notice {
   background: #dbeafe;
-  border: 1px solid #bfdbfe;
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  font-size: 12px;
   color: var(--info);
   display: flex;
   align-items: center;
@@ -1017,7 +1238,373 @@ td.match-none { color: var(--muted); font-style: italic; }
   flex-shrink: 0;
 }
 
+/* PDF.js Text Layer Styles (Override built-in) */
+.textLayer {
+  opacity: 1.0;
+  z-index: 2;
+}
+/* Text selection enabled by default, disabled in grab mode */
+.textLayer span {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+/* When in grab mode, disable text selection so dragging works reliably */
+.pdf-viewer-container.grab-mode .textLayer span {
+  cursor: inherit;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] header {
+  background: var(--card);
+  border-bottom-color: var(--border);
+}
+[data-theme="dark"] .pdf-toolbar {
+  background: #0f172a;
+  border-bottom: 1px solid #334155;
+}
+[data-theme="dark"] .pdf-panel {
+  background: #0a0a0a;
+}
+[data-theme="dark"] .pdf-viewer-container {
+  background: #0a0a0a;
+}
+[data-theme="dark"] .pdf-placeholder {
+  background: #0a0a0a;
+  color: #9ca3af;
+}
+[data-theme="dark"] .page-container {
+  box-shadow: 0 5px 30px rgba(0,0,0,0.6);
+}
+[data-theme="dark"] .kv-grid {
+  background: var(--card);
+}
+[data-theme="dark"] .kv-label {
+  color: var(--muted);
+}
+[data-theme="dark"] .kv-value {
+  color: var(--text);
+}
+[data-theme="dark"] .card-header {
+  background: rgba(255,255,255,0.03);
+  border-bottom-color: var(--border);
+}
+[data-theme="dark"] .items-table th {
+  background: rgba(255,255,255,0.03);
+}
+[data-theme="dark"] .edit-mode-notice {
+  background: rgba(59, 130, 246, 0.2);
+}
+[data-theme="dark"] .edit-input {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+[data-theme="dark"] .modal-dialog {
+  background: var(--card);
+}
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer {
+  background: var(--bg);
+}
+[data-theme="dark"] .supplier-item:hover {
+  background: var(--bg);
+}
+[data-theme="dark"] .supplier-item.selected {
+  background: rgba(59, 130, 246, 0.3);
+}
+[data-theme="dark"] .modal-search {
+  background: var(--bg);
+  border-bottom-color: var(--border);
+}
+[data-theme="dark"] .modal-search input {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--text);
+}
+[data-theme="dark"] input.edit-input {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+[data-theme="dark"] .btn-add-row {
+  border-color: var(--border);
+  color: var(--muted);
+}
+[data-theme="dark"] .btn-add-row:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+[data-theme="dark"] .btn-row-del:hover {
+  background: rgba(220, 38, 38, 0.2);
+}
+[data-theme="dark"] .notes-save-row {
+  background: rgba(255,255,255,0.03);
+}
+[data-theme="dark"] .items-table .total-row td {
+  background: rgba(255,255,255,0.05);
+}
+[data-theme="dark"] .btn-reprocess {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+[data-theme="dark"] .btn-reprocess:hover {
+  background: var(--card);
+}
+[data-theme="dark"] .btn-edit {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+[data-theme="dark"] .btn-edit:hover {
+  background: var(--card);
+}
+[data-theme="dark"] .edit-li-table th {
+  background: rgba(255,255,255,0.05);
+}
+
+/* PO Lines lookup panel (slides down from top) */
+.po-lines-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22vh;
+  min-height: 180px;
+  max-height: 60vh;
+  background: var(--card);
+  border-bottom: 2px solid var(--accent);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(-100%);
+  transition: transform 0.25s ease;
+}
+.po-lines-panel.visible {
+  transform: translateY(0);
+}
+
+/* Resize handle for PO panel */
+.po-lines-resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: ns-resize;
+  background: transparent;
+  z-index: 2001;
+}
+.po-lines-resize-handle:hover,
+.po-lines-resize-handle.dragging {
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+/* Dark mode: darker background for PO panel */
+[data-theme="dark"] .po-lines-panel {
+  background: #141b2d;
+  border-bottom-color: #3b5bdb;
+}
+[data-theme="dark"] .po-lines-header {
+  background: #0f172a;
+  border-bottom-color: #334155;
+}
+[data-theme="dark"] .po-lines-table th {
+  background: #0f172a;
+}
+[data-theme="dark"] .po-sku {
+  color: #60a5fa; /* Lighter blue for dark mode */
+}
+[data-theme="dark"] .po-lines-table tr:hover td {
+  background: rgba(255,255,255,0.03);
+}
+.po-lines-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.po-lines-header h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+.po-lines-header .po-number {
+  font-family: 'SF Mono', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--info-bg);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.po-lines-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+.po-lines-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.po-lines-table th {
+  text-align: left;
+  padding: 6px 8px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+.po-lines-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.po-lines-table tr:hover td {
+  background: var(--bg);
+}
+.po-lines-table tr.matched td {
+  opacity: 0.5;
+}
+.po-lines-table .po-sku {
+  font-family: 'SF Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+}
+.po-lines-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+.btn-po-copy {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-po-copy:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-po-copy.sku-only {
+  background: transparent;
+}
+.btn-po-copy.sku-only:hover {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--accent);
+}
+.po-lines-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.po-lines-close {
+  margin-left: auto;
+}
+
+/* Selected row highlight in edit table */
+.edit-li-table tr.selected {
+  background: rgba(59, 91, 219, 0.1);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+[data-theme="dark"] .edit-li-table tr.selected {
+  background: rgba(59, 91, 219, 0.2);
+}
+
+/* PO Lookup button in edit mode */
+.btn-po-lookup {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--info);
+  background: var(--info-bg);
+  border: 1px solid #bfdbfe;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-po-lookup:hover {
+  background: #bfdbfe;
+  border-color: #93c5fd;
+}
+[data-theme="dark"] .btn-po-lookup {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.pdf-viewer-container {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background: #525659;
+  text-align: center;
+  /* No padding here - we handle spacing via page margins */
+  width: 100%;
+  height: 100%;
+}
+.pdf-viewer-container.grabbing { cursor: grabbing; }
+.pdf-viewer-container.grab-mode:not(.grabbing) { cursor: grab; }
+/* When in grab mode, show grab cursor on page containers but allow text selection */
+.pdf-viewer-container.grab-mode .page-container {
+  cursor: grab;
+}
+.pdf-viewer-container.grab-mode.grabbing .page-container {
+  cursor: grabbing;
+}
+
+#viewer-pages {
+  display: inline-block;
+  text-align: left;
+  padding: 4px; /* Minimal padding to prevent shadow clipping */
+}
+
+.page-container {
+  position: relative;
+  margin: 0 auto;
+  box-shadow: 0 5px 30px rgba(0,0,0,0.4);
+  background: white;
+  z-index: 1;
+}
+.page-container:last-child {
+  margin-bottom: 0;
+}
+
 </style>
+<!-- PDF.js -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  // Initialize PDF.js worker
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
 </head>
 <body>
 
@@ -1032,24 +1619,45 @@ td.match-none { color: var(--muted); font-style: italic; }
     </svg>
   </button>
   <div class="app-title">
-    <!-- Parsley herb icon: stems + leaf clusters -->
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <!-- central stem -->
-      <line x1="12" y1="22" x2="12" y2="10"/>
-      <!-- left stem -->
-      <line x1="12" y1="17" x2="7"  y2="13"/>
-      <!-- right stem -->
-      <line x1="12" y1="14" x2="17" y2="10"/>
-      <!-- centre leaf -->
-      <path d="M12 10 C10 7 8 5 9 2 C11 3 13 5 12 10Z" fill="currentColor" stroke="none"/>
-      <!-- left leaf -->
-      <path d="M7 13 C4 11 2 9 3 6 C5 7 8 9 7 13Z"    fill="currentColor" stroke="none"/>
-      <!-- right leaf -->
-      <path d="M17 10 C15 7 15 4 17 2 C19 4 20 7 17 10Z" fill="currentColor" stroke="none"/>
+    <!-- Parsley herb icon: curly parsley sprig -->
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Central stem -->
+      <path d="M12 20 C12 18 12 16 12 14 C12 12 12 10 13 8" fill="none"/>
+      <!-- Large curly leaf left -->
+      <path d="M12 15 C9 15 7 13 7 10 C7 7 9 5 12 6 C11 8 10 10 11 12 C12 13 13 14 12 15Z" fill="currentColor" stroke="none" opacity="0.9"/>
+      <path d="M12 15 C9 15 7 13 7 10 C7 7 9 5 12 6" fill="none"/>
+      <!-- Large curly leaf right -->
+      <path d="M12 12 C15 12 17 10 17 7 C17 4 15 3 12 4 C13 6 14 8 13 10 C12 11 11 11 12 12Z" fill="currentColor" stroke="none" opacity="0.9"/>
+      <path d="M12 12 C15 12 17 10 17 7 C17 4 15 3 12 4" fill="none"/>
+      <!-- Top leaf cluster -->
+      <path d="M13 8 C11 6 12 4 14 3 C15 4 15 6 13 8Z" fill="currentColor" stroke="none"/>
+      <path d="M13 8 C11 6 12 4 14 3" fill="none"/>
+      <!-- Small leaflet left -->
+      <path d="M11 13 C9 12 9 10 10 9 C11 10 12 12 11 13Z" fill="currentColor" stroke="none" opacity="0.7"/>
+      <!-- Small leaflet right -->
+      <path d="M13 10 C15 9 15 7 14 6 C13 7 12 9 13 10Z" fill="currentColor" stroke="none" opacity="0.7"/>
     </svg>
     Parsely <span class="build-tag">build 2026-02-25-i</span>
   </div>
   <a href="/admin" style="text-decoration:none; font-size:10px; font-weight:700; padding:4px 8px; border-radius:12px; border:1px solid var(--border); color:var(--muted); background:var(--bg); margin-left:-12px; text-transform:uppercase; letter-spacing:.5px;">Admin</a>
+  <button class="btn-theme" id="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
+    <!-- Sun icon (shown in dark mode) -->
+    <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/>
+      <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+    <!-- Moon icon (shown in light mode) -->
+    <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  </button>
   <div class="stats-bar">
     <div class="stat-chip review" onclick="setTab('needs_review')" title="Filter: Needs Review">
       <span class="num" id="stat-review">—</span>
@@ -1367,7 +1975,7 @@ async function selectInvoice(stem) {
 
   try {
     const [result, pages] = await Promise.all([api.detail(stem), api.pages(stem)]);
-    renderPdf(result, pages);
+    renderPdf(result, pages && pages.length > 0);
     renderData(result);
     // On tablet: switch to data panel and close sidebar
     if (isTablet()) { setPanel('data'); closeSidebar(); }
@@ -1409,66 +2017,824 @@ async function autoAdvance(stem, prevIndex) {
 // ════════════════════════════════════════════════════════════════════════════
 // PDF panel
 // ════════════════════════════════════════════════════════════════════════════
-function renderPdf(result, pages) {
-  const panel    = document.getElementById('pdf-panel');
-  const filename = result.source_file ? result.source_file.split('/').pop() : '(unknown)';
+const PDF = {
+  zoom: 1.25,
+  grabMode: true,
+  currentStem: null,
+  doc: null,
+  _isDown: false,
+  _startX: 0,
+  _startY: 0,
+  _scrollLeft: 0,
+  _scrollTop: 0
+};
 
-  if (!pages || pages.length === 0) {
-    panel.innerHTML = `
-      <div class="pdf-toolbar">
-        <span class="pdf-filename">${esc(filename)}</span>
-        ${result.status === 'exported' ? `<span style="font-size:10px;color:#9ca3af">moved to export</span>` : ''}
-      </div>
-      <div class="pdf-placeholder" style="flex:1">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-        </svg>
-        <p>${result.status === 'exported' ? 'PDF is in the export folder.' : 'PDF not available.'}</p>
-      </div>`;
-    return;
+// Icon SVGs for toolbar buttons
+function handToolIcon() {
+  // Hand/grab icon (shown when grab mode is active)
+  return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5"/>
+    <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v11"/>
+    <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+    <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.82-2.82L9 15.66"/>
+  </svg>`;
+}
+
+function textSelectIcon() {
+  // Text cursor icon (shown when text selection mode is active)
+  return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <line x1="12" y1="3" x2="12" y2="21"/>
+    <path d="M8 8h8"/>
+    <path d="M8 16h8"/>
+    <path d="M9 3h6"/>
+    <path d="M9 21h6"/>
+  </svg>`;
+}
+
+function fitToWidthIcon() {
+  return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+    <path d="M3 9h18"/>
+    <path d="M9 9v12"/>
+    <path d="M15 9v12"/>
+  </svg>`;
+}
+
+async function renderPdf(result, hasPages) {
+  const panel = document.getElementById('pdf-panel');
+  if (PDF.currentStem !== result.stem) {
+    PDF.currentStem = result.stem;
+    // Use saved zoom or default
+    const savedZoom = parseInt(localStorage.getItem('pdf-zoom'), 10);
+    PDF.zoom = (!isNaN(savedZoom) ? savedZoom : 125) / 100;
+    // Use saved grab mode preference (default to true/on)
+    const savedGrabMode = localStorage.getItem('pdf-grab-mode');
+    PDF.grabMode = savedGrabMode !== null ? savedGrabMode === '1' : true;
   }
 
-  const pagesHtml = pages.map(p => `
-    <div class="pdf-page">
-      <img src="data:${p.mime};base64,${p.data}" alt="Page ${p.page}" loading="lazy">
-      ${pages.length > 1 ? `<div class="pdf-page-label">Page ${p.page}</div>` : ''}
-    </div>`).join('');
+  const filename = result.source_file ? result.source_file.split('/').pop() : '(unknown)';
+  const pdfUrl   = `/api/invoices/${encodeURIComponent(result.stem)}/pdf`;
+
+  if (!hasPages) {
+    panel.innerHTML = `
+      <div class="pdf-toolbar"><span class="pdf-filename">${esc(filename)}</span></div>
+      <div class="pdf-placeholder"><p>PDF not available.</p></div>`;
+    return;
+  }
 
   panel.innerHTML = `
     <div class="pdf-toolbar">
       <span class="pdf-filename">${esc(filename)}</span>
       <div class="pdf-zoom-ctrl">
-        <button class="btn-zoom" onclick="setPdfZoom(-25)" title="Zoom out">−</button>
-        <span class="zoom-label" id="zoom-label">${S.pdfZoom}%</span>
-        <button class="btn-zoom" onclick="setPdfZoom(+25)" title="Zoom in">+</button>
-        <button class="btn-zoom" onclick="fitPdfWidth()" title="Fit to width" style="margin-left:3px">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M3 12h18M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/>
+        <button class="btn-zoom" onclick="updateZoom(-0.25)" title="Zoom out">−</button>
+        <span class="zoom-label">${Math.round(PDF.zoom * 100)}%</span>
+        <button class="btn-zoom" onclick="updateZoom(0.25)" title="Zoom in">+</button>
+        <button class="btn-zoom" onclick="fitToWidth()" title="Fit to width">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <path d="M3 9h18"/>
+            <path d="M9 9v12"/>
+            <path d="M15 9v12"/>
           </svg>
         </button>
+        <button class="btn-zoom ${PDF.grabMode ? 'active' : ''}" id="hand-btn" onclick="toggleHandTool()" title="${PDF.grabMode ? 'Hand tool on (click to select text)' : 'Hand tool off (click to pan)'}" style="margin-left:2px;">
+          ${PDF.grabMode ? handToolIcon() : textSelectIcon()}
+        </button>
       </div>
-      <span class="pdf-pages-count">${pages.length} page${pages.length !== 1 ? 's' : ''}</span>
     </div>
-    <div class="pdf-pages" id="pdf-pages" style="width:${S.pdfZoom}%;min-width:${S.pdfZoom}%">${pagesHtml}</div>`;
+    <div class="pdf-viewer-container ${PDF.grabMode ? 'grab-mode' : ''}" id="viewer-container">
+      <div id="viewer-pages" style="display:flex; flex-direction:column; gap:20px; align-items:center;"></div>
+    </div>
+  `;
+
+  const container = document.getElementById('viewer-container');
+  setupGrabToPan(container);
+
+  try {
+    const loadingTask = pdfjsLib.getDocument(pdfUrl);
+    PDF.doc = await loadingTask.promise;
+    renderPages();
+  } catch (e) {
+    console.error("PDF.js loading failed", e);
+    panel.innerHTML = `<div class="pdf-placeholder"><p>Failed to load PDF viewer: ${esc(e.message)}</p></div>`;
+  }
 }
 
-function setPdfZoom(delta) {
-  S.pdfZoom = Math.min(200, Math.max(50, S.pdfZoom + delta));
-  localStorage.setItem('pdf-zoom', S.pdfZoom);
-  const pages = document.getElementById('pdf-pages');
-  const label = document.getElementById('zoom-label');
-  if (pages) { pages.style.width = S.pdfZoom + '%'; pages.style.minWidth = S.pdfZoom + '%'; }
-  if (label) label.textContent = S.pdfZoom + '%';
+async function renderPages() {
+  const viewer = document.getElementById('viewer-pages');
+  if (!viewer || !PDF.doc) return;
+  viewer.innerHTML = '';
+
+  // Track if we need to update cursor based on grab mode
+  const container = document.getElementById('viewer-container');
+  const isGrabMode = container && container.classList.contains('grab-mode');
+
+  for (let i = 1; i <= PDF.doc.numPages; i++) {
+    const page = await PDF.doc.getPage(i);
+    const viewport = page.getViewport({ scale: PDF.zoom });
+
+    const pageDiv = document.createElement('div');
+    pageDiv.className = 'page-container';
+    pageDiv.style.width = viewport.width + 'px';
+    pageDiv.style.height = viewport.height + 'px';
+    if (isGrabMode) pageDiv.style.cursor = 'grab';
+    viewer.appendChild(pageDiv);
+
+    // Canvas layer - captures clicks when not on text
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    canvas.style.display = 'block';
+    pageDiv.appendChild(canvas);
+
+    // Text layer - absolutely positioned over canvas
+    const textLayerDiv = document.createElement('div');
+    textLayerDiv.className = 'textLayer';
+    textLayerDiv.style.cssText = `
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: ${viewport.width}px;
+      height: ${viewport.height}px;
+      z-index: 2;
+    `;
+    pageDiv.appendChild(textLayerDiv);
+
+    // Render PDF page to canvas
+    const renderContext = { canvasContext: canvas.getContext('2d'), viewport };
+    const renderTask = page.render(renderContext);
+    
+    // Get text content for the text layer
+    const textContent = await page.getTextContent();
+    
+    // Wait for both rendering and text extraction
+    await Promise.all([
+      renderTask.promise,
+      pdfjsLib.renderTextLayer({
+        textContent,
+        container: textLayerDiv,
+        viewport,
+        enhanceTextSelection: true
+      }).promise
+    ]);
+    
+    // Make sure text layer allows selection
+    textLayerDiv.style.pointerEvents = 'auto';
+  }
 }
 
-function fitPdfWidth() {
-  S.pdfZoom = 100;
-  localStorage.setItem('pdf-zoom', 100);
-  const pages = document.getElementById('pdf-pages');
-  const label = document.getElementById('zoom-label');
-  if (pages) { pages.style.width = '100%'; pages.style.minWidth = '100%'; }
-  if (label) label.textContent = '100%';
+function updateZoom(delta) {
+  const container = document.getElementById('viewer-container');
+  
+  // Save scroll position relative to center for zoom-to-center behavior
+  let scrollRatioX = 0.5, scrollRatioY = 0.5;
+  if (container) {
+    const centerX = container.scrollLeft + container.clientWidth / 2;
+    const centerY = container.scrollTop + container.clientHeight / 2;
+    scrollRatioX = centerX / container.scrollWidth;
+    scrollRatioY = centerY / container.scrollHeight;
+  }
+  
+  PDF.zoom = Math.min(4, Math.max(0.25, PDF.zoom + delta));
+  
+  // Save to localStorage
+  localStorage.setItem('pdf-zoom', Math.round(PDF.zoom * 100));
+  
+  renderPages().then(() => {
+    // Restore scroll position to maintain center point
+    if (container) {
+      const newCenterX = scrollRatioX * container.scrollWidth;
+      const newCenterY = scrollRatioY * container.scrollHeight;
+      container.scrollLeft = newCenterX - container.clientWidth / 2;
+      container.scrollTop = newCenterY - container.clientHeight / 2;
+    }
+  });
+  
+  const label = document.querySelector('.zoom-label');
+  if (label) label.textContent = Math.round(PDF.zoom * 100) + '%';
+}
+
+function toggleHandTool() {
+  PDF.grabMode = !PDF.grabMode;
+  const btn = document.getElementById('hand-btn');
+  const container = document.getElementById('viewer-container');
+  
+  if (btn) {
+    btn.classList.toggle('active', PDF.grabMode);
+    btn.title = PDF.grabMode ? 'Hand tool on (click to select text)' : 'Hand tool off (click to pan)';
+    // Update icon inside the button
+    btn.innerHTML = PDF.grabMode ? handToolIcon() : textSelectIcon();
+  }
+  
+  if (container) {
+    container.classList.toggle('grab-mode', PDF.grabMode);
+    // Update cursors on all pages
+    const pages = container.querySelectorAll('.page-container');
+    pages.forEach(p => p.style.cursor = PDF.grabMode ? 'grab' : '');
+  }
+  
+  // Clear any active selection when entering grab mode
+  if (PDF.grabMode) {
+    window.getSelection()?.removeAllRanges();
+  }
+  
+  // Save preference to localStorage
+  localStorage.setItem('pdf-grab-mode', PDF.grabMode ? '1' : '0');
+}
+
+async function fitToWidth() {
+  if (!PDF.doc) return;
+  
+  const container = document.getElementById('viewer-container');
+  if (!container) return;
+  
+  // Get the first page to determine the scale
+  const page = await PDF.doc.getPage(1);
+  const viewport = page.getViewport({ scale: 1 });
+  
+  // Calculate available width (container width minus minimal padding)
+  const padding = 8; // 4px on each side
+  const availableWidth = container.clientWidth - padding;
+  
+  // Calculate scale to fit width
+  const scale = Math.max(0.25, Math.min(4, availableWidth / viewport.width));
+  
+  // Apply the zoom
+  PDF.zoom = scale;
+  localStorage.setItem('pdf-zoom', Math.round(PDF.zoom * 100));
+  
+  // Re-render pages
+  await renderPages();
+  
+  // Update zoom label
+  const label = document.querySelector('.zoom-label');
+  if (label) label.textContent = Math.round(PDF.zoom * 100) + '%';
+  
+  // Scroll to top
+  container.scrollTop = 0;
+  container.scrollLeft = 0;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Supplier lookup modal
+// ════════════════════════════════════════════════════════════════════════════
+let supplierCache = null;
+let selectedSupplierId = null;
+
+async function openSupplierLookup() {
+  // Create modal if not exists
+  let modal = document.getElementById('supplier-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'supplier-modal';
+    modal.className = 'modal-overlay hidden';
+    modal.innerHTML = `
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+          </svg>
+          <h3>Select Supplier</h3>
+          <button class="btn-sm" onclick="closeSupplierLookup()" style="margin-left:auto">✕</button>
+        </div>
+        <div class="modal-search">
+          <input type="text" id="supplier-search" placeholder="Search suppliers by name, ABN, or email..." oninput="filterSuppliers()">
+        </div>
+        <div class="modal-body">
+          <div class="supplier-list" id="supplier-list">
+            <div class="modal-empty">Loading suppliers...</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-cancel-edit" onclick="closeSupplierLookup()">Cancel</button>
+          <button class="btn btn-save-edit" onclick="selectSupplier()" id="select-supplier-btn" disabled>Select Supplier</button>
+        </div>
+      </div>
+    `;
+    // Close on overlay click
+    modal.addEventListener('click', closeSupplierLookup);
+    document.body.appendChild(modal);
+  }
+  
+  // Show modal
+  modal.classList.remove('hidden');
+  selectedSupplierId = null;
+  updateSelectButton();
+  
+  // Focus search
+  setTimeout(() => {
+    const searchInput = document.getElementById('supplier-search');
+    if (searchInput) {
+      searchInput.value = '';
+      searchInput.focus();
+    }
+  }, 10);
+  
+  // Load suppliers
+  if (!supplierCache) {
+    try {
+      const data = await api.get('/api/admin/suppliers');
+      supplierCache = data.rows || [];
+    } catch (e) {
+      document.getElementById('supplier-list').innerHTML = `<div class="modal-empty">Error loading suppliers: ${esc(e.message)}</div>`;
+      return;
+    }
+  }
+  
+  renderSupplierList(supplierCache);
+}
+
+function closeSupplierLookup() {
+  const modal = document.getElementById('supplier-modal');
+  if (modal) modal.classList.add('hidden');
+  selectedSupplierId = null;
+}
+
+function renderSupplierList(suppliers) {
+  const list = document.getElementById('supplier-list');
+  if (!suppliers.length) {
+    list.innerHTML = '<div class="modal-empty">No suppliers found</div>';
+    return;
+  }
+  
+  list.innerHTML = suppliers.map(s => `
+    <div class="supplier-item ${s.id === selectedSupplierId ? 'selected' : ''}" 
+         data-id="${esc(s.id || '')}"
+         onclick="onSupplierClick('${esc(s.id || '')}')">
+      <div class="supplier-info">
+        <div class="supplier-name">${esc(s.name || 'Unnamed')}</div>
+        <div class="supplier-meta">${esc(s.email || '')} ${s.phone ? '• ' + esc(s.phone) : ''}</div>
+      </div>
+      ${s.abn ? `<div class="supplier-abn">${esc(s.abn)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function onSupplierClick(id) {
+  selectedSupplierId = id;
+  
+  // Update visual selection
+  document.querySelectorAll('.supplier-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.id === id);
+  });
+  
+  updateSelectButton();
+  
+  // Double-click to select immediately
+  if (Date.now() - (window._lastSupplierClick || 0) < 300) {
+    selectSupplier();
+  }
+  window._lastSupplierClick = Date.now();
+}
+
+function updateSelectButton() {
+  const btn = document.getElementById('select-supplier-btn');
+  if (btn) btn.disabled = !selectedSupplierId;
+}
+
+function filterSuppliers() {
+  const query = document.getElementById('supplier-search').value.toLowerCase().trim();
+  if (!query) {
+    renderSupplierList(supplierCache);
+    return;
+  }
+  
+  const filtered = supplierCache.filter(s => {
+    const name = (s.name || '').toLowerCase();
+    const abn = (s.abn || '').toLowerCase();
+    const email = (s.email || '').toLowerCase();
+    const aliases = (s.aliases || '').toLowerCase();
+    return name.includes(query) || abn.includes(query) || email.includes(query) || aliases.includes(query);
+  });
+  
+  renderSupplierList(filtered);
+  
+  // Auto-select first result on Enter key
+  document.getElementById('supplier-search').onkeydown = (e) => {
+    if (e.key === 'Enter' && filtered.length > 0) {
+      onSupplierClick(filtered[0].id);
+      selectSupplier();
+    }
+  };
+}
+
+function selectSupplier() {
+  if (!selectedSupplierId || !supplierCache) return;
+  
+  const supplier = supplierCache.find(s => s.id === selectedSupplierId);
+  if (!supplier) return;
+  
+  // Populate the form fields
+  const nameInput = document.getElementById('edit-supplier_name');
+  const abnInput = document.getElementById('edit-supplier_abn');
+  const emailInput = document.getElementById('edit-supplier_email');
+  const phoneInput = document.getElementById('edit-supplier_phone');
+  const addressInput = document.getElementById('edit-supplier_address');
+  
+  if (nameInput) nameInput.value = supplier.name || '';
+  if (abnInput) abnInput.value = supplier.abn || '';
+  if (emailInput) emailInput.value = supplier.email || '';
+  if (phoneInput) phoneInput.value = supplier.phone || '';
+  if (addressInput) addressInput.value = supplier.address || '';
+  
+  // Close modal
+  closeSupplierLookup();
+  
+  // Show feedback
+  showToast(`Supplier updated to: ${supplier.name}`, 'success', 3000);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PO Lines Lookup Panel (for correcting line items against PO)
+// ════════════════════════════════════════════════════════════════════════════
+let poLinesCache = null;
+let selectedInvoiceRowIndex = null;
+
+async function openPOLinesPanel(poNumber) {
+  // Create panel if not exists
+  let panel = document.getElementById('po-lines-panel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'po-lines-panel';
+    panel.className = 'po-lines-panel';
+    document.body.appendChild(panel);
+  }
+  
+  const selectedRowInfo = selectedInvoiceRowIndex !== null ? `• Row ${selectedInvoiceRowIndex + 1} selected` : '• Click a row below to select';
+  
+  panel.innerHTML = `
+    <div class="po-lines-resize-handle" id="po-resize-handle"></div>
+    <div class="po-lines-header">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+      <h4>Purchase Order Lines</h4>
+      <span class="po-number">${esc(poNumber)}</span>
+      <span id="po-selected-row" style="font-size: 11px; color: var(--accent); font-weight: 500;">${selectedRowInfo}</span>
+      <button class="btn-sm po-lines-close" onclick="closePOLinesPanel()">✕</button>
+    </div>
+    <div class="po-lines-content" id="po-lines-content">
+      <div class="po-lines-empty">Loading PO lines...</div>
+    </div>
+  `;
+  
+  // Set up resize handle
+  setupPOResizeHandle(panel);
+  
+  // Show panel
+  panel.classList.add('visible');
+  
+  // Reset selection
+  selectedInvoiceRowIndex = null;
+  highlightSelectedRow();
+  
+  // Load PO lines
+  if (!poLinesCache) {
+    try {
+      const data = await api.get('/api/admin/purchase_order_lines');
+      poLinesCache = data.rows || [];
+    } catch (e) {
+      document.getElementById('po-lines-content').innerHTML = 
+        `<div class="po-lines-empty">Error loading PO lines: ${esc(e.message)}</div>`;
+      return;
+    }
+  }
+  
+  // Filter by PO number
+  const poLines = poLinesCache.filter(line => line.po_number === poNumber);
+  
+  if (!poLines.length) {
+    document.getElementById('po-lines-content').innerHTML = 
+      `<div class="po-lines-empty">No lines found for PO ${esc(poNumber)}</div>`;
+    return;
+  }
+  
+  renderPOLines(poLines);
+}
+
+function closePOLinesPanel() {
+  const panel = document.getElementById('po-lines-panel');
+  if (panel) panel.classList.remove('visible');
+  selectedInvoiceRowIndex = null;
+  highlightSelectedRow();
+}
+
+// Close PO panel on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const panel = document.getElementById('po-lines-panel');
+    if (panel && panel.classList.contains('visible')) {
+      closePOLinesPanel();
+    }
+  }
+});
+
+// Set up resize handle for PO panel
+function setupPOResizeHandle(panel) {
+  const handle = panel.querySelector('#po-resize-handle');
+  if (!handle) return;
+  
+  let isResizing = false;
+  let startY = 0;
+  let startHeight = 0;
+  
+  handle.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    startY = e.clientY;
+    startHeight = panel.offsetHeight;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  
+  window.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    
+    const deltaY = e.clientY - startY;
+    const newHeight = Math.max(180, Math.min(window.innerHeight * 0.6, startHeight + deltaY));
+    panel.style.height = newHeight + 'px';
+  });
+  
+  window.addEventListener('mouseup', () => {
+    if (!isResizing) return;
+    isResizing = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    
+    // Save preference
+    localStorage.setItem('po-panel-height', panel.style.height);
+  });
+}
+
+// Restore saved panel height on load
+(function restorePOResizeHeight() {
+  const savedHeight = localStorage.getItem('po-panel-height');
+  if (savedHeight) {
+    const style = document.createElement('style');
+    style.textContent = `#po-lines-panel { height: ${savedHeight}; }`;
+    document.head.appendChild(style);
+  }
+})();
+
+function renderPOLines(poLines) {
+  const content = document.getElementById('po-lines-content');
+  
+  // Build table
+  const rows = poLines.map((line, idx) => {
+    const isMatched = isPOLineAlreadyUsed(line);
+    return `<tr class="${isMatched ? 'matched' : ''}" data-idx="${idx}">
+      <td class="po-sku">${esc(line.sku || '—')}</td>
+      <td>${esc((line.description || '').substring(0, 40))}${(line.description || '').length > 40 ? '...' : ''}</td>
+      <td class="mono">${line.quantity || ''}</td>
+      <td class="mono">${line.total || ''}</td>
+      <td>
+        <div class="po-lines-actions">
+          <button class="btn-po-copy sku-only" onclick="copyPOField('${esc(line.sku || '')}', 'sku')" 
+                  ${!line.sku ? 'disabled' : ''} title="Copy SKU only">
+            SKU
+          </button>
+          <button class="btn-po-copy" onclick="copyPOLine(${idx})" title="Copy all fields to selected row">
+            Copy All
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  
+  content.innerHTML = `
+    <div style="margin-bottom: 8px; font-size: 11px; color: var(--muted);">
+      Select a row in the invoice line items table below, then click Copy to populate it.
+    </div>
+    <table class="po-lines-table">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Description</th>
+          <th>Qty</th>
+          <th>Total</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function isPOLineAlreadyUsed(poLine) {
+  // Check if this PO line's SKU is already in the invoice line items
+  if (!poLine.sku) return false;
+  return S.editLineItems.some(item => item.sku === poLine.sku);
+}
+
+function copyPOField(value, field) {
+  if (!selectedInvoiceRowIndex !== null && selectedInvoiceRowIndex < 0) {
+    showToast('Please select a row in the invoice line items table first', 'error', 3000);
+    return;
+  }
+  
+  // First sync current DOM state
+  syncEditLineItemsFromDOM();
+  
+  // Update the specific field
+  if (!S.editLineItems[selectedInvoiceRowIndex]) {
+    showToast('Invalid row selected', 'error');
+    return;
+  }
+  
+  S.editLineItems[selectedInvoiceRowIndex][field] = value;
+  
+  // Re-render
+  renderEditLineItems();
+  highlightSelectedRow();
+  
+  showToast(`Copied ${field} to row ${selectedInvoiceRowIndex + 1}`, 'success', 2000);
+}
+
+function copyPOLine(poLineIdx) {
+  if (selectedInvoiceRowIndex === null || selectedInvoiceRowIndex < 0) {
+    showToast('Please select a row in the invoice line items table first (click on it)', 'error', 3000);
+    return;
+  }
+  
+  // Find the PO line data
+  const poNumber = document.querySelector('.po-lines-header .po-number')?.textContent;
+  if (!poNumber) return;
+  
+  const poLines = poLinesCache.filter(line => line.po_number === poNumber);
+  const poLine = poLines[poLineIdx];
+  if (!poLine) return;
+  
+  // First sync current DOM state
+  syncEditLineItemsFromDOM();
+  
+  // Update the invoice line item
+  if (!S.editLineItems[selectedInvoiceRowIndex]) {
+    // Add a new row if needed
+    while (S.editLineItems.length <= selectedInvoiceRowIndex) {
+      S.editLineItems.push({ line_number: S.editLineItems.length + 1 });
+    }
+  }
+  
+  const item = S.editLineItems[selectedInvoiceRowIndex];
+  item.sku = poLine.sku || item.sku || '';
+  item.description = poLine.description || item.description || '';
+  item.quantity = poLine.quantity || item.quantity || null;
+  item.unit_price = poLine.unit_price || item.unit_price || null;
+  item.line_total = poLine.total || item.line_total || null;
+  
+  // Re-render
+  renderEditLineItems();
+  highlightSelectedRow();
+  updateEditLineItemCount();
+  
+  showToast(`Copied PO line to row ${selectedInvoiceRowIndex + 1}`, 'success', 2000);
+  
+  // Auto-advance to next row for convenience
+  if (selectedInvoiceRowIndex < S.editLineItems.length - 1) {
+    selectedInvoiceRowIndex++;
+    highlightSelectedRow();
+    // Scroll the new row into view
+    const rows = document.querySelectorAll('#edit-li-tbody tr');
+    if (rows[selectedInvoiceRowIndex]) {
+      rows[selectedInvoiceRowIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+}
+
+// Set up delegated click handler for line item row selection
+document.addEventListener('click', (e) => {
+  // Only handle clicks in edit mode
+  if (!S.editing) return;
+  
+  const tbody = document.getElementById('edit-li-tbody');
+  if (!tbody) return;
+  
+  // Check if click was inside the tbody
+  if (!tbody.contains(e.target)) return;
+  
+  // Don't select if clicking on an input/button
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+    return;
+  }
+  
+  // Find the row that was clicked
+  const row = e.target.closest('tr');
+  if (!row) return;
+  
+  // Get the index of this row
+  const rows = Array.from(tbody.children);
+  const idx = rows.indexOf(row);
+  if (idx === -1) return;
+  
+  // Toggle selection
+  if (selectedInvoiceRowIndex === idx) {
+    selectedInvoiceRowIndex = null; // deselect
+  } else {
+    selectedInvoiceRowIndex = idx;
+  }
+  
+  highlightSelectedRow();
+});
+
+function highlightSelectedRow() {
+  const tbody = document.getElementById('edit-li-tbody');
+  if (!tbody) return;
+  
+  const rows = tbody.querySelectorAll('tr');
+  rows.forEach((row, idx) => {
+    row.classList.toggle('selected', idx === selectedInvoiceRowIndex);
+  });
+  
+  // Update PO panel header if visible
+  const selectedRowEl = document.getElementById('po-selected-row');
+  if (selectedRowEl) {
+    selectedRowEl.textContent = selectedInvoiceRowIndex !== null 
+      ? `• Row ${selectedInvoiceRowIndex + 1} selected` 
+      : '• Click a row below to select';
+  }
+}
+
+function updateEditLineItemCount() {
+  const el = document.getElementById('edit-li-count');
+  if (el) el.textContent = S.editLineItems.length;
+}
+
+function setupGrabToPan(container) {
+  let isDragging = false;
+  let startX, startY, startScrollLeft, startScrollTop;
+
+  container.addEventListener('mousedown', (e) => {
+    if (!PDF.grabMode) return;
+    // Don't grab if clicking on toolbar buttons/controls
+    if (e.target.closest('button') || e.target.closest('input')) return;
+    
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startScrollLeft = container.scrollLeft;
+    startScrollTop = container.scrollTop;
+    container.classList.add('grabbing');
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    container.scrollLeft = startScrollLeft - dx;
+    container.scrollTop = startScrollTop - dy;
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    container.classList.remove('grabbing');
+  });
+
+  // Spacebar + drag support (temporary grab mode)
+  let spacePressed = false;
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && !e.repeat && !isTypingInInput()) {
+      spacePressed = true;
+      container.classList.add('grab-mode');
+      const pages = container.querySelectorAll('.page-container');
+      pages.forEach(p => p.style.cursor = 'grab');
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') {
+      spacePressed = false;
+      if (!PDF.grabMode) {
+        container.classList.remove('grab-mode');
+        const pages = container.querySelectorAll('.page-container');
+        pages.forEach(p => p.style.cursor = '');
+      }
+    }
+  });
+
+  // Middle-click pan (always works)
+  container.addEventListener('mousedown', (e) => {
+    if (e.button === 1) {
+      e.preventDefault();
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      startScrollLeft = container.scrollLeft;
+      startScrollTop = container.scrollTop;
+      container.classList.add('grabbing');
+    }
+  });
+
+  function isTypingInInput() {
+    const active = document.activeElement;
+    return active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1862,7 +3228,24 @@ function lineItemsCard(inv, mp, corr={}) {
 
   const rows = items.map((item, idx) => {
     const match  = matchMap[idx];
-    const rowCls = match ? (match.price_match && match.qty_match ? '' : 'match-warn') : '';
+    // Determine match status: not matched to PO, matched with mismatch, or fully matched
+    let matchStatus = 'none';
+    let matchText = '—';
+    if (match) {
+      if (!match.matched) {
+        // No PO line found for this invoice line
+        matchStatus = 'none';
+        matchText = '—';
+      } else if (match.price_matches && match.quantity_matches) {
+        // Fully matched
+        matchStatus = 'ok';
+        matchText = '✓';
+      } else {
+        // Matched to PO line but price or qty mismatch
+        matchStatus = 'warn';
+        matchText = '⚠ Mismatch';
+      }
+    }
     const lineTotal = item.total ?? item.line_total;  // 'total' is canonical; 'line_total' is legacy
     const totalCell = lineTotal != null
       ? `${fmt(lineTotal)}${item.total_computed ? '<span title="Calculated from qty × unit price" style="font-size:9px;color:var(--muted);margin-left:3px">calc</span>' : ''}`
@@ -1873,9 +3256,7 @@ function lineItemsCard(inv, mp, corr={}) {
       <td class="mono">${item.quantity   != null ? item.quantity   : '—'}</td>
       <td class="mono">${item.unit_price != null ? fmt(item.unit_price) : '—'}</td>
       <td class="mono">${totalCell}</td>
-      ${hasMatch ? `<td class="${match ? (rowCls ? 'match-warn' : 'match-ok') : 'match-none'}">
-        ${match ? (rowCls ? '⚠ Mismatch' : '✓') : '—'}
-      </td>` : ''}
+      ${hasMatch ? `<td class="match-${matchStatus}">${matchText}</td>` : ''}
     </tr>`;
   }).join('');
 
@@ -1913,10 +3294,14 @@ function lineItemsCard(inv, mp, corr={}) {
 }
 
 function poMatchCard(mp) {
+  const lineMatches = mp.line_matches || [];
+  // Count only successfully matched lines (matched === true)
+  const matchedCount = lineMatches.filter(m => m.matched).length;
+  const totalLines = lineMatches.length;
   const unmatched = mp.unmatched_invoice_lines || [];
-  const matched   = (mp.line_matches || []).length;
+  
   const badgeCls  = unmatched.length > 0 ? 'warn' : 'ok';
-  const badgeTxt  = unmatched.length > 0 ? `${unmatched.length} unmatched` : `${matched} matched`;
+  const badgeTxt  = unmatched.length > 0 ? `${unmatched.length} unmatched` : `${matchedCount} matched`;
 
   return `<div class="card scroll-card disc-card">
     <div class="card-header">
@@ -1929,14 +3314,14 @@ function poMatchCard(mp) {
     </div>
     <div class="kv-grid">
       ${kv('PO Number',   mp.po_number)}
-      ${kv('Lines Matched', matched > 0 ? matched + ' of ' + ((mp.line_matches||[]).length + unmatched.length) : null)}
+      ${kv('Lines Matched', totalLines > 0 ? matchedCount + ' of ' + totalLines : null)}
       ${kv('PO Total',    mp.po_total != null ? fmt(mp.po_total) : null)}
       ${kv('Amount Diff', mp.total_difference != null ? fmt(mp.total_difference) : null)}
     </div>
     ${unmatched.length ? `
     <div style="padding:10px 16px;border-top:1px solid var(--border)">
       <div class="kv-label" style="margin-bottom:6px">Unmatched Invoice Lines</div>
-      ${unmatched.map(u => `<div style="font-size:12px;color:var(--warn);padding:2px 0">⚠ ${esc(String(u))}</div>`).join('')}
+      ${unmatched.map(u => `<div style="font-size:12px;color:var(--warn);padding:2px 0">⚠ Line ${u + 1}</div>`).join('')}
     </div>` : ''}
   </div>`;
 }
@@ -2230,7 +3615,10 @@ function removeLineItem(idx) {
 
 function renderEditLineItems() {
   const tbody = document.getElementById('edit-li-tbody');
-  if (tbody) tbody.innerHTML = editLineItemRowsHtml();
+  if (tbody) {
+    tbody.innerHTML = editLineItemRowsHtml();
+    highlightSelectedRow();
+  }
   const cntEl = document.getElementById('edit-li-count');
   if (cntEl) cntEl.textContent = S.editLineItems.length;
 }
@@ -2312,6 +3700,13 @@ function renderEditData(result) {
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
         </svg>
         Supplier
+        <button class="btn-lookup" onclick="openSupplierLookup()" title="Lookup supplier from database">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          Lookup
+        </button>
       </div>
       <div class="kv-grid">
         ${kvE('Name',         'edit-supplier_name',    sup.name)}
@@ -2333,6 +3728,16 @@ function renderEditData(result) {
         </svg>
         Line Items
         <span class="badge info" id="edit-li-count">${S.editLineItems.length}</span>
+        ${inv.po_number ? `<button class="btn-po-lookup" onclick="openPOLinesPanel('${esc(inv.po_number)}')" title="View PO lines for ${esc(inv.po_number)}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <line x1="10" y1="9" x2="8" y2="9"/>
+          </svg>
+          PO Lookup
+        </button>` : ''}
       </div>
       <div class="card-scroll" style="max-height:380px">
         <table class="edit-li-table">
@@ -2454,36 +3859,7 @@ function setPanel(name) {
 // ════════════════════════════════════════════════════════════════════════════
 (function() {
   const panel = document.getElementById('pdf-panel');
-  let panning = false, startX, startY, scrollLeft, scrollTop;
-
-  panel.addEventListener('mousedown', e => {
-    if (e.target.closest('.pdf-toolbar')) return;  // don't grab toolbar buttons
-    if (e.button !== 0) return;                    // left button only
-    panning   = true;
-    startX    = e.clientX;
-    startY    = e.clientY;
-    scrollLeft = panel.scrollLeft;
-    scrollTop  = panel.scrollTop;
-    document.body.style.userSelect = 'none';
-    const pages = document.getElementById('pdf-pages');
-    if (pages) pages.classList.add('panning');
-    e.preventDefault();
-  });
-
-  document.addEventListener('mousemove', e => {
-    if (!panning) return;
-    panel.scrollLeft = scrollLeft - (e.clientX - startX);
-    panel.scrollTop  = scrollTop  - (e.clientY - startY);
-  });
-
-  document.addEventListener('mouseup', () => {
-    if (!panning) return;
-    panning = false;
-    document.body.style.userSelect = '';
-    const pages = document.getElementById('pdf-pages');
-    if (pages) pages.classList.remove('panning');
-  });
-
+  
   // Shift+scroll → horizontal pan
   panel.addEventListener('wheel', e => {
     if (e.shiftKey) {
@@ -2555,6 +3931,33 @@ function showToast(message, type = 'info', durationMs = 5000) {
     setTimeout(() => toast.remove(), 320);
   }, durationMs);
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// Theme / Dark Mode
+// ════════════════════════════════════════════════════════════════════════════
+function initTheme() {
+  // Check for saved preference
+  const saved = localStorage.getItem('theme');
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved);
+  } else {
+    // Check system preference
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (prefersDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+}
+
+// Initialize theme immediately to prevent flash
+initTheme();
 
 // ════════════════════════════════════════════════════════════════════════════
 // Boot
