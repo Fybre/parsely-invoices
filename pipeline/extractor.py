@@ -143,22 +143,44 @@ class DoclingExtractor:
             len(markdown), pdf_path.name,
         )
 
-        # Structured tables
+        # Structured tables from Docling
         tables: list[list[dict]] = []
         for i, table in enumerate(doc.tables):
             try:
-                df = table.export_to_dataframe()
-                tables.append(df.to_dict(orient="records"))
-                logger.debug(
-                    "Table %d: %d rows x %d cols", i + 1, len(df), len(df.columns)
-                )
+                # Pass doc= to avoid deprecation warning and ensure correct header detection
+                try:
+                    df = table.export_to_dataframe(doc=doc)
+                except TypeError:
+                    df = table.export_to_dataframe()   # older Docling versions
+                records = df.to_dict(orient="records")
+                # Log column key types to detect integer-key tables (headerless)
+                if records:
+                    key_types = [type(k).__name__ for k in records[0].keys()]
+                    logger.info(
+                        "Docling table %d: %d rows x %d cols, key types: %s",
+                        i + 1, len(records), len(records[0]), list(set(key_types))
+                    )
+                tables.append(records)
             except Exception as e:
-                logger.debug("Could not export table %d as dataframe: %s", i + 1, e)
+                logger.debug("Could not export Docling table %d as dataframe: %s", i + 1, e)
+
+        # Supplementary tables from pdfplumber — used when Docling's table structure
+        # lacks proper headers (integer keys) or is otherwise unsuitable for direct
+        # line item extraction.  pdfplumber tables are appended after Docling tables
+        # so the scoring in TableLineItemExtractor can pick whichever is better.
+        plumber_tables = self._extract_pdfplumber_tables(pdf_path)
+        if plumber_tables:
+            logger.info(
+                "pdfplumber found %d supplementary table(s) for %s",
+                len(plumber_tables), pdf_path.name,
+            )
+            tables.extend(plumber_tables)
 
         page_count = len(doc.pages) if hasattr(doc, "pages") else 0
         logger.info(
-            "Extracted %d tables, %d pages from %s",
-            len(tables), page_count, pdf_path.name,
+            "Extracted %d tables total (%d docling, %d pdfplumber), %d pages from %s",
+            len(tables), len(tables) - len(plumber_tables),
+            len(plumber_tables), page_count, pdf_path.name,
         )
 
         return ExtractionResult(
@@ -168,6 +190,49 @@ class DoclingExtractor:
             page_count=page_count,
             extractor_name="docling",
         )
+
+    @staticmethod
+    def _extract_pdfplumber_tables(pdf_path: Path) -> list[list[dict]]:
+        """
+        Extract tables from the PDF using pdfplumber as a supplement to Docling.
+        pdfplumber is reliable for straightforward tabular layouts and handles
+        stacked-cell tables (values separated by \\n within a cell) well.
+        Returns an empty list on any error so callers never need to handle exceptions.
+        """
+        try:
+            import pdfplumber
+        except ImportError:
+            return []
+
+        results: list[list[dict]] = []
+        try:
+            with pdfplumber.open(str(pdf_path)) as pdf:
+                for page in pdf.pages:
+                    for raw_table in page.extract_tables():
+                        if not raw_table or len(raw_table) < 2:
+                            continue
+                        # First non-empty row is the header
+                        header_row = raw_table[0]
+                        if not any(cell and str(cell).strip() for cell in header_row):
+                            continue
+                        headers = [
+                            str(cell).strip() if cell else f"col_{j}"
+                            for j, cell in enumerate(header_row)
+                        ]
+                        records = []
+                        for row in raw_table[1:]:
+                            record = {
+                                headers[j]: (str(cell).strip() if cell is not None else "")
+                                for j, cell in enumerate(row)
+                                if j < len(headers)
+                            }
+                            records.append(record)
+                        if records:
+                            results.append(records)
+        except Exception as e:
+            logger.debug("pdfplumber table extraction failed for %s: %s", pdf_path.name, e)
+
+        return results
 
 
 # ---------------------------------------------------------------------------
@@ -315,14 +380,24 @@ class TableLineItemExtractor:
     def _find_line_items_table(self, tables: list[list[dict]]) -> list[dict] | None:
         best_table: list[dict] | None = None
         best_score = 0
-        for table in tables:
+        for i, table in enumerate(tables):
             if not table:
                 continue
-            score = self._score_table(list(table[0].keys()), len(table))
+            keys = list(table[0].keys())
+            score = self._score_table(keys, len(table))
+            logger.info(
+                "Table %d scoring: score=%d, rows=%d, keys=%s",
+                i + 1, score, len(table),
+                [str(k) for k in keys[:8]],  # first 8 keys for brevity
+            )
             if score > best_score:
                 best_score = score
                 best_table = table
-        return best_table if best_score >= self.MIN_SCORE else None
+        if best_score >= self.MIN_SCORE:
+            logger.info("Best table selected: score=%d", best_score)
+            return best_table
+        logger.info("No table met MIN_SCORE=%d (best=%d)", self.MIN_SCORE, best_score)
+        return None
 
     def _score_table(self, headers: list[str], row_count: int) -> int:
         score = 0
@@ -346,6 +421,7 @@ class TableLineItemExtractor:
             return []
 
         col_map = self._build_col_map(list(table[0].keys()))
+        logger.info("Parsing table: col_map=%s, rows=%d", col_map, len(table))
         items: list[dict] = []
         line_num = 0
 
@@ -382,7 +458,14 @@ class TableLineItemExtractor:
                 has_identity   = "sku" in item or "description" in item
                 if has_total and has_dimension and has_identity:
                     items.append(item)
+                else:
+                    logger.debug(
+                        "Rejected sub-row: total=%s dim=%s identity=%s item=%s",
+                        has_total, has_dimension, has_identity,
+                        {k: v for k, v in item.items() if k != "line_number"},
+                    )
 
+        logger.info("_parse_table: %d valid line items found", len(items))
         return items
 
     @staticmethod
