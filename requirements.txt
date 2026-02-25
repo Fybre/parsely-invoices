@@ -29,5 +29,6 @@ pandas>=2.0.0
 # Web server for the visualisation dashboard
 fastapi>=0.100.0
 uvicorn[standard]>=0.23.0
+python-multipart>=0.0.9   # required for FastAPI file upload (UploadFile)
 # PDF-to-image rendering (uses poppler-utils, already installed in the Docker image)
 pdf2image>=1.16.0
