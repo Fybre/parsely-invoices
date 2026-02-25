@@ -22,6 +22,7 @@ Endpoints
   PATCH /api/invoices/{stem}/status     → set status (needs_review / ready)
   PATCH /api/invoices/{stem}/corrections → save operator field corrections
   PATCH /api/invoices/{stem}/notes      → save operator notes
+  POST /api/upload                      → upload a new invoice PDF to the inbox
   GET  /api/health                      → liveness probe
 """
 import base64
@@ -29,13 +30,14 @@ import io
 import json
 import logging
 import os
+import re
 import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
@@ -530,6 +532,49 @@ def update_notes(stem: str, body: NotesUpdate):
     if not db.update_notes(stem, body.notes):
         raise HTTPException(404, f"Invoice not found: {stem}")
     return {"stem": stem, "notes": body.notes}
+
+
+@app.post("/api/upload")
+async def upload_invoice(file: UploadFile = File(...)):
+    """
+    Upload a new invoice PDF to the invoices inbox.
+
+    The file is saved to INVOICES_DIR with a sanitised filename.  If a file
+    with the same name already exists a numeric suffix is appended
+    (e.g. invoice_1.pdf).  The pipeline watcher will pick it up on its next
+    poll cycle and process it automatically.
+    """
+    # Validate MIME / extension
+    filename = file.filename or ""
+    if not filename.lower().endswith(".pdf"):
+        raise HTTPException(400, "Only PDF files are accepted (.pdf extension required)")
+
+    # Sanitise the stem: keep word chars, hyphens, dots; replace everything else
+    raw_stem = Path(filename).stem
+    safe_stem = re.sub(r"[^\w\-.]", "_", raw_stem).strip("_") or "invoice"
+    dest = INVOICES_DIR / f"{safe_stem}.pdf"
+
+    # Avoid overwriting an existing file
+    counter = 1
+    while dest.exists():
+        dest = INVOICES_DIR / f"{safe_stem}_{counter}.pdf"
+        counter += 1
+
+    INVOICES_DIR.mkdir(parents=True, exist_ok=True)
+
+    contents = await file.read()
+    if len(contents) == 0:
+        raise HTTPException(400, "Uploaded file is empty")
+
+    dest.write_bytes(contents)
+    logger.info("Invoice uploaded to inbox: %s (%d bytes)", dest, len(contents))
+
+    return {
+        "stem":     dest.stem,
+        "filename": dest.name,
+        "size":     len(contents),
+        "status":   "queued",
+    }
 
 
 # ── SPA ───────────────────────────────────────────────────────────────────────

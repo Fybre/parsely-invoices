@@ -106,7 +106,6 @@ header {
 .stat-chip.total   { color: var(--info);     background: var(--info-bg);     border-color: #bfdbfe; }
 
 .live-badge {
-  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -114,6 +113,61 @@ header {
   color: var(--muted);
   white-space: nowrap;
 }
+
+/* ── Upload button (header) ──────────────────────────────────────────────── */
+.upload-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.upload-btn:hover  { background: var(--accent); color: #fff; }
+.upload-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Toast notifications ─────────────────────────────────────────────────── */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 340px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  pointer-events: all;
+  animation: toast-in .2s ease;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.toast.success { background: var(--ok-bg);   border: 1px solid #bbf7d0; color: #166534; }
+.toast.error   { background: var(--err-bg);  border: 1px solid #fecaca; color: #991b1b; }
+.toast.info    { background: var(--info-bg); border: 1px solid #bfdbfe; color: #1e40af; }
+.toast-icon { font-size: 14px; flex-shrink: 0; line-height: 1.4; }
+.toast-body { flex: 1; }
 .live-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
@@ -978,7 +1032,7 @@ td.match-none { color: var(--muted); font-style: italic; }
       <line x1="16" y1="13" x2="8" y2="13"/>
       <line x1="16" y1="17" x2="8" y2="17"/>
     </svg>
-    Parsely <span class="build-tag">build 2026-02-25-f</span>
+    Parsely <span class="build-tag">build 2026-02-25-g</span>
   </div>
   <div class="stats-bar">
     <div class="stat-chip review" onclick="setTab('needs_review')" title="Filter: Needs Review">
@@ -998,11 +1052,24 @@ td.match-none { color: var(--muted); font-style: italic; }
       <span>Total</span>
     </div>
   </div>
+  <button class="upload-btn" id="upload-btn" onclick="triggerUpload()" title="Upload an invoice PDF">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    <span id="upload-btn-label">Upload Invoice</span>
+  </button>
+  <input type="file" id="upload-input" accept=".pdf" style="display:none" onchange="handleUpload(this)">
+
   <div class="live-badge">
     <div class="live-dot" id="live-dot"></div>
     <span id="live-label">Connecting…</span>
   </div>
 </header>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
 
 <!-- Sidebar overlay (tablet: tap outside to close) -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -2404,6 +2471,69 @@ function setPanel(name) {
     }
   }, { passive: false });
 })();
+
+// ════════════════════════════════════════════════════════════════════════════
+// Upload Invoice
+// ════════════════════════════════════════════════════════════════════════════
+
+function triggerUpload() {
+  document.getElementById('upload-input').click();
+}
+
+async function handleUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const btn   = document.getElementById('upload-btn');
+  const label = document.getElementById('upload-btn-label');
+
+  btn.disabled  = true;
+  label.textContent = 'Uploading…';
+
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+
+    const resp = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || `HTTP ${resp.status}`);
+
+    showToast(`✓ "${data.filename}" uploaded — the pipeline will process it shortly`, 'success');
+
+    // Refresh the list so the invoice appears once the pipeline picks it up
+    setTimeout(() => poll(), 3000);
+
+  } catch (e) {
+    showToast(`Upload failed: ${e.message}`, 'error');
+  } finally {
+    btn.disabled        = false;
+    label.textContent   = 'Upload Invoice';
+    input.value         = '';   // allow re-selecting the same file
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Toast notifications
+// ════════════════════════════════════════════════════════════════════════════
+
+function showToast(message, type = 'info', durationMs = 5000) {
+  const container = document.getElementById('toast-container');
+  const icons = { success: '✓', error: '✕', info: 'ℹ' };
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span class="toast-icon">${icons[type] ?? 'ℹ'}</span><span class="toast-body">${esc(message)}</span>`;
+
+  container.appendChild(toast);
+
+  // Auto-dismiss
+  setTimeout(() => {
+    toast.style.transition = 'opacity .3s, transform .3s';
+    toast.style.opacity    = '0';
+    toast.style.transform  = 'translateY(8px)';
+    setTimeout(() => toast.remove(), 320);
+  }, durationMs);
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // Boot
