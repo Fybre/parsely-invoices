@@ -41,6 +41,26 @@ from .validator import InvoiceValidator
 logger = logging.getLogger(__name__)
 
 
+def _fill_computed_totals(invoice) -> None:
+    """
+    For any line item where total is None but both quantity and unit_price are
+    known, compute total = round(quantity * unit_price, 2) and set the
+    total_computed flag so the dashboard can show a subtle indicator.
+
+    Discount is applied when present (treated as a multiplier, e.g. 0.10 = 10% off).
+    """
+    for item in invoice.line_items:
+        if item.total is not None:
+            continue
+        if item.quantity is None or item.unit_price is None:
+            continue
+        computed = round(item.quantity * item.unit_price, 2)
+        if item.discount:
+            computed = round(computed * (1 - item.discount), 2)
+        item.total = computed
+        item.total_computed = True
+
+
 class InvoiceProcessor:
     """
     Orchestrates the full invoice processing pipeline.
@@ -138,6 +158,9 @@ class InvoiceProcessor:
             invoice.custom_fields_title = self._custom_fields_title
             if merged:
                 logger.info("Custom fields extracted: %s", list(merged.keys()))
+
+        # Step 3b: Fill in computed totals where total is missing but qty × price are known
+        _fill_computed_totals(invoice)
 
         # Step 4: Match supplier
         logger.info("Step 4/5: Matching supplier")

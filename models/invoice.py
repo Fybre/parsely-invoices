@@ -31,6 +31,7 @@ class LineItem(BaseModel):
     unit_price: Optional[float] = None
     discount: Optional[float] = None    # as a decimal, e.g. 0.10 = 10%
     total: Optional[float] = None       # quantity * unit_price (after discount)
+    total_computed: bool = False        # True when total was calculated, not read from PDF
 
 
 class ExtractedInvoice(BaseModel):

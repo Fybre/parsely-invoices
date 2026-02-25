@@ -1041,7 +1041,7 @@ td.match-none { color: var(--muted); font-style: italic; }
       <!-- right leaf -->
       <path d="M17 10 C15 7 15 4 17 2 C19 4 20 7 17 10Z" fill="currentColor" stroke="none"/>
     </svg>
-    Parsely <span class="build-tag">build 2026-02-25-g</span>
+    Parsely <span class="build-tag">build 2026-02-25-h</span>
   </div>
   <div class="stats-bar">
     <div class="stat-chip review" onclick="setTab('needs_review')" title="Filter: Needs Review">
@@ -1855,12 +1855,16 @@ function lineItemsCard(inv, mp, corr={}) {
   const rows = items.map((item, idx) => {
     const match  = matchMap[idx];
     const rowCls = match ? (match.price_match && match.qty_match ? '' : 'match-warn') : '';
+    const lineTotal = item.total ?? item.line_total;  // 'total' is canonical; 'line_total' is legacy
+    const totalCell = lineTotal != null
+      ? `${fmt(lineTotal)}${item.total_computed ? '<span title="Calculated from qty × unit price" style="font-size:9px;color:var(--muted);margin-left:3px">calc</span>' : ''}`
+      : '—';
     return `<tr>
       ${hasSku ? `<td class="sku mono">${esc(item.sku || '')}</td>` : ''}
       <td>${esc(item.description || '—')}</td>
       <td class="mono">${item.quantity   != null ? item.quantity   : '—'}</td>
       <td class="mono">${item.unit_price != null ? fmt(item.unit_price) : '—'}</td>
-      <td class="mono">${item.line_total != null ? fmt(item.line_total) : '—'}</td>
+      <td class="mono">${totalCell}</td>
       ${hasMatch ? `<td class="${match ? (rowCls ? 'match-warn' : 'match-ok') : 'match-none'}">
         ${match ? (rowCls ? '⚠ Mismatch' : '✓') : '—'}
       </td>` : ''}
