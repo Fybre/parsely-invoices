@@ -1,72 +1,155 @@
-# Invoice Processing Pipeline
+# Parsely — Invoice Processing Pipeline
 
-A fully local invoice processing pipeline that extracts structured data from PDF invoices using a local LLM (via Ollama), matches invoices against Purchase Orders and a supplier master list, and flags discrepancies.
+An AI-powered invoice processing pipeline that extracts structured data from PDF invoices, matches them against Purchase Orders and a supplier master list, flags discrepancies, and surfaces everything through a web dashboard.
+
+**Docker is the recommended way to run Parsely.** All dependencies — Python, Docling ML models, PDF rendering tools — are bundled in the image.
+
+---
 
 ## Features
 
-- **PDF text extraction** — digital (text-layer) PDFs via `pdfplumber`; OCR-ready hook for scanned PDFs
-- **LLM-powered extraction** — structured JSON via a local Ollama model (no cloud API calls)
+- **Layout-aware PDF extraction** — Docling preserves table structure and handles multi-column layouts; pdfplumber provides supplementary table extraction for edge cases
+- **OCR support** — Docling's built-in OCR handles scanned/image PDFs automatically
+- **Structured LLM extraction** — works with any OpenAI-compatible API: local Ollama, OpenAI, Groq, or any other hosted model
+- **Direct table extraction** — line items are parsed directly from PDF tables where possible, reducing LLM load and improving accuracy
 - **Supplier matching** — ABN exact → name exact → fuzzy name → email domain
-- **PO matching** — matches by PO number reference; fuzzy line-item matching by description + SKU
+- **PO matching** — matches by PO number; fuzzy line-item comparison by description and SKU
 - **Discrepancy detection**:
-  - Arithmetic: line item sum vs subtotal, tax calculation, grand total
-  - Dates: future-dated invoices, invoices older than 90 days, overdue, due date before invoice date
-  - PO: PO not found, supplier mismatch, total exceeded, line item quantity/price mismatches
+  - Arithmetic: line item totals, tax calculation, grand total
+  - Dates: future-dated, stale (>90 days), overdue, due before invoice date
+  - PO: not found, supplier mismatch, total exceeded, quantity/price mismatches
   - Data quality: missing invoice number, supplier, total; negative or zero amounts
-- **Machine-readable JSON output** — one JSON file per invoice + a batch summary
+- **Web dashboard** — review, correct, and approve invoices; upload PDFs directly from the browser
+- **Custom fields** — define site-specific fields (e.g. strata reference, job number) extracted alongside standard fields
+- **SQLite-backed state** — all results, corrections, and approvals stored in a single database; no per-invoice JSON files cluttering the filesystem
+- **Export on approval** — approved invoices written to `output/export/` as JSON + PDF for downstream system pickup
 
 ---
 
-## Requirements
+## Prerequisites
 
-- Python 3.11+
-- [Ollama](https://ollama.com) installed and running locally
-
-### Recommended Ollama models (in order of extraction accuracy)
-
-| Model | Pull command |
-|---|---|
-| `qwen2.5:7b` *(best JSON accuracy)* | `ollama pull qwen2.5:7b` |
-| `llama3.2` *(default)* | `ollama pull llama3.2` |
-| `mistral` | `ollama pull mistral` |
-
----
-
-## Installation
-
-```bash
-cd invoice_pipeline
-pip install -r requirements.txt
-```
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) (v2)
+- An LLM backend — one of:
+  - **[Ollama](https://ollama.com)** running locally (free, fully offline)
+  - **OpenAI** API key
+  - **[Groq](https://console.groq.com)** API key (free tier available, fast)
 
 ---
 
 ## Quick Start
 
-### 1. Verify your setup
+### 1. Clone and configure
+
 ```bash
-python main.py check
+git clone https://github.com/Fybre/parsely-invoices.git
+cd parsely-invoices
+cp .env.example .env
 ```
 
-This confirms Ollama is running, your chosen model is available, and the data CSV files are found.
+Open `.env` and set your LLM connection details (see [Configuration](#configuration) below).
 
-### 2. Process a single invoice
+### 2. Build the image
+
 ```bash
-python main.py process invoices/my_invoice.pdf
+docker compose build
 ```
 
-### 3. Batch process a folder
+> On first run, Docling downloads ~1 GB of ML models into a named Docker volume (`docling-models`). This only happens once.
+
+### 3. Verify your setup
+
 ```bash
-python main.py process invoices/
+docker compose run --rm pipeline check
 ```
 
-Results are written to the `output/` directory.
+This confirms the LLM backend is reachable, the selected model is available, and the data CSV files are found.
+
+### 4. Start the dashboard
+
+```bash
+docker compose up -d dashboard
+```
+
+Open **http://localhost:8080** in your browser. You can upload invoices directly from the dashboard, or drop PDFs into the `invoices/` folder.
+
+### 5. Process invoices
+
+**One-shot batch** (process everything in `invoices/` then exit):
+```bash
+docker compose run --rm pipeline
+```
+
+**Continuous watch mode** (poll for new PDFs every N seconds):
+```bash
+WATCH_MODE=true docker compose up -d pipeline
+```
+
+Or set `WATCH_MODE=true` in your `.env` and run:
+```bash
+docker compose up -d
+```
+
+---
+
+## Configuration
+
+All settings live in `.env`. Copy `.env.example` to get started — it contains full comments for every option.
+
+### LLM backend
+
+| Setting | Description |
+|---|---|
+| `LLM_BASE_URL` | API endpoint (OpenAI-compatible) |
+| `LLM_MODEL` | Model name |
+| `LLM_API_KEY` | API key (`ollama` works for local Ollama) |
+
+**Common configurations:**
+
+```bash
+# Ollama running on this machine (default)
+LLM_BASE_URL=http://host.docker.internal:11434/v1
+LLM_MODEL=qwen2.5:7b
+LLM_API_KEY=ollama
+
+# Ollama on another machine on your network
+LLM_BASE_URL=http://192.168.1.50:11434/v1
+LLM_MODEL=qwen2.5:7b
+LLM_API_KEY=ollama
+
+# OpenAI
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_MODEL=gpt-4o-mini
+LLM_API_KEY=sk-...
+
+# Groq (free tier, fast)
+LLM_BASE_URL=https://api.groq.com/openai/v1
+LLM_MODEL=llama-3.3-70b-versatile
+LLM_API_KEY=gsk_...
+```
+
+### Recommended models
+
+| Model | Notes |
+|---|---|
+| `qwen2.5:7b` | Best JSON extraction accuracy (Ollama) |
+| `llama3.2` | Good general extraction (Ollama default) |
+| `gpt-4o-mini` | Excellent accuracy, low cost (OpenAI) |
+| `llama-3.3-70b-versatile` | Fast and accurate (Groq free tier) |
+
+### Other settings
+
+| Setting | Default | Description |
+|---|---|---|
+| `WATCH_MODE` | `false` | `true` = continuous polling; `false` = single batch pass |
+| `POLL_INTERVAL` | `30` | Seconds between directory scans in watch mode |
+| `USE_DOCLING` | `true` | `false` = use plain pdfplumber only (faster, less accurate) |
+| `DASHBOARD_PORT` | `8080` | Port the dashboard listens on |
 
 ---
 
 ## Data Files
 
-Place your data files in the `data/` directory (or pass `--suppliers`, `--po-csv`, `--po-lines-csv` flags).
+Place your reference data in the `data/` directory. These are mounted into the container at runtime — no rebuild needed when you update them.
 
 ### `data/suppliers.csv`
 
@@ -85,7 +168,7 @@ Place your data files in the `data/` directory (or pass `--suppliers`, `--po-csv
 
 | Column | Description |
 |---|---|
-| `po_number` | PO number *(primary key — must match what appears on invoices)* |
+| `po_number` | PO number *(must match what appears on invoices)* |
 | `supplier_id` | References `id` in suppliers.csv |
 | `supplier_name` | Supplier name on the PO |
 | `issue_date` | PO issue date (YYYY-MM-DD) |
@@ -93,9 +176,8 @@ Place your data files in the `data/` directory (or pass `--suppliers`, `--po-csv
 | `subtotal` | Pre-tax total |
 | `tax_amount` | Tax amount |
 | `total` | Grand total |
-| `currency` | e.g. AUD |
-| `status` | open / closed / partially_received |
-| `notes` | Optional notes |
+| `currency` | e.g. `AUD` |
+| `status` | `open` / `closed` / `partially_received` |
 
 ### `data/purchase_order_lines.csv`
 
@@ -112,121 +194,137 @@ Place your data files in the `data/` directory (or pass `--suppliers`, `--po-csv
 
 ---
 
-## Output Format
+## Custom Fields
 
-Each invoice produces a JSON file in `output/` with this top-level structure:
+Define site-specific fields to extract alongside the standard invoice fields. Edit `config/custom_fields.json`:
 
 ```json
 {
-  "source_file": "invoices/INV-001.pdf",
-  "processed_at": "2026-02-24T08:00:00+00:00",
-  "processing_time_seconds": 4.2,
-  "extracted_invoice": { ... },
-  "matched_supplier": { ... },
-  "matched_po": { ... },
-  "discrepancies": [
+  "section_title": "Additional Fields",
+  "fields": [
     {
-      "type": "grand_total_mismatch",
-      "severity": "error",
-      "description": "Grand total (1105.00) does not match sum of components (1100.00)",
-      "field": "total",
-      "invoice_value": "1105.00",
-      "expected_value": "1100.00"
+      "name": "strata_reference",
+      "label": "Strata Reference",
+      "description": "Strata plan or lot reference number",
+      "patterns": ["strata\\s*ref[^:]*:\\s*([A-Z0-9/-]+)"]
+    },
+    {
+      "name": "job_number",
+      "label": "Job Number",
+      "description": "Internal job or work order number",
+      "patterns": ["job\\s*(?:no\\.?|number|#)\\s*:?\\s*([A-Z0-9-]+)"]
     }
-  ],
-  "requires_review": true,
-  "review_reasons": ["Grand total (1105.00) does not match sum of components (1100.00)"],
-  "error_count": 1,
-  "warning_count": 0
+  ]
 }
 ```
 
-A `batch_summary.json` is also written after batch processing, giving a one-row-per-invoice summary.
+Each field is extracted using both regex patterns (from `patterns`) and the LLM. Extracted values appear in a dedicated card on the dashboard.
 
 ---
 
-## Advanced Usage
+## Dashboard
 
-### Use a different model
-```bash
-python main.py process invoices/ --model qwen2.5:7b
-```
+Access the dashboard at **http://localhost:8080** after starting it with `docker compose up -d dashboard`.
 
-### Override data file locations
-```bash
-python main.py process invoices/ \
-  --suppliers /path/to/suppliers.csv \
-  --po-csv /path/to/pos.csv \
-  --po-lines-csv /path/to/po_lines.csv \
-  --output /path/to/results/
-```
+Key features:
+- **Upload** — drag-and-drop or click to upload a PDF directly from the browser; the pipeline picks it up on the next poll cycle
+- **Review** — side-by-side PDF viewer and extracted data panel; flag invoices for review or mark them ready
+- **Correct** — edit any extracted field inline; corrections are stored separately and applied on export
+- **Export** — approve individual invoices or bulk-export all ready invoices; exports land in `output/export/` as `<stem>.json` + `<stem>.pdf`
+- **Reprocess** — clear the record and let the pipeline re-extract from scratch
 
-### Compact (non-indented) JSON output
-```bash
-python main.py process invoices/ --no-pretty
-```
-
-### Debug logging
-```bash
-python main.py -v process invoices/
-```
-
----
-
-## OCR Support (Scanned PDFs)
-
-The pipeline detects scanned PDFs and logs a warning. To enable OCR:
-
-1. Install Tesseract: https://github.com/tesseract-ocr/tesseract
-2. Install Python deps: `pip install pdf2image pytesseract Pillow`
-3. In your code, call `extractor.extract_with_ocr(pdf_path)` instead of `extract()`
+The dashboard reads from the same `output/pipeline.db` database that the pipeline writes to. Both services can run simultaneously.
 
 ---
 
 ## Project Structure
 
 ```
-invoice_pipeline/
-├── main.py                      CLI entry point
-├── config.py                    Configuration and thresholds
+parsely-invoices/
+├── docker-compose.yml           Service definitions (pipeline + dashboard)
+├── Dockerfile                   Multi-stage build
+├── docker-entrypoint.sh         Batch vs watch mode selection
+├── .env.example                 Template for environment configuration
+├── main.py                      CLI entry point (check / process / watch)
+├── config.py                    Thresholds and pipeline settings
 ├── requirements.txt
+│
+├── config/                      Operator-editable config (mounted into container)
+│   ├── custom_fields.json       Site-specific extraction fields
+│   └── column_keys.json         Column header synonyms for table extraction
+│
 ├── pipeline/
-│   ├── extractor.py             PDF text extraction
-│   ├── llm_parser.py            Ollama LLM structured extraction
+│   ├── extractor.py             Docling + pdfplumber PDF extraction
+│   ├── llm_parser.py            LLM structured extraction
+│   ├── custom_field_extractor.py  Site-specific field extraction
 │   ├── supplier_matcher.py      Supplier identification
 │   ├── po_matcher.py            PO matching and line comparison
 │   ├── validator.py             Discrepancy detection
-│   └── processor.py             Pipeline orchestrator
+│   ├── processor.py             Pipeline orchestrator
+│   └── database.py              SQLite persistence
+│
 ├── models/
 │   ├── invoice.py               ExtractedInvoice Pydantic model
-│   ├── purchase_order.py        PurchaseOrder Pydantic model
-│   ├── supplier.py              Supplier Pydantic model
+│   ├── purchase_order.py        PurchaseOrder model
+│   ├── supplier.py              Supplier model
 │   └── result.py                InvoiceProcessingResult + Discrepancy models
-├── data/
-│   ├── suppliers.csv            Supplier master list
-│   ├── purchase_orders.csv      PO headers
-│   └── purchase_order_lines.csv PO line items
-├── invoices/                    Drop invoice PDFs here
-└── output/                      JSON results written here
+│
+├── dashboard/
+│   ├── app.py                   FastAPI backend
+│   └── templates/index.html     Single-page dashboard UI
+│
+├── data/                        Reference CSVs (gitignored — add your own)
+│   ├── suppliers.csv
+│   ├── purchase_orders.csv
+│   └── purchase_order_lines.csv
+│
+├── invoices/                    Drop PDFs here (gitignored)
+└── output/                      Database + exports (gitignored)
+    ├── pipeline.db
+    └── export/
 ```
 
 ---
 
-## Customising Thresholds
+## Optional: Ollama as a Docker sidecar
 
-Edit `config.py` or pass a `Config` instance to `InvoiceProcessor`:
+If you don't have Ollama installed on the host, you can run it as a container alongside the pipeline:
 
-```python
-from config import Config
-from pipeline.processor import InvoiceProcessor
-
-config = Config(
-    ollama_model="qwen2.5:7b",
-    max_invoice_age_days=60,     # Warn on invoices > 60 days old
-    max_future_days=0,            # Never allow future dates
-    arithmetic_tolerance=0.10,   # Allow $0.10 rounding difference
-    supplier_fuzzy_threshold=80, # Stricter supplier name matching
-)
-processor = InvoiceProcessor(config)
-result = processor.process("invoices/my_invoice.pdf")
+```bash
+docker compose --profile with-ollama up -d
 ```
+
+Then pull your model once:
+```bash
+docker compose exec ollama ollama pull qwen2.5:7b
+```
+
+And point the pipeline at it in `.env`:
+```bash
+LLM_BASE_URL=http://ollama:11434/v1
+LLM_MODEL=qwen2.5:7b
+LLM_API_KEY=ollama
+```
+
+---
+
+## Running Without Docker
+
+For local development without Docker:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Verify setup
+python main.py check
+
+# Process invoices
+python main.py process invoices/
+
+# Start dashboard
+uvicorn dashboard.app:app --host 0.0.0.0 --port 8080 --reload
+```
+
+Requires Python 3.11+ and a running LLM backend. Docling will download its models (~1 GB) on first use.
