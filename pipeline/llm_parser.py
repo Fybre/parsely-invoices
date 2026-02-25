@@ -266,24 +266,31 @@ class LLMParser:
         else:
             base_prompt = _PROMPT_FULL
 
-        # Inject custom field snippets BEFORE resolving the format placeholders.
-        # The snippets contain literal { } characters (JSON) which must be escaped
-        # as {{ }} so that str.format() treats them as literals, not placeholders.
+        # Inject custom field snippets into the template before resolving the
+        # invoice_markdown placeholder.  We deliberately avoid str.format() because
+        # invoice content can contain bare { } characters which cause KeyError /
+        # ValueError.  Instead: unescape {{ }} → { }, inject the custom snippets,
+        # then substitute {invoice_markdown} with a plain str.replace().
         if cf_instructions:
-            escaped_instructions = cf_instructions.replace("{", "{{").replace("}", "}}")
-            escaped_schema       = cf_schema.replace("{", "{{").replace("}", "}}")
             # Insert instructions just before "Return a JSON object"
             base_prompt = base_prompt.replace(
                 "Return a JSON object with exactly this structure:",
-                escaped_instructions + "Return a JSON object with exactly this structure:"
+                cf_instructions + "Return a JSON object with exactly this structure:"
             )
-            # Insert schema fields just before the final closing }}
+            # Insert schema fields just before the final closing }} of the JSON block
             base_prompt = base_prompt.replace(
                 '"notes": "string or null"\n}}',
-                f'"notes": "string or null"{escaped_schema}\n}}'
+                f'"notes": "string or null"{cf_schema}\n}}'
             )
 
-        prompt = base_prompt.format(invoice_markdown=extraction.markdown)
+        # Unescape {{ / }} left over from the original str.format()-style template,
+        # then substitute the invoice markdown with a safe plain replace.
+        prompt = (
+            base_prompt
+            .replace("{{", "{")
+            .replace("}}", "}")
+            .replace("{invoice_markdown}", extraction.markdown)
+        )
 
         client = self._get_client()
         invoice: Optional[ExtractedInvoice] = None
