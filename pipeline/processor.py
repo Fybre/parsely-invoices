@@ -67,7 +67,7 @@ class InvoiceProcessor:
         self.table_line_item_extractor = TableLineItemExtractor()
 
         # Custom fields (operator-defined via config/custom_fields.json)
-        self._custom_fields = load_custom_fields()
+        self._custom_fields_title, self._custom_fields = load_custom_fields()
         self._custom_field_extractor = CustomFieldExtractor(self._custom_fields)
 
         self.llm = LLMParser(
@@ -135,6 +135,7 @@ class InvoiceProcessor:
             # Priority: regex > table > llm (already in invoice.custom_fields)
             merged = self._custom_field_extractor.merge(regex_hits, table_hits, invoice.custom_fields)
             invoice.custom_fields = merged
+            invoice.custom_fields_title = self._custom_fields_title
             if merged:
                 logger.info("Custom fields extracted: %s", list(merged.keys()))
 

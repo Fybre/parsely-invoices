@@ -48,10 +48,18 @@ class CustomField:
         return self._re
 
 
-def load_custom_fields(config_dir: Optional[Path] = None) -> list[CustomField]:
+_DEFAULT_SECTION_TITLE = "Custom Fields"
+
+
+def load_custom_fields(config_dir: Optional[Path] = None) -> tuple[str, list[CustomField]]:
     """
     Load custom field definitions from custom_fields.json.
-    Returns an empty list if the file is absent or contains no valid entries.
+
+    Supports two config formats:
+      - Object:  {"section_title": "...", "fields": [...]}   ← preferred
+      - Array:   [{"name": ..., "label": ...}, ...]          ← legacy
+
+    Returns (section_title, fields).  On any error returns ("Custom Fields", []).
     """
     if config_dir is None:
         config_dir = Path(os.environ.get(
@@ -61,24 +69,34 @@ def load_custom_fields(config_dir: Optional[Path] = None) -> list[CustomField]:
     config_path = config_dir / "custom_fields.json"
 
     if not config_path.exists():
-        return []
+        return _DEFAULT_SECTION_TITLE, []
 
     try:
         with open(config_path) as fh:
             raw = json.load(fh)
     except Exception as exc:
         logger.warning("Could not load custom_fields.json (%s) — no custom fields", exc)
-        return []
+        return _DEFAULT_SECTION_TITLE, []
 
-    if not isinstance(raw, list):
-        logger.warning("custom_fields.json must be a JSON array — no custom fields loaded")
-        return []
+    # Normalise to (title, entries_list)
+    if isinstance(raw, dict):
+        section_title = str(raw.get("section_title") or _DEFAULT_SECTION_TITLE).strip() or _DEFAULT_SECTION_TITLE
+        entries = raw.get("fields", [])
+        if not isinstance(entries, list):
+            logger.warning("custom_fields.json 'fields' must be an array — no custom fields loaded")
+            return section_title, []
+    elif isinstance(raw, list):
+        section_title = _DEFAULT_SECTION_TITLE
+        entries = raw
+    else:
+        logger.warning("custom_fields.json must be a JSON object or array — no custom fields loaded")
+        return _DEFAULT_SECTION_TITLE, []
 
     fields: list[CustomField] = []
-    for entry in raw:
+    for entry in entries:
         if not isinstance(entry, dict):
             continue
-        # Skip comment-only entries
+        # Skip comment-only entries (no name/label)
         if "name" not in entry or "label" not in entry:
             continue
         try:
@@ -94,8 +112,11 @@ def load_custom_fields(config_dir: Optional[Path] = None) -> list[CustomField]:
             logger.warning("Skipping malformed custom field entry %r: %s", entry, exc)
 
     if fields:
-        logger.info("Loaded %d custom field(s): %s", len(fields), [f.name for f in fields])
-    return fields
+        logger.info(
+            "Loaded %d custom field(s) [section: %r]: %s",
+            len(fields), section_title, [f.name for f in fields],
+        )
+    return section_title, fields
 
 
 class CustomFieldExtractor:

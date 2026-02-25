@@ -1,23 +1,27 @@
-[
-  {
-    "_comment": "Each entry defines one custom field to extract from invoices.",
-    "_comment2": "All three strategies (regex, table_keys, llm_hint) are optional — use any combination.",
-    "_comment3": "regex: Python regex with ONE capture group for the value.",
-    "_comment4": "table_keys: column header synonyms (lowercase) to look for in line item tables.",
-    "_comment5": "llm_hint: description sent to the LLM — use plain English to describe where/how the field appears."
-  },
-  {
-    "name": "strata_reference",
-    "label": "Strata Reference",
-    "regex": "(?:strata\\s+(?:plan|ref(?:erence)?|no\\.?)[:\\s#]*)(SP\\s*\\d+|\\d{4,6})",
-    "table_keys": ["strata ref", "strata reference", "strata plan", "sp no", "sp #"],
-    "llm_hint": "A strata plan or lot reference, often labeled 'Strata Plan', 'SP' followed by digits, 'Strata Reference', or 'Lot' — common on strata levies and body corporate invoices"
-  },
-  {
-    "name": "bsb",
-    "label": "BSB",
-    "regex": "(?:bsb[:\\s#]*)(\\d{3}[-\\s]\\d{3})",
-    "table_keys": ["bsb", "bsb number", "bsb no"],
-    "llm_hint": "Bank BSB number, typically in the format XXX-XXX, found in payment or bank details sections"
-  }
-]
+{
+  "_comment": "section_title: label shown on the dashboard card header (optional, defaults to 'Custom Fields')",
+  "section_title": "Additional Fields",
+  "fields": [
+    {
+      "_comment": "Each entry defines one custom field to extract from invoices.",
+      "_comment2": "All three strategies (regex, table_keys, llm_hint) are optional — use any combination.",
+      "_comment3": "regex: Python regex with ONE capture group for the value.",
+      "_comment4": "table_keys: column header synonyms (lowercase) to look for in line item tables.",
+      "_comment5": "llm_hint: description sent to the LLM — use plain English to describe where/how the field appears."
+    },
+    {
+      "name": "strata_reference",
+      "label": "Strata Reference",
+      "regex": "(?:strata\\s+(?:plan|ref(?:erence)?|no\\.?)[:\\s#]*)(SP\\s*\\d+|\\d{4,6})",
+      "table_keys": ["strata ref", "strata reference", "strata plan", "sp no", "sp #"],
+      "llm_hint": "A strata plan or lot reference, often labeled 'Strata Plan', 'SP' followed by digits, 'Strata Reference', or 'Lot' — common on strata levies and body corporate invoices"
+    },
+    {
+      "name": "bsb",
+      "label": "BSB",
+      "regex": "(?:bsb[:\\s#]*)(\\d{3}[-\\s]\\d{3})",
+      "table_keys": ["bsb", "bsb number", "bsb no"],
+      "llm_hint": "Bank BSB number, typically in the format XXX-XXX, found in payment or bank details sections"
+    }
+  ]
+}

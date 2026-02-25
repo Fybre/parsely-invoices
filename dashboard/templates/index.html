@@ -1720,13 +1720,17 @@ function notesCard(result) {
 // ════════════════════════════════════════════════════════════════════════════
 function customFieldsCard(inv) {
   const cf = inv.custom_fields || {};
+  const title = inv.custom_fields_title || 'Custom Fields';
   const entries = Object.entries(cf).filter(([, v]) => v != null && String(v).trim() !== '');
   if (!entries.length) return '';
 
-  const rows = entries.map(([k, v]) => {
-    // Convert snake_case key to Title Case label if no server-side label available
+  const items = entries.map(([k, v]) => {
+    // Convert snake_case key to Title Case as a fallback label
     const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    return `<div class="kv-row"><span class="kv-label">${esc(label)}</span><span class="kv-value">${esc(String(v))}</span></div>`;
+    return `<div class="kv-item">
+      <div class="kv-label">${esc(label)}</div>
+      <div class="kv-value">${esc(String(v))}</div>
+    </div>`;
   }).join('');
 
   return `<div class="card">
@@ -1736,9 +1740,9 @@ function customFieldsCard(inv) {
         <line x1="12" y1="8" x2="12" y2="12"/>
         <line x1="12" y1="16" x2="12.01" y2="16"/>
       </svg>
-      Custom Fields
+      ${esc(title)}
     </div>
-    <div class="kv-grid">${rows}</div>
+    <div class="kv-grid">${items}</div>
   </div>`;
 }
 

@@ -66,3 +66,5 @@ class ExtractedInvoice(BaseModel):
     # Operator-defined custom fields (from config/custom_fields.json)
     # Keys are field names as defined in the config; values are extracted strings.
     custom_fields: dict = Field(default_factory=dict)
+    # Dashboard card header label for the custom fields section.
+    custom_fields_title: str = "Custom Fields"
