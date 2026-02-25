@@ -266,18 +266,21 @@ class LLMParser:
         else:
             base_prompt = _PROMPT_FULL
 
-        # Inject custom field additions: instructions before the JSON schema block,
-        # schema snippet just before the closing }} of the return structure.
+        # Inject custom field snippets BEFORE resolving the format placeholders.
+        # The snippets contain literal { } characters (JSON) which must be escaped
+        # as {{ }} so that str.format() treats them as literals, not placeholders.
         if cf_instructions:
+            escaped_instructions = cf_instructions.replace("{", "{{").replace("}", "}}")
+            escaped_schema       = cf_schema.replace("{", "{{").replace("}", "}}")
             # Insert instructions just before "Return a JSON object"
             base_prompt = base_prompt.replace(
                 "Return a JSON object with exactly this structure:",
-                cf_instructions + "Return a JSON object with exactly this structure:"
+                escaped_instructions + "Return a JSON object with exactly this structure:"
             )
             # Insert schema fields just before the final closing }}
             base_prompt = base_prompt.replace(
                 '"notes": "string or null"\n}}',
-                f'"notes": "string or null"{cf_schema}\n}}'
+                f'"notes": "string or null"{escaped_schema}\n}}'
             )
 
         prompt = base_prompt.format(invoice_markdown=extraction.markdown)
