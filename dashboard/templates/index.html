@@ -3395,14 +3395,22 @@ async function exportInvoice(stem) {
   const btn = document.querySelector('.btn-export');
   if (btn) { btn.disabled = true; btn.textContent = 'Exporting…'; }
   const prevIndex = S.filtered.findIndex(inv => inv.stem === stem);
+  let success = false;
   try {
     await api.export(stem);
     toast(`Exported: ${stem}`, 'success');
+    success = true;
     await poll();               // refreshes S.filtered and sidebar counts
     await autoAdvance(stem, prevIndex);
   } catch (e) {
     toast('Export failed: ' + e.message, 'error');
-    if (btn) { btn.disabled = false; btn.textContent = 'Export Invoice'; }
+  } finally {
+    // Reset button state if export failed or if button is still in DOM
+    // (On success, autoAdvance usually re-renders, but check just in case)
+    if (btn && document.contains(btn) && (!success || btn.disabled)) {
+      btn.disabled = false;
+      btn.textContent = 'Export Invoice';
+    }
   }
 }
 
