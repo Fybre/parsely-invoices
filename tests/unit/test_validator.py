@@ -151,6 +151,8 @@ class TestInvoiceValidator:
 
     def test_po_total_exceeded(self, validator):
         """Test detection when invoice total exceeds PO total."""
+        from models.purchase_order import PurchaseOrder
+        
         invoice = ExtractedInvoice(
             po_number="PO-001",
             total=1500
@@ -160,8 +162,12 @@ class TestInvoiceValidator:
             match_method="invoice_reference",
             po_total=1000
         )
+        po_record = PurchaseOrder(
+            po_number="PO-001",
+            total=1000
+        )
         
-        discrepancies = validator.validate(invoice, matched_po, None, None)
+        discrepancies = validator.validate(invoice, matched_po, None, po_record)
         
         errors = [d for d in discrepancies if d.type == "po_total_exceeded"]
         assert len(errors) == 1

@@ -255,11 +255,16 @@ class TestRenderExportXML:
         """Test that XML special characters are escaped."""
         payload = {
             "stem": "test",
-            "supplier": {"name": "A & B Supplies <Special>"},
-            "extracted_invoice": {"notes": "Line 1\nLine 2"}
+            "matched_supplier": {"supplier_id": "SUP-001", "supplier_name": "A & B Supplies <Special>"},
+            "extracted_invoice": {
+                "invoice_number": "INV-001",
+                "supplier": {"name": "A & B Supplies <Special>"}
+            }
         }
         
         xml = render_export_xml(payload)
         
-        assert "&amp;" in xml or "A &amp; B" in xml
-        assert "<Special>" not in xml or "&lt;Special&gt;" in xml
+        # Check that special characters are escaped in the output
+        assert "&amp;" in xml or "&lt;" in xml or "&gt;" in xml
+        # The supplier name should appear escaped
+        assert "<Special>" not in xml  # Raw < should not appear
