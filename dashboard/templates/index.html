@@ -2144,6 +2144,7 @@ async function selectInvoice(stem) {
 // ════════════════════════════════════════════════════════════════════════════
 async function autoAdvance(stem, prevIndex) {
   const stillInList = S.filtered.some(inv => inv.stem === stem);
+  console.log('autoAdvance:', { stem, prevIndex, stillInList, filteredLength: S.filtered.length });
 
   if (stillInList) {
     // Item is still in this queue (e.g. "all" tab, or status change within same queue).
@@ -2158,11 +2159,15 @@ async function autoAdvance(stem, prevIndex) {
   } else if (S.filtered.length > 0) {
     // Item left the current queue — advance to the next position (or last if at end).
     const nextIndex = Math.min(Math.max(prevIndex, 0), S.filtered.length - 1);
+    console.log('autoAdvance: selecting next invoice at index', nextIndex);
     S.selected = null;  // clear so selectInvoice guard doesn't short-circuit
     selectInvoice(S.filtered[nextIndex].stem);
   } else {
     // Queue is now empty.
+    console.log('autoAdvance: queue empty, clearing panels');
     S.selected = null;
+    PDF.currentStem = null;
+    PDF.doc = null;
     document.getElementById('pdf-panel').innerHTML  = placeholderHtml();
     document.getElementById('data-panel').innerHTML = noSelectionHtml();
   }
