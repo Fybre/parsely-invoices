@@ -1120,10 +1120,13 @@ def get_invoice(stem: str):
         raise HTTPException(status_code=404, detail=f"Invoice not found: {stem}")
 
     # Merge extracted_data blob with DB metadata so the frontend gets everything
+    extracted: dict = {}
     try:
-        extracted = json.loads(rec.get("extracted_data") or "{}")
+        parsed = json.loads(rec.get("extracted_data") or "{}")
+        if isinstance(parsed, dict):
+            extracted = parsed
     except Exception:
-        extracted = {}
+        pass
 
     corrections = {}
     if rec.get("corrections"):
@@ -1210,10 +1213,13 @@ def export_invoice(stem: str, request: Request):
         raise HTTPException(404, "Source PDF not found — cannot export")
 
     # Build export payload: full extracted data with corrections applied
+    extracted: dict = {}
     try:
-        extracted = json.loads(rec.get("extracted_data") or "{}")
+        parsed = json.loads(rec.get("extracted_data") or "{}")
+        if isinstance(parsed, dict):
+            extracted = parsed
     except Exception:
-        extracted = {}
+        pass
 
     corrections = {}
     if rec.get("corrections"):
@@ -1406,7 +1412,9 @@ def bulk_export(request: Request):
 
             extracted: dict = {}
             try:
-                extracted = json.loads(rec.get("extracted_data") or "{}")
+                parsed = json.loads(rec.get("extracted_data") or "{}")
+                if isinstance(parsed, dict):
+                    extracted = parsed
             except Exception:
                 pass
 
