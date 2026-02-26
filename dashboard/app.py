@@ -74,6 +74,24 @@ from config import Config  # noqa: E402
 from pipeline.webhook_export import WebhookExportService  # noqa: E402
 from pipeline.email_ingest import EmailIngestService  # noqa: E402
 
+# Import dashboard services
+from dashboard.models import (
+    StatusUpdate,
+    CorrectionsUpdate,
+    NotesUpdate,
+    AdminDataUpdate,
+    UserCreate,
+    UserUpdate,
+    SupplierCreate,
+)
+from dashboard.services import (
+    apply_corrections,
+    build_normalized_supplier,
+    build_normalized_line_items,
+    render_export_xml,
+)
+from dashboard.services import pdf as pdf_service
+
 logger = logging.getLogger(__name__)
 
 
@@ -571,7 +589,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 # Corrections helpers
 # ---------------------------------------------------------------------------
 
-def _apply_corrections(extracted: dict, corrections: dict) -> dict:
+def apply_corrections(extracted: dict, corrections: dict) -> dict:
     """
     Return a deep copy of *extracted* with operator corrections applied.
 
@@ -636,7 +654,7 @@ def _apply_corrections(extracted: dict, corrections: dict) -> dict:
     return result
 
 
-def _build_normalized_supplier(data: dict, corrections: dict) -> dict:
+def build_normalized_supplier(data: dict, corrections: dict) -> dict:
     """
     Build a normalized supplier object for easy downstream consumption.
     
@@ -737,7 +755,7 @@ def _build_normalized_supplier(data: dict, corrections: dict) -> dict:
         }
 
 
-def _build_normalized_line_items(data: dict) -> list:
+def build_normalized_line_items(data: dict) -> list:
     """
     Build a normalized line_items array with embedded PO match info.
     
@@ -788,108 +806,6 @@ def _build_normalized_line_items(data: dict) -> list:
     return normalized
 
 
-# ---------------------------------------------------------------------------
-# XML export helpers
-# ---------------------------------------------------------------------------
-
-_DEFAULT_EXPORT_XML_TEMPLATE = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Invoice export template — edit config/export_template.xml.j2 to customise.
-  Template engine : Jinja2  (https://jinja.palletsprojects.com/)
-  Values are XML-escaped automatically.  Use | safe only for trusted markup.
-
-  Top-level variables available in every export:
-    stem                 — invoice filename stem (no extension)
-    exported_at          — ISO-8601 UTC timestamp
-    pdf_file             — relative filename of the accompanying PDF
-    corrections_applied  — true | false
-    operator_notes       — free-text note, may be empty
-    matched_supplier     — dict: supplier_id, supplier_name, match_method, confidence
-    extracted_invoice    — dict: invoice fields, supplier sub-dict, line_items list
-    matched_pos          — list of matched purchase orders
--->
-<Invoice>
-  <Meta>
-    <Stem>{{ stem }}</Stem>
-    <ExportedAt>{{ exported_at }}</ExportedAt>
-    <PdfFile>{{ pdf_file }}</PdfFile>
-    <CorrectionsApplied>{{ corrections_applied | string | lower }}</CorrectionsApplied>
-    {% if operator_notes %}<OperatorNotes>{{ operator_notes }}</OperatorNotes>
-    {% endif %}
-  </Meta>
-
-  {% set ms  = matched_supplier or {} %}
-  {% set inv = extracted_invoice or {} %}
-  {% set s   = inv.supplier or {} %}
-  <Supplier>
-    {% if ms.supplier_id %}<Id>{{ ms.supplier_id }}</Id>
-    {% endif %}
-    <Name>{{ ms.supplier_name or s.name or '' }}</Name>
-    {% if s.abn %}<ABN>{{ s.abn }}</ABN>
-    {% endif %}
-    {% if s.acn %}<ACN>{{ s.acn }}</ACN>
-    {% endif %}
-    {% if s.email %}<Email>{{ s.email }}</Email>
-    {% endif %}
-    {% if s.phone %}<Phone>{{ s.phone }}</Phone>
-    {% endif %}
-    {% if s.address %}<Address>{{ s.address }}</Address>
-    {% endif %}
-    {% if ms.match_method %}<MatchMethod>{{ ms.match_method }}</MatchMethod>
-    {% endif %}
-  </Supplier>
-
-  <InvoiceDetails>
-    {% if inv.invoice_number %}<InvoiceNumber>{{ inv.invoice_number }}</InvoiceNumber>
-    {% endif %}
-    {% if inv.invoice_date %}<InvoiceDate>{{ inv.invoice_date }}</InvoiceDate>
-    {% endif %}
-    {% if inv.due_date %}<DueDate>{{ inv.due_date }}</DueDate>
-    {% endif %}
-    {% if inv.po_number %}<PONumber>{{ inv.po_number }}</PONumber>
-    {% endif %}
-    {% if inv.currency %}<Currency>{{ inv.currency }}</Currency>
-    {% endif %}
-    {% if inv.subtotal is not none %}<Subtotal>{{ inv.subtotal }}</Subtotal>
-    {% endif %}
-    {% if inv.tax_amount is not none %}<TaxAmount>{{ inv.tax_amount }}</TaxAmount>
-    {% endif %}
-    {% if inv.total is not none %}<Total>{{ inv.total }}</Total>
-    {% endif %}
-  </InvoiceDetails>
-
-  {% if inv.line_items %}
-  <LineItems>
-    {% for item in inv.line_items %}
-    <LineItem number="{{ item.line_number | default(loop.index) }}">
-      {% if item.description %}<Description>{{ item.description }}</Description>
-      {% endif %}
-      {% if item.sku %}<SKU>{{ item.sku }}</SKU>
-      {% endif %}
-      {% if item.quantity is not none %}<Quantity>{{ item.quantity }}</Quantity>
-      {% endif %}
-      {% if item.unit_price is not none %}<UnitPrice>{{ item.unit_price }}</UnitPrice>
-      {% endif %}
-      {% if item.line_total is not none %}<LineTotal>{{ item.line_total }}</LineTotal>
-      {% endif %}
-    </LineItem>
-    {% endfor %}
-  </LineItems>
-  {% endif %}
-
-  {% if inv.custom_fields %}
-  <CustomFields>
-    {% for key, value in inv.custom_fields.items() %}
-    <Field name="{{ key }}">{{ value }}</Field>
-    {% endfor %}
-  </CustomFields>
-  {% endif %}
-
-</Invoice>
-"""
-
-
 def _get_actor(request: Request) -> str:
     """Return the username of the authenticated user, or 'anonymous'."""
     user = getattr(request.state, "user", None)
@@ -898,19 +814,7 @@ def _get_actor(request: Request) -> str:
     return "anonymous"
 
 
-def _render_export_xml(payload: dict) -> str:
-    """Render *payload* as XML using the operator template (or built-in default)."""
-    if _EXPORT_XML_TEMPLATE_FILE.exists():
-        env = Environment(
-            loader=FileSystemLoader(str(_EXPORT_XML_TEMPLATE_FILE.parent)),
-            autoescape=True,
-            keep_trailing_newline=True,
-        )
-        tmpl = env.get_template(_EXPORT_XML_TEMPLATE_FILE.name)
-    else:
-        env = Environment(loader=BaseLoader(), autoescape=True, keep_trailing_newline=True)
-        tmpl = env.from_string(_DEFAULT_EXPORT_XML_TEMPLATE)
-    return tmpl.render(**payload)
+
 
 
 # ---------------------------------------------------------------------------
@@ -949,123 +853,10 @@ def get_db() -> Database:
 
 
 # ---------------------------------------------------------------------------
-# In-memory PDF page-render cache  {stem: {"mtime": float, "pages": list}}
-# Bounded LRU: evicts the oldest entry once the limit is reached.
-# ---------------------------------------------------------------------------
-_PAGE_CACHE_MAX = 50
-_PAGE_CACHE: OrderedDict[str, dict] = OrderedDict()
-
-# ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
 app = FastAPI(title="Invoice Pipeline Dashboard", docs_url=None, redoc_url=None)
 app.add_middleware(AuthMiddleware)
-
-
-# ── PDF helpers ──────────────────────────────────────────────────────────────
-
-def _find_pdf(source_file: str, stem: str) -> Optional[Path]:
-    """
-    Locate the original PDF.
-
-    Search order:
-      1. The exact path recorded at extraction time
-      2. INVOICES_DIR/<filename>   (PDF still in inbox)
-      3. EXPORT_DIR/<stem>.pdf     (PDF moved to export folder after approval)
-    """
-    if source_file:
-        p = Path(source_file)
-        if p.exists():
-            return p
-        candidate = INVOICES_DIR / p.name
-        if candidate.exists():
-            return candidate
-
-    # Try export dir (invoice was approved)
-    export_pdf = EXPORT_DIR / f"{stem}.pdf"
-    if export_pdf.exists():
-        return export_pdf
-
-    return None
-
-
-def _render_pages(pdf_path: Path, max_pages: int = 12) -> list[dict]:
-    """Render PDF pages to JPEG and return as base64-encoded dicts."""
-    try:
-        from pdf2image import convert_from_path  # type: ignore
-        images = convert_from_path(
-            str(pdf_path), dpi=150,
-            first_page=1, last_page=max_pages,
-        )
-        pages = []
-        for i, img in enumerate(images):
-            buf = io.BytesIO()
-            img.save(buf, format="JPEG", quality=85)
-            pages.append({
-                "page": i + 1,
-                "mime": "image/jpeg",
-                "data": base64.b64encode(buf.getvalue()).decode(),
-            })
-        return pages
-    except ImportError:
-        pass  # fall through to pdfplumber
-
-    try:
-        import pdfplumber  # type: ignore
-        pages = []
-        with pdfplumber.open(pdf_path) as pdf:
-            for i, page in enumerate(pdf.pages[:max_pages]):
-                img = page.to_image(resolution=150)
-                buf = io.BytesIO()
-                img.save(buf, format="PNG")
-                pages.append({
-                    "page": i + 1,
-                    "mime": "image/png",
-                    "data": base64.b64encode(buf.getvalue()).decode(),
-                })
-        return pages
-    except Exception as e:
-        logger.error("Failed to render PDF %s: %s", pdf_path, e)
-        return []
-
-
-# ── Request / response models ─────────────────────────────────────────────────
-
-class StatusUpdate(BaseModel):
-    status: str   # needs_review | ready
-
-
-class CorrectionsUpdate(BaseModel):
-    corrections: dict   # { "field_path": "corrected_value", … }
-
-
-class NotesUpdate(BaseModel):
-    notes: str
-
-
-class AdminDataUpdate(BaseModel):
-    headers: list[str]
-    rows: list[dict]
-
-
-class UserCreate(BaseModel):
-    username: str
-    password: str
-    role: str   # "admin" | "user"
-
-
-class SupplierCreate(BaseModel):
-    name: str
-    abn: str = ""
-    acn: str = ""
-    email: str = ""
-    phone: str = ""
-    address: str = ""
-
-
-class UserUpdate(BaseModel):
-    password: Optional[str] = None
-    role: Optional[str] = None
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -1157,20 +948,17 @@ def get_pages(stem: str):
         raise HTTPException(status_code=404, detail=f"Invoice not found: {stem}")
 
     source_file = rec.get("source_file", "")
-    pdf_path = _find_pdf(source_file, stem)
+    pdf_path = pdf_service.find_pdf(source_file, stem, INVOICES_DIR, EXPORT_DIR)
     if pdf_path is None:
         return []
 
     mtime = pdf_path.stat().st_mtime
-    cached = _PAGE_CACHE.get(stem)
-    if cached and abs(cached["mtime"] - mtime) < 0.5:
-        return cached["pages"]
+    cached = pdf_service.get_cached_pages(stem, mtime)
+    if cached:
+        return cached
 
-    pages = _render_pages(pdf_path)
-    _PAGE_CACHE[stem] = {"mtime": mtime, "pages": pages}
-    _PAGE_CACHE.move_to_end(stem)
-    while len(_PAGE_CACHE) > _PAGE_CACHE_MAX:
-        _PAGE_CACHE.popitem(last=False)
+    pages = pdf_service.render_pages(pdf_path)
+    pdf_service.cache_pages(stem, mtime, pages)
     return pages
 
 
@@ -1182,7 +970,7 @@ def get_raw_pdf(stem: str):
     if not rec:
         raise HTTPException(status_code=404, detail=f"Invoice not found: {stem}")
 
-    pdf_path = _find_pdf(rec.get("source_file", ""), stem)
+    pdf_path = pdf_service.find_pdf(rec.get("source_file", ""), stem, INVOICES_DIR, EXPORT_DIR)
     if pdf_path is None or not pdf_path.exists():
         raise HTTPException(status_code=404, detail="PDF file not found")
 
@@ -1211,7 +999,7 @@ def export_invoice(stem: str, request: Request):
         raise HTTPException(400, "Invoice is already exported")
 
     # Locate source PDF
-    pdf_path = _find_pdf(rec.get("source_file", ""), stem)
+    pdf_path = pdf_service.find_pdf(rec.get("source_file", ""), stem, INVOICES_DIR, EXPORT_DIR)
     if pdf_path is None:
         raise HTTPException(404, "Source PDF not found — cannot export")
 
@@ -1232,11 +1020,11 @@ def export_invoice(stem: str, request: Request):
             pass
 
     # Apply corrections to get the final data
-    final_data = _apply_corrections(extracted, corrections)
+    final_data = apply_corrections(extracted, corrections)
 
     # Build normalized objects for easy downstream consumption
-    normalized_supplier = _build_normalized_supplier(final_data, corrections)
-    normalized_line_items = _build_normalized_line_items(final_data)
+    normalized_supplier = build_normalized_supplier(final_data, corrections)
+    normalized_line_items = build_normalized_line_items(final_data)
 
     export_payload = {
         "stem":                stem,
@@ -1260,13 +1048,13 @@ def export_invoice(stem: str, request: Request):
             json.dump(export_payload, f, indent=2, default=str)
     if EXPORT_FORMAT in ("xml", "both"):
         with open(EXPORT_DIR / f"{stem}.xml", "w", encoding="utf-8") as f:
-            f.write(_render_export_xml(export_payload))
+            f.write(render_export_xml(export_payload, _EXPORT_XML_TEMPLATE_FILE))
 
     # Move PDF
     shutil.move(str(pdf_path), str(export_pdf_path))
 
     # Invalidate PDF render cache (path changed)
-    _PAGE_CACHE.pop(stem, None)
+    pdf_service.invalidate_cache(stem)
 
     # Update DB
     db.update_status(stem, "exported")
@@ -1312,7 +1100,7 @@ def reprocess_invoice(stem: str):
 
     # Remove the DB record — pipeline will re-pick-up the PDF on next poll
     db.delete_invoice(stem)
-    _PAGE_CACHE.pop(stem, None)
+    pdf_service.invalidate_cache(stem)
     logger.info("Queued for reprocess (record cleared): %s", stem)
     return {"stem": stem, "status": "queued_for_reprocess"}
 
@@ -1333,7 +1121,7 @@ def delete_invoice(stem: str):
         raise HTTPException(400, "Cannot delete an exported invoice")
 
     # Delete source PDF if it still exists in the invoices inbox
-    pdf_path = _find_pdf(rec.get("source_file", ""), stem)
+    pdf_path = pdf_service.find_pdf(rec.get("source_file", ""), stem, INVOICES_DIR, EXPORT_DIR)
     if pdf_path and pdf_path.exists():
         # Safety: only delete from the invoices inbox, not from export/
         if EXPORT_DIR not in pdf_path.parents:
@@ -1342,7 +1130,7 @@ def delete_invoice(stem: str):
 
     # Remove DB record and invalidate cache
     db.delete_invoice(stem)
-    _PAGE_CACHE.pop(stem, None)
+    pdf_service.invalidate_cache(stem)
     logger.info("Deleted invoice record: %s", stem)
     return {"stem": stem, "deleted": True}
 
@@ -1408,7 +1196,7 @@ def bulk_export(request: Request):
             if not rec or rec["status"] != STATUS_READY:
                 continue  # race condition: another request got there first
 
-            pdf_path = _find_pdf(rec.get("source_file", ""), stem)
+            pdf_path = pdf_service.find_pdf(rec.get("source_file", ""), stem, INVOICES_DIR, EXPORT_DIR)
             if pdf_path is None:
                 errors.append(f"{stem}: PDF not found")
                 continue
@@ -1428,9 +1216,9 @@ def bulk_export(request: Request):
                 except Exception:
                     pass
 
-            final_data = _apply_corrections(extracted, corrections)
-            normalized_supplier = _build_normalized_supplier(final_data, corrections)
-            normalized_line_items = _build_normalized_line_items(final_data)
+            final_data = apply_corrections(extracted, corrections)
+            normalized_supplier = build_normalized_supplier(final_data, corrections)
+            normalized_line_items = build_normalized_line_items(final_data)
 
             export_payload = {
                 "stem":                stem,
@@ -1451,10 +1239,10 @@ def bulk_export(request: Request):
                     json.dump(export_payload, f, indent=2, default=str)
             if EXPORT_FORMAT in ("xml", "both"):
                 with open(EXPORT_DIR / f"{stem}.xml", "w", encoding="utf-8") as f:
-                    f.write(_render_export_xml(export_payload))
+                    f.write(render_export_xml(export_payload, _EXPORT_XML_TEMPLATE_FILE))
 
             shutil.move(str(pdf_path), str(export_pdf_path))
-            _PAGE_CACHE.pop(stem, None)
+            pdf_service.invalidate_cache(stem)
             db.update_status(stem, "exported")
             db.log_audit(stem, "exported", actor=_get_actor(request),
                          detail={"format": EXPORT_FORMAT, "bulk": True})
