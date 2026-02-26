@@ -30,6 +30,11 @@ set -e
 # Ensure configuration files exist in the mounted volume
 python3 bootstrap.py
 
+# Fix permissions on output directories (run as root for normal installs)
+# This ensures the container works regardless of host UID/GID
+mkdir -p /app/output/export /app/backups /app/data /app/invoices 2>/dev/null || true
+chmod -R 777 /app/output /app/backups /app/data 2>/dev/null || true
+
 # If any arguments were supplied, forward them directly and exit.
 if [ "$#" -gt 0 ]; then
     exec python main.py "$@"

@@ -67,6 +67,8 @@ services:
     # Allows the container to reach services on the host (needed on Linux)
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Optional: Run as non-root user (set USER_ID and USER_GID in .env)
+    # user: "${USER_ID:-0}:${USER_GID:-0}"
     # restart: unless-stopped   ← uncomment when using WATCH_MODE=true with `up -d`
     profiles: []    # always available (no profile needed)
 
@@ -132,6 +134,8 @@ services:
       EXPORT_FORMAT: ${EXPORT_FORMAT:-json}            # json | xml | both
       # --- Database path (optional override) ---
       DB_PATH: ${DB_PATH:-/app/output/pipeline.db}
+    # Optional: Run as non-root user (set USER_ID and USER_GID in .env)
+    # user: "${USER_ID:-0}:${USER_GID:-0}"
     restart: unless-stopped
     profiles: []    # always available
 

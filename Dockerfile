@@ -56,8 +56,25 @@ COPY defaults/               ./defaults/
 
 RUN chmod +x /app/docker-entrypoint.sh
 
+# Ensure model cache directories are writable by any user (for non-root execution)
+# RapidOCR, Transformers, and Docling download models on first use
+RUN mkdir -p /tmp/rapidocr /tmp/transformers /tmp/docling /tmp/torch /tmp/home && \
+    chmod -R 777 /tmp/rapidocr /tmp/transformers /tmp/docling /tmp/torch /tmp/home && \
+    # Make package model directories writable too
+    mkdir -p /usr/local/lib/python3.12/site-packages/rapidocr/models && \
+    chmod -R 777 /usr/local/lib/python3.12/site-packages/rapidocr/models 2>/dev/null || true
+
 # Ensure /app is on the Python path so relative imports (from models, from config) work
 ENV PYTHONPATH=/app
+
+# Set default cache directories for ML libraries
+ENV HOME=/tmp/home
+ENV USER=appuser
+ENV RAPIDOCR_HOME=/tmp/rapidocr
+ENV TRANSFORMERS_CACHE=/tmp/transformers
+ENV HF_HOME=/tmp/transformers
+ENV TORCHINDUCTOR_CACHE_DIR=/tmp/torch
+ENV DOCLING_CACHE_DIR=/tmp/docling
 
 # ---------------------------------------------------------------------------
 # Volume mount points
