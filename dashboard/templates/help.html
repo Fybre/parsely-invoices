@@ -86,7 +86,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .status.needs_review { background: #fef3c7; color: #92400e; }
 .status.ready { background: #d1fae5; color: #065f46; }
 .status.exported { background: #dbeafe; color: #1e40af; }
-.status.flagged { background: #fee2e2; color: #991b1b; }
+
 
 /* Code blocks */
 code { font-family: 'SF Mono', Monaco, monospace; font-size: 13px; background: var(--bg); padding: 2px 6px; border-radius: 4px; color: var(--accent); }
@@ -287,17 +287,12 @@ const sections = {
               <tr>
                 <td><span class="status needs_review">● Needs Review</span></td>
                 <td>⚠️</td>
-                <td>Extracted but not yet verified. May have discrepancies or require manual supplier matching.</td>
+                <td>Extracted but not yet verified. May have discrepancies, missing data, or require manual supplier matching. Requires operator review before export.</td>
               </tr>
               <tr>
                 <td><span class="status ready">● Ready</span></td>
                 <td>✓</td>
                 <td>Verified and approved for export. Data has been reviewed and is ready for downstream systems.</td>
-              </tr>
-              <tr>
-                <td><span class="status flagged">● Flagged</span></td>
-                <td>🚩</td>
-                <td>Requires attention due to significant discrepancies, missing data, or business rule violations.</td>
               </tr>
               <tr>
                 <td><span class="status exported">● Exported</span></td>
@@ -965,7 +960,7 @@ const sections = {
           <pre><code>GET /api/invoices?status=needs_review&search=acme</code></pre>
           <p>Query parameters:</p>
           <ul>
-            <li><code>status</code> — Filter by status (needs_review, ready, flagged, exported)</li>
+            <li><code>status</code> — Filter by status (needs_review, ready, exported)</li>
             <li><code>search</code> — Search in filename, supplier name, invoice number</li>
             <li><code>limit</code> — Maximum results (default: 100)</li>
             <li><code>offset</code> — Pagination offset</li>
@@ -1218,13 +1213,10 @@ PUT /api/admin/settings</code></pre>
           <h2>Status Values</h2>
           <dl>
             <dt>needs_review</dt>
-            <dd>Initial status after extraction. Invoice requires human verification before export.</dd>
+            <dd>Initial status after extraction. Invoice requires human verification before export. May have discrepancies, missing data, or require manual matching.</dd>
             
             <dt>ready</dt>
             <dd>Invoice has been reviewed and approved. Ready for export to downstream systems.</dd>
-            
-            <dt>flagged</dt>
-            <dd>Invoice has significant issues requiring investigation. Should not be exported until resolved.</dd>
             
             <dt>exported</dt>
             <dd>Invoice has been successfully exported. Archive status - no further action needed.</dd>

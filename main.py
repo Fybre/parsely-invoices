@@ -20,7 +20,7 @@ from pathlib import Path
 
 import click
 
-from config import Config
+from config import Config, PROJECT_ROOT
 from pipeline.processor import InvoiceProcessor
 
 
