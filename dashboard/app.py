@@ -588,8 +588,10 @@ def _apply_corrections(extracted: dict, corrections: dict) -> dict:
         return extracted
 
     result = copy.deepcopy(extracted)
-    inv = result.setdefault("extracted_invoice", {})
-    sup = inv.setdefault("supplier", {})
+    inv = result.get("extracted_invoice") or {}
+    result["extracted_invoice"] = inv
+    sup = inv.get("supplier") or {}
+    inv["supplier"] = sup
 
     # Scalar invoice fields
     for key in ("invoice_number", "invoice_date", "due_date", "po_number",
@@ -621,7 +623,8 @@ def _apply_corrections(extracted: dict, corrections: dict) -> dict:
     # supplier.  Overwrite matched_supplier.supplier_id (and supplier_name) so the export
     # JSON carries the correct supplier ID even if the pipeline match was wrong or absent.
     if "corrected_supplier_id" in corrections:
-        ms = result.setdefault("matched_supplier", {})
+        ms = result.get("matched_supplier") or {}
+        result["matched_supplier"] = ms
         ms["supplier_id"]   = corrections["corrected_supplier_id"]
         ms["supplier_name"] = (
             corrections.get("supplier_name")
