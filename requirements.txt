@@ -39,3 +39,9 @@ pdf2image>=1.16.0
 # Authentication
 bcrypt>=4.0.0             # password hashing for dashboard auth
 itsdangerous>=2.1.0       # signed session cookies (explicit; transitive dep of Starlette)
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest>=7.0.0             # test framework
+pytest-cov>=4.0.0         # coverage reporting
+pytest-asyncio>=0.21.0    # async test support
+httpx>=0.24.0             # HTTP client for API testing (used by FastAPI TestClient)
