@@ -17,10 +17,12 @@ An AI-powered invoice processing pipeline that extracts structured data from PDF
 - **Webhook Export** — Automatically push approved invoice data to external REST APIs (e.g. Therefore DMS, Xero, ERP) using Jinja2 templates.
 - **Automated Backups** — Periodic background ZIP archives of your database, configuration, and master data with automatic rotation.
 - **Self-Healing Config** — Built-in bootstrap system that automatically restores factory default configuration files if volumes are missing or empty.
-- **Web dashboard** — Review, correct, and approve invoices; upload PDFs directly from the browser; dark mode support.
+- **Web dashboard** — Review, correct, and approve invoices; upload PDFs directly from the browser; keyboard shortcuts; dark mode support.
 - **Admin page** — Category-based settings management; edit suppliers, POs, and PO lines in-browser; reload data without restarting.
+- **Help System** — Comprehensive in-app help covering workflow, API reference, troubleshooting, and keyboard shortcuts.
 - **Custom fields** — Define site-specific fields (e.g. strata reference, job number) extracted alongside standard fields.
 - **SQLite-backed state** — All results, corrections, and approvals stored in a single database.
+- **Test Suite** — 46 automated tests covering unit and integration scenarios.
 
 ---
 
@@ -131,10 +133,19 @@ parsely-invoices/
 │   └── *.j2                     Export and Webhook templates
 ├── defaults/                    Factory default config files (image bundled)
 ├── pipeline/                    Core processing logic
+│   ├── services/                Business logic layer
+│   │   ├── export.py            Export normalization & formatting
+│   │   └── pdf.py               PDF rendering utilities
+│   ├── csv_manager.py           Shared CSV loading/management
 │   ├── webhook_export.py        External API integration service
 │   ├── backup.py                Automated backup logic
 │   └── ...                      Matchers, Extractors, Parsers
 ├── dashboard/                   FastAPI web interface
+│   ├── models/                  Pydantic request models
+│   └── templates/               HTML templates
+├── tests/                       Test suite
+│   ├── unit/                    Unit tests (37 tests)
+│   └── integration/             Integration tests (9 tests)
 ├── data/                        Master CSVs (Suppliers, POs)
 ├── backups/                     Generated ZIP archives
 ├── invoices/                    Input PDF invoices
@@ -153,3 +164,43 @@ docker compose exec ollama ollama pull qwen2.5:7b
 ```
 
 And set `LLM_BASE_URL=http://ollama:11434/v1` in your `.env`.
+
+---
+
+## Testing
+
+Run the test suite with Docker:
+
+```bash
+# Run all tests
+docker compose run --rm -v ./tests:/app/tests --entrypoint python dashboard -m pytest tests/ -v
+
+# Run specific test suites
+docker compose run --rm -v ./tests:/app/tests --entrypoint python dashboard -m pytest tests/unit -v
+docker compose run --rm -v ./tests:/app/tests --entrypoint python dashboard -m pytest tests/integration -v
+```
+
+Or use the convenience script:
+```bash
+./run_tests.sh              # Run all tests
+./run_tests.sh --unit       # Unit tests only
+./run_tests.sh --coverage   # With coverage report
+```
+
+---
+
+## Keyboard Shortcuts
+
+When reviewing invoices in the dashboard:
+
+| Key | Action |
+|-----|--------|
+| `e` | Edit invoice |
+| `s` | Mark as Ready |
+| `f` | Flag for review |
+| `x` | Export invoice |
+| `r` | Reprocess invoice |
+| `n` | Add notes |
+| `/` | Focus search |
+| `?` | Show keyboard shortcuts |
+| `Esc` | Close modals / Cancel edit

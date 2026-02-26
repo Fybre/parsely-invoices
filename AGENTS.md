@@ -49,6 +49,8 @@ Parsely is an AI-powered invoice processing pipeline that extracts structured da
 | **Validator** | `pipeline/validator.py` | Discrepancy detection |
 | **Database** | `pipeline/database.py` | SQLite persistence layer |
 | **Dashboard** | `dashboard/app.py` | FastAPI backend + API |
+| **Dashboard Services** | `dashboard/services/*.py` | Business logic layer (export, PDF) |
+| **CSV Manager** | `pipeline/csv_manager.py` | Centralized CSV loading/caching |
 | **Models** | `models/*.py` | Pydantic models for invoices, POs, suppliers |
 
 ---
@@ -88,7 +90,7 @@ When modifying Python files:
 ```
 parsely-invoices/
 ├── main.py                 # CLI entry point
-├── config.py               # Configuration dataclass
+├── config.py               # Configuration dataclass (centralized thresholds)
 ├── docker-compose.yml      # Service definitions
 ├── Dockerfile              # Multi-stage build
 │
@@ -96,10 +98,11 @@ parsely-invoices/
 │   ├── processor.py        # Orchestrator
 │   ├── extractor.py        # PDF extraction
 │   ├── llm_parser.py       # LLM structured extraction
-│   ├── supplier_matcher.py
-│   ├── po_matcher.py
+│   ├── supplier_matcher.py # Uses fuzzy threshold from config
+│   ├── po_matcher.py       # Uses line_fuzzy_threshold from config
 │   ├── validator.py
 │   ├── database.py
+│   ├── csv_manager.py      # Shared CSV loading/management
 │   └── custom_field_extractor.py
 │
 ├── models/                 # Pydantic data models
@@ -110,7 +113,15 @@ parsely-invoices/
 │
 ├── dashboard/              # Web UI
 │   ├── app.py              # FastAPI backend
-│   └── templates/index.html
+│   ├── services/           # Business logic layer
+│   │   ├── export.py       # Export normalization & formatting
+│   │   └── pdf.py          # PDF rendering utilities
+│   ├── models/             # Request/response Pydantic models
+│   └── templates/          # HTML templates
+│
+├── tests/                  # Test suite
+│   ├── unit/               # Unit tests (37 tests)
+│   └── integration/        # Integration tests (9 tests)
 │
 ├── config/                 # Operator-editable config (mounted)
 │   ├── custom_fields.json  # Site-specific extraction fields
@@ -243,32 +254,32 @@ The `Database` class in `pipeline/database.py` manages a single SQLite file:
 
 ## Testing Approach
 
-Currently **no automated test suite** exists. Testing is manual:
+**Automated test suite** with 46 tests (37 unit + 9 integration):
 
 ```bash
-# 1. Verify your setup
-docker compose run --rm pipeline check
+# Run all tests
+docker compose run --rm -v ./tests:/app/tests --entrypoint python dashboard -m pytest tests/ -v
 
-# 2. Process a single invoice
-docker compose run --rm pipeline process /app/invoices/sample.pdf
+# Run specific suites
+docker compose run --rm -v ./tests:/app/tests --entrypoint python dashboard -m pytest tests/unit -v
+docker compose run --rm -v ./tests:/app/tests --entrypoint python dashboard -m pytest tests/integration -v
 
-# 3. Check database output
-docker compose run --rm pipeline python -c "
-from pipeline.database import Database
-from config import Config
-db = Database(Config().db_path)
-print(db.get_stats())
-"
+# With coverage
+docker compose run --rm -v ./tests:/app/tests --entrypoint python dashboard -m pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=html
 
-# 4. Test dashboard at http://localhost:8080
+# Convenience script
+./run_tests.sh
+./run_tests.sh --unit
+./run_tests.sh --coverage
 ```
 
-When adding features, verify:
+**Manual verification** when adding features:
 1. Single PDF processing works
 2. Batch processing works
 3. Watch mode picks up new files
 4. Dashboard displays results correctly
 5. Export writes files to `output/export/`
+6. New code has corresponding unit tests
 
 ---
 
@@ -286,11 +297,19 @@ When adding features, verify:
 2. Add method for new strategy type
 3. Update `merge()` to include new priority level
 
+### Adding CSV Data Access
+
+1. Use `CSVManager` from `pipeline/csv_manager.py`
+2. For read-only access: `CSVManager().read_csv(path)`
+3. For metadata-aware loading: `CSVManager().get_metadata(path)` to check freshness
+4. Call `CSVManager().clear_cache()` if you need to force reload
+
 ### Modifying the Dashboard API
 
 1. Edit `dashboard/app.py`
-2. Add Pydantic model for request/response if needed
+2. Add Pydantic model in `dashboard/models/` if needed
 3. Follow existing pattern of DB operations via `get_db()`
+4. Extract business logic to `dashboard/services/` when appropriate
 
 ### Adding a New CLI Command
 

@@ -240,6 +240,41 @@ startxref
     return pdf_path
 
 
+@pytest.fixture
+def sample_invoice_in_db(test_db, temp_dir):
+    """Create a sample invoice in the database for API tests."""
+    result_dict = {
+        "extracted_invoice": {
+            "invoice_number": "INV-TEST-001",
+            "invoice_date": "2024-01-15",
+            "supplier": {"name": "Test Supplier", "abn": "12 345 678 901"},
+            "total": 1100.00,
+            "currency": "AUD"
+        },
+        "requires_review": False,
+        "error_count": 0,
+        "warning_count": 0,
+        "processed_at": "2024-01-15T10:00:00Z"
+    }
+    
+    # Create invoices directory if not exists
+    invoices_dir = temp_dir / "invoices"
+    invoices_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create a dummy PDF file
+    pdf_path = invoices_dir / "test_invoice.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test content")
+    
+    test_db.upsert_invoice(
+        stem="test_invoice",
+        result_dict=result_dict,
+        source_file=str(pdf_path),
+        source_mtime=pdf_path.stat().st_mtime
+    )
+    
+    return "test_invoice"
+
+
 # Configure pytest markers
 def pytest_configure(config):
     """Configure custom pytest markers."""
