@@ -20,10 +20,10 @@ from models.result import MatchedPO, POLineMatch
 
 logger = logging.getLogger(__name__)
 
-# Tolerances
-PRICE_TOLERANCE_PCT = 0.01      # 1% — treat as matching if within this band
-TOTAL_TOLERANCE_ABS = 0.05      # $0.05 rounding tolerance
-LINE_FUZZY_THRESHOLD = 65       # minimum score to consider a description match
+# Default tolerances (can be overridden via Config)
+DEFAULT_PRICE_TOLERANCE_PCT = 0.01      # 1% — treat as matching if within this band
+DEFAULT_TOTAL_TOLERANCE_ABS = 0.05      # $0.05 rounding tolerance
+DEFAULT_LINE_FUZZY_THRESHOLD = 65       # minimum score to consider a description match
 
 
 class POMatcher:
@@ -39,8 +39,14 @@ class POMatcher:
         po_number, line_number, sku, description, quantity, unit, unit_price, total
     """
 
-    def __init__(self, po_csv: str | Path, po_lines_csv: str | Path):
+    def __init__(
+        self,
+        po_csv: str | Path,
+        po_lines_csv: str | Path,
+        line_fuzzy_threshold: int = DEFAULT_LINE_FUZZY_THRESHOLD,
+    ):
         self.purchase_orders: dict[str, PurchaseOrder] = {}
+        self.line_fuzzy_threshold = line_fuzzy_threshold
         self._load(Path(po_csv), Path(po_lines_csv))
 
     # ------------------------------------------------------------------
@@ -220,7 +226,7 @@ class POMatcher:
                 if score > best_score:
                     best_score = score
                     best_idx = i
-            if best_idx >= 0 and best_score >= LINE_FUZZY_THRESHOLD:
+            if best_idx >= 0 and best_score >= self.line_fuzzy_threshold:
                 return best_idx, po_lines[best_idx], float(best_score)
         except ImportError:
             # Fall back to simple substring check

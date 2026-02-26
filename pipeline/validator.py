@@ -18,12 +18,12 @@ from models.result import Discrepancy, MatchedPO, MatchedSupplier
 
 logger = logging.getLogger(__name__)
 
-# Configurable thresholds (can be overridden via Config)
-MAX_DAYS_IN_PAST = 90       # warn if invoice date > this many days ago
-MAX_DAYS_IN_FUTURE = 7      # warn if invoice date > this many days ahead
-ARITHMETIC_TOLERANCE = 0.05 # $0.05 absolute tolerance for totals
+# Default thresholds (can be overridden via Config)
+DEFAULT_MAX_DAYS_IN_PAST = 90       # warn if invoice date > this many days ago
+DEFAULT_MAX_DAYS_IN_FUTURE = 7      # warn if invoice date > this many days ahead
+DEFAULT_ARITHMETIC_TOLERANCE = 0.05 # $0.05 absolute tolerance for totals
 TAX_RATE_TOLERANCE = 0.005  # 0.5% tolerance on tax rate back-calculation
-PO_TOTAL_TOLERANCE_PCT = 0.01  # 1% tolerance for invoice vs PO total
+DEFAULT_PO_TOTAL_TOLERANCE_PCT = 0.01  # 1% tolerance for invoice vs PO total
 
 
 class InvoiceValidator:
@@ -37,13 +37,15 @@ class InvoiceValidator:
 
     def __init__(
         self,
-        max_days_past: int = MAX_DAYS_IN_PAST,
-        max_days_future: int = MAX_DAYS_IN_FUTURE,
-        arithmetic_tolerance: float = ARITHMETIC_TOLERANCE,
+        max_days_past: int = DEFAULT_MAX_DAYS_IN_PAST,
+        max_days_future: int = DEFAULT_MAX_DAYS_IN_FUTURE,
+        arithmetic_tolerance: float = DEFAULT_ARITHMETIC_TOLERANCE,
+        po_total_tolerance_pct: float = DEFAULT_PO_TOTAL_TOLERANCE_PCT,
     ):
         self.max_days_past = max_days_past
         self.max_days_future = max_days_future
         self.arithmetic_tolerance = arithmetic_tolerance
+        self.po_total_tolerance_pct = po_total_tolerance_pct
 
     def validate(
         self,
@@ -340,7 +342,7 @@ class InvoiceValidator:
         # Invoice total vs PO total
         if inv.total is not None and po_record.total is not None:
             pct_diff = abs(inv.total - po_record.total) / max(po_record.total, 0.01)
-            if pct_diff > PO_TOTAL_TOLERANCE_PCT:
+            if pct_diff > self.po_total_tolerance_pct:
                 issues.append(Discrepancy(
                     type="po_total_exceeded",
                     severity="error",

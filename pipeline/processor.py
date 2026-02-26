@@ -97,13 +97,21 @@ class InvoiceProcessor:
             base_url=self.config.llm_base_url,
             api_key=self.config.llm_api_key,
         )
-        self.supplier_matcher = SupplierMatcher(self.config.suppliers_csv)
-        self.po_matcher = POMatcher(self.config.po_csv, self.config.po_lines_csv)
+        self.supplier_matcher = SupplierMatcher(
+            self.config.suppliers_csv,
+            fuzzy_threshold=self.config.supplier_fuzzy_threshold
+        )
+        self.po_matcher = POMatcher(
+            self.config.po_csv,
+            self.config.po_lines_csv,
+            line_fuzzy_threshold=self.config.po_line_fuzzy_threshold
+        )
         self._csv_mtimes = self._current_csv_mtimes()
         self.validator = InvoiceValidator(
             max_days_past=self.config.max_invoice_age_days,
             max_days_future=self.config.max_future_days,
             arithmetic_tolerance=self.config.arithmetic_tolerance,
+            po_total_tolerance_pct=self.config.po_total_tolerance_pct,
         )
         self.backup_service = BackupService(self.config)
         self._last_backup_run = self.backup_service.get_last_backup_time()

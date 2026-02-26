@@ -92,6 +92,7 @@ class Config:
 
     # --- PO line matching ---
     po_line_fuzzy_threshold: int = 65     # Minimum rapidfuzz score for description
+    po_total_tolerance_pct: float = 0.01  # 1% tolerance for invoice vs PO total
 
     # --- Webhook Export / Webhook settings ---
     webhook_export_enabled: bool = field(
@@ -168,6 +169,7 @@ class Config:
             "max_future_days":         int,
             "supplier_fuzzy_threshold":  int,
             "po_line_fuzzy_threshold":   int,
+            "po_total_tolerance_pct":    float,
             "webhook_export_enabled":        bool,
             "webhook_export_url":            str,
             "webhook_export_method":         str,

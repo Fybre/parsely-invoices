@@ -20,8 +20,9 @@ from models.result import MatchedSupplier
 
 logger = logging.getLogger(__name__)
 
-# Minimum fuzzy score (0-100) to accept a name match
-FUZZY_THRESHOLD = 75
+# Default fuzzy score (0-100) to accept a name match
+# Can be overridden via Config or constructor parameter
+DEFAULT_FUZZY_THRESHOLD = 75
 
 
 def _normalise_abn(abn: Optional[str]) -> Optional[str]:
@@ -47,8 +48,9 @@ class SupplierMatcher:
       aliases: pipe-separated alternative names, e.g. "ACME Corp|ACME Pty Ltd"
     """
 
-    def __init__(self, suppliers_csv: str | Path):
+    def __init__(self, suppliers_csv: str | Path, fuzzy_threshold: int = DEFAULT_FUZZY_THRESHOLD):
         self.suppliers: list[Supplier] = []
+        self.fuzzy_threshold = fuzzy_threshold
         self._load(Path(suppliers_csv))
 
     def _load(self, path: Path) -> None:
@@ -146,7 +148,7 @@ class SupplierMatcher:
         return None
 
     def _fuzzy_name_match(self, invoice_name: str) -> Optional[MatchedSupplier]:
-        """Use rapidfuzz to find the best name match above FUZZY_THRESHOLD."""
+        """Use rapidfuzz to find the best name match above threshold."""
         try:
             from rapidfuzz import fuzz
         except ImportError:
@@ -164,7 +166,7 @@ class SupplierMatcher:
                     best_score = score
                     best_supplier = s
 
-        if best_supplier and best_score >= FUZZY_THRESHOLD:
+        if best_supplier and best_score >= self.fuzzy_threshold:
             confidence = best_score / 100.0
             logger.info(
                 "Supplier fuzzy matched: '%s' -> '%s' (score=%d)",
@@ -179,5 +181,5 @@ class SupplierMatcher:
                 matched_on={"field": "name", "value": invoice_name, "fuzzy_score": confidence},
             )
 
-        logger.debug("Best fuzzy match score was %d (threshold=%d)", best_score, FUZZY_THRESHOLD)
+        logger.debug("Best fuzzy match score was %d (threshold=%d)", best_score, self.fuzzy_threshold)
         return None
