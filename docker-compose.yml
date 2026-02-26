@@ -42,8 +42,10 @@ services:
       - ./config:/app/config        # operator-editable config (column_keys.json etc.)
       - ./invoices:/app/invoices:ro
       - ./output:/app/output
+      - ./backups:/app/backups
       - docling-models:/root/.cache/docling
     environment:
+      PYTHONUNBUFFERED: 1
       # --- LLM connection (OpenAI-compatible API) ---
       # Ollama on host (default):  LLM_BASE_URL=http://host.docker.internal:11434/v1  LLM_API_KEY=ollama
       # Ollama sidecar profile:    LLM_BASE_URL=http://ollama:11434/v1                LLM_API_KEY=ollama
@@ -59,6 +61,9 @@ services:
       # WATCH_MODE=true:            poll continuously — use with `docker compose up -d`
       WATCH_MODE: ${WATCH_MODE:-false}
       POLL_INTERVAL: ${POLL_INTERVAL:-30}
+      # --- Config / data paths ---
+      CONFIG_DIR: ${CONFIG_DIR:-/app/config}   # pipeline reads pipeline_settings.json from here
+      DB_PATH: ${DB_PATH:-/app/output/pipeline.db}
     # Allows the container to reach services on the host (needed on Linux)
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -95,11 +100,38 @@ services:
       - ./invoices:/app/invoices    # rw — dashboard moves PDFs to export/ on approval
       - ./output:/app/output        # rw — dashboard writes export files + reads pipeline.db
       - ./data:/app/data            # rw — dashboard manages suppliers/PO CSVs
+      - ./config:/app/config        # operator-editable config (users.json etc.)
+      - ./backups:/app/backups
     environment:
+      PYTHONUNBUFFERED: 1
       OUTPUT_DIR:   /app/output
       INVOICES_DIR: /app/invoices
       DATA_DIR:     /app/data
       EXPORT_DIR:   /app/output/export
+      CONFIG_DIR:   /app/config
+      # --- LLM (display-only — dashboard reads these for the Settings info table) ---
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+      LLM_MODEL: ${LLM_MODEL:-llama3.2}
+      # --- Extraction / pipeline mode (display-only) ---
+      USE_DOCLING: ${USE_DOCLING:-true}
+      WATCH_MODE: ${WATCH_MODE:-false}
+      POLL_INTERVAL: ${POLL_INTERVAL:-30}
+      # --- Authentication ---
+      AUTH_MODE: ${AUTH_MODE:-disabled}             # disabled | admin_only | full
+      AUTH_SECRET_KEY: ${AUTH_SECRET_KEY:-}          # required when AUTH_MODE != disabled
+      AUTH_SESSION_MINUTES: ${AUTH_SESSION_MINUTES:-480}
+      # Edit config/users.json to add users. Generate a password hash:
+      #   docker compose run --rm dashboard python3 -c \
+      #     "import bcrypt; print(bcrypt.hashpw(b'yourpassword', bcrypt.gensalt()).decode())"
+      # --- Supplier creation ---
+      ALLOW_CREATE_SUPPLIER: ${ALLOW_CREATE_SUPPLIER:-false}   # true | false
+      SUPPLIER_CODE_PREFIX: ${SUPPLIER_CODE_PREFIX:-SUP-}      # prefix for new supplier IDs
+      # --- Build info (optional — set in CI/CD to show commit in admin Settings page) ---
+      BUILD_COMMIT: ${BUILD_COMMIT:-}
+      # --- Export format ---
+      EXPORT_FORMAT: ${EXPORT_FORMAT:-json}            # json | xml | both
+      # --- Database path (optional override) ---
+      DB_PATH: ${DB_PATH:-/app/output/pipeline.db}
     restart: unless-stopped
     profiles: []    # always available
 

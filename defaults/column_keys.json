@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Column header keywords used to identify line item table columns.",
+    "Parsely normalises headers to lowercase before matching, so entries here",
+    "should be lowercase.  Add any synonyms your invoice suppliers use."
+  ],
+  "description": ["description", "item", "details", "product", "service", "task"],
+  "sku": ["sku", "code", "item code", "part no", "part number"],
+  "quantity": ["qty", "quantity", "units", "no", "hours", "hrs"],
+  "unit": ["unit", "uom", "each", "measure"],
+  "unit_price": ["unit price", "rate", "price", "cost"],
+  "total": ["total", "amount", "line total", "linetotal", "ext"]
+}

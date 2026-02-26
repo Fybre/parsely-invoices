@@ -101,13 +101,25 @@ class DoclingExtractor:
         """Lazily initialise the DocumentConverter (loads ML models once)."""
         if self._converter is None:
             try:
-                from docling.document_converter import DocumentConverter
-                self._converter = DocumentConverter()
-                logger.info("Docling DocumentConverter initialised")
+                from docling.datamodel.base_models import InputFormat
+                from docling.datamodel.pipeline_options import PdfPipelineOptions
+                from docling.document_converter import DocumentConverter, PdfFormatOption
             except ImportError:
                 raise RuntimeError(
                     "docling is not installed. Run: pip install docling"
                 )
+            # OCR is enabled so Docling falls back to it automatically on pages
+            # that have no embedded text (scanned PDFs, image-only pages).
+            # Digital PDFs are unaffected — OCR only runs where text can't be
+            # extracted directly.  Models are cached in the docling-models volume
+            # and only downloaded once.
+            pipeline_options = PdfPipelineOptions(do_ocr=True)
+            self._converter = DocumentConverter(
+                format_options={
+                    InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+                }
+            )
+            logger.info("Docling DocumentConverter initialised")
         return self._converter
 
     def extract(self, pdf_path: str | Path) -> ExtractionResult:

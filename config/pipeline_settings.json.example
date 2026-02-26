@@ -1,0 +1,17 @@
+{
+  "_README": "Runtime-tunable pipeline settings. Copy this file to pipeline_settings.json to use.",
+  "arithmetic_tolerance": 0.05,
+  "max_invoice_age_days": 90,
+  "max_future_days": 7,
+  "supplier_fuzzy_threshold": 75,
+  "po_line_fuzzy_threshold": 65,
+  "webhook_export_enabled": false,
+  "webhook_export_url": "https://your-api-endpoint.com/v1/export",
+  "webhook_export_method": "POST",
+  "webhook_export_headers_json": "{}",
+  "webhook_export_template": "webhook_export_template.json.j2",
+  "webhook_export_enable_pdf": false,
+  "backup_enabled": true,
+  "backup_interval_hours": 24,
+  "backup_retention_count": 7
+}

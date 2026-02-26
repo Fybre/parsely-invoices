@@ -349,14 +349,30 @@ class LLMParser:
         try:
             data = json.loads(json_str)
         except json.JSONDecodeError as e:
-            logger.warning("JSON decode error: %s", e)
-            # Attempt repair: remove trailing commas before } or ]
-            json_str = re.sub(r",\s*([}\]])", r"\1", json_str)
+            logger.warning("JSON decode error: %s — attempting repair", e)
+            data = None
+
+            # Try json-repair first: handles truncated JSON, missing quotes,
+            # unescaped characters, Python literals (True/None), and more.
             try:
-                data = json.loads(json_str)
-            except json.JSONDecodeError:
-                logger.error("Could not repair JSON from LLM response")
-                return None
+                from json_repair import repair_json
+                repaired = repair_json(json_str, return_objects=True)
+                if isinstance(repaired, dict):
+                    data = repaired
+                    logger.info("JSON repaired successfully using json-repair")
+            except ImportError:
+                pass
+            except Exception as repair_err:
+                logger.debug("json_repair failed: %s", repair_err)
+
+            # Fall back to simple trailing-comma fix if json-repair is unavailable or failed
+            if data is None:
+                fixed = re.sub(r",\s*([}\]])", r"\1", json_str)
+                try:
+                    data = json.loads(fixed)
+                except json.JSONDecodeError:
+                    logger.error("Could not repair JSON from LLM response")
+                    return None
 
         try:
             return ExtractedInvoice.model_validate(data)

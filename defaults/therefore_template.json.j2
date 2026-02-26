@@ -1,0 +1,51 @@
+{
+  "CategoryNo": {{ category_no | default(57) }},
+  "CheckInComments": "Created by Parsely Invoices Webhook Export for {{ stem }}",
+  "IndexDataItems": [
+    {
+      "StringIndexData": {
+        "FieldName": "Invoice_No",
+        "FieldNo": 0,
+        "DataValue": "{{ extracted_invoice.invoice_number }}"
+      }
+    },
+    {
+      "DateIndexData": {
+        "FieldName": "Invoice_Date",
+        "FieldNo": 0,
+        "DataISO8601Value": "{{ extracted_invoice.invoice_date }}"
+      }
+    },
+    {
+      "MoneyIndexData": {
+        "FieldName": "Total_Gross",
+        "FieldNo": 0,
+        "DecimalDataValue": {{ extracted_invoice.total | default(0) }}
+      }
+    },
+    {
+      "StringIndexData": {
+        "FieldName": "Supplier",
+        "FieldNo": 0,
+        "DataValue": "{{ supplier.name }}"
+      }
+    },
+    {
+      "StringIndexData": {
+        "FieldName": "PO_No",
+        "FieldNo": 0,
+        "DataValue": "{{ extracted_invoice.po_number | default('') }}"
+      }
+    }
+  ],
+  "Streams": [
+    {% if pdf_base64 %}
+    {
+      "FileName": "{{ stem }}.pdf",
+      "FileDataBase64JSON": "{{ pdf_base64 }}",
+      "NewStreamInsertMode": 0
+    }
+    {% endif %}
+  ],
+  "DoFillDependentFields": true
+}

@@ -3,10 +3,20 @@ Central configuration for the invoice processing pipeline.
 
 All paths, thresholds, and model settings are defined here.
 Override via environment variables or by passing a Config instance directly.
+
+Settings priority (highest wins):
+  1. Environment variables
+  2. config/pipeline_settings.json  (admin-editable, persisted)
+  3. Hardcoded defaults in this file
 """
+import json
+import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 # Project root (directory containing this file)
 PROJECT_ROOT = Path(__file__).parent
@@ -82,6 +92,68 @@ class Config:
 
     # --- PO line matching ---
     po_line_fuzzy_threshold: int = 65     # Minimum rapidfuzz score for description
+
+    # --- Webhook Export / Webhook settings ---
+    webhook_export_enabled: bool = field(
+        default_factory=lambda: os.getenv("WEBHOOK_EXPORT_ENABLED", "true").lower() != "false"
+    )
+    webhook_export_url: Optional[str] = field(
+        default_factory=lambda: os.getenv("WEBHOOK_EXPORT_URL")
+    )
+    webhook_export_method: str = field(
+        default_factory=lambda: os.getenv("WEBHOOK_EXPORT_METHOD", "POST")
+    )
+    webhook_export_headers_json: Optional[str] = field(
+        default_factory=lambda: os.getenv("WEBHOOK_EXPORT_HEADERS")
+    )
+    webhook_export_template: Optional[str] = field(
+        default_factory=lambda: os.getenv("WEBHOOK_EXPORT_TEMPLATE", "webhook_export_template.json.j2")
+    )
+    webhook_export_enable_pdf: bool = field(
+        default_factory=lambda: os.getenv("WEBHOOK_EXPORT_ENABLE_PDF", "false").lower() == "true"
+    )
+
+    # --- Backup settings ---
+    backup_enabled: bool = field(
+        default_factory=lambda: os.getenv("BACKUP_ENABLED", "true").lower() != "false"
+    )
+    backup_interval_hours: int = field(
+        default_factory=lambda: int(os.getenv("BACKUP_INTERVAL_HOURS", "24"))
+    )
+    backup_retention_count: int = field(
+        default_factory=lambda: int(os.getenv("BACKUP_RETENTION_COUNT", "7"))
+    )
+
+    def __post_init__(self) -> None:
+        """Overlay runtime-tunable settings from pipeline_settings.json if present."""
+        config_dir = Path(os.getenv("CONFIG_DIR", str(PROJECT_ROOT / "config")))
+        settings_file = config_dir / "pipeline_settings.json"
+        if not settings_file.exists():
+            return
+        _type_map: dict[str, type] = {
+            "arithmetic_tolerance":    float,
+            "max_invoice_age_days":    int,
+            "max_future_days":         int,
+            "supplier_fuzzy_threshold":  int,
+            "po_line_fuzzy_threshold":   int,
+            "webhook_export_enabled":        bool,
+            "webhook_export_url":            str,
+            "webhook_export_method":         str,
+            "webhook_export_headers_json":   str,
+            "webhook_export_template":       str,
+            "webhook_export_enable_pdf":     bool,
+            "backup_enabled":                bool,
+            "backup_interval_hours":         int,
+            "backup_retention_count":        int,
+        }
+        try:
+            with open(settings_file, encoding="utf-8") as f:
+                overrides = {k: v for k, v in json.load(f).items() if not k.startswith("_")}
+            for key, val in overrides.items():
+                if key in _type_map and hasattr(self, key):
+                    setattr(self, key, _type_map[key](val))
+        except Exception as exc:
+            logger.warning("Failed to load pipeline_settings.json: %s", exc)
 
     def ensure_output_dir(self) -> None:
         self.output_dir.mkdir(parents=True, exist_ok=True)

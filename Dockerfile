@@ -47,10 +47,12 @@ WORKDIR /app
 # Copy application source
 COPY config.py               ./
 COPY main.py                 ./
+COPY bootstrap.py            ./
 COPY docker-entrypoint.sh    ./
 COPY models/                 ./models/
 COPY pipeline/               ./pipeline/
 COPY dashboard/              ./dashboard/
+COPY defaults/               ./defaults/
 
 RUN chmod +x /app/docker-entrypoint.sh
 
@@ -71,6 +73,7 @@ VOLUME ["/app/data", "/app/invoices", "/app/output", "/root/.cache/docling"]
 # Explicit subcommands always take priority:
 #   docker compose run --rm pipeline check
 #   docker compose run --rm pipeline process /app/invoices
+#   docker compose run --rm pipeline process /app/invoices/my_invoice.pdf
 #   docker compose run --rm pipeline watch /app/invoices --interval 60
 # ---------------------------------------------------------------------------
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

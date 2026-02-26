@@ -58,13 +58,13 @@ header {
 .app-title {
   font-size: 15px;
   font-weight: 700;
-  color: var(--accent);
+  color: #16a34a;
   white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.app-title svg { opacity: .8; }
+.app-title svg { opacity: 1; color: #16a34a; }
 
 .back-link {
   margin-left: auto;
@@ -484,6 +484,245 @@ main {
   gap: 8px;
 }
 
+/* ── Role badge ─────────────────────────────────────────────────────────── */
+.role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: lowercase;
+}
+.role-badge.admin {
+  background: var(--info-bg);
+  color: var(--info);
+}
+.role-badge.user {
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+/* ── Form modal fields ───────────────────────────────────────────────────── */
+.form-field {
+  margin-bottom: 14px;
+}
+.form-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-bottom: 5px;
+}
+.form-field input, .form-field select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+}
+.form-field input:focus, .form-field select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59,91,219,.12);
+}
+.form-error {
+  display: none;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--err-bg);
+  color: var(--err);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+/* ── Settings panel ─────────────────────────────────────────────────────── */
+.settings-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 4px;
+}
+.settings-group {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.settings-group:first-of-type {
+  margin-top: 12px;
+  border-top: none;
+  padding-top: 0;
+}
+.settings-group-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.settings-field {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-rows: auto auto;
+  gap: 2px 32px;
+  align-items: center;
+  min-width: 0;
+}
+.settings-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  grid-column: 1;
+  grid-row: 1;
+}
+.settings-field-desc {
+  font-size: 11px;
+  color: var(--muted);
+  grid-column: 1;
+  grid-row: 2;
+  line-height: 1.4;
+}
+.settings-field-control {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+}
+.settings-field-control input[type="number"],
+.settings-field-control input[type="text"],
+.settings-field-control textarea,
+.settings-field-control select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--card);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.settings-field-control input[type="text"],
+.settings-field-control textarea,
+.settings-field-control select {
+  width: 320px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.settings-field-control input[type="text"].long {
+  width: 100%;
+  max-width: 100%;
+}
+.settings-field-control input[type="number"] {
+  width: 84px;
+  text-align: right;
+}
+.settings-field-control input[type="number"]:focus,
+.settings-field-control input[type="text"]:focus,
+.settings-field-control textarea:focus,
+.settings-field-control select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59,91,219,.12);
+}
+.settings-field-control textarea {
+  resize: vertical;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 12px;
+}
+.settings-field-control select {
+  cursor: pointer;
+  min-width: 160px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 4 6 7 9 4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+.settings-field-control input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+.settings-field-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.settings-field-default {
+  font-size: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  text-decoration: underline dotted;
+  white-space: nowrap;
+}
+.settings-field-default:hover { color: var(--accent); }
+.settings-unit {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  min-width: 36px;
+}
+.env-group-hdr td {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--muted);
+  padding-top: 14px !important;
+  padding-bottom: 4px !important;
+}
+.env-key code {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 11px;
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.env-value {
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-all;
+  max-width: 400px;
+}
+.build-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+  margin-left: auto;
+}
+.build-badge code {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--text);
+}
+.settings-note {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--info-bg);
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
 /* ── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -515,13 +754,16 @@ main {
 
 <header>
   <div class="app-title">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="22" x2="12" y2="10"/>
-      <line x1="12" y1="17" x2="7"  y2="13"/>
-      <line x1="12" y1="14" x2="17" y2="10"/>
-      <path d="M12 10 C10 7 8 5 9 2 C11 3 13 5 12 10Z" fill="currentColor" stroke="none"/>
-      <path d="M7 13 C4 11 2 9 3 6 C5 7 8 9 7 13Z"    fill="currentColor" stroke="none"/>
-      <path d="M17 10 C15 7 15 4 17 2 C19 4 20 7 17 10Z" fill="currentColor" stroke="none"/>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 20 C12 18 12 16 12 14 C12 12 12 10 13 8" fill="none"/>
+      <path d="M12 15 C9 15 7 13 7 10 C7 7 9 5 12 6 C11 8 10 10 11 12 C12 13 13 14 12 15Z" fill="currentColor" stroke="none" opacity="0.9"/>
+      <path d="M12 15 C9 15 7 13 7 10 C7 7 9 5 12 6" fill="none"/>
+      <path d="M12 12 C15 12 17 10 17 7 C17 4 15 3 12 4 C13 6 14 8 13 10 C12 11 11 11 12 12Z" fill="currentColor" stroke="none" opacity="0.9"/>
+      <path d="M12 12 C15 12 17 10 17 7 C17 4 15 3 12 4" fill="none"/>
+      <path d="M13 8 C11 6 12 4 14 3 C15 4 15 6 13 8Z" fill="currentColor" stroke="none"/>
+      <path d="M13 8 C11 6 12 4 14 3" fill="none"/>
+      <path d="M11 13 C9 12 9 10 10 9 C11 10 12 12 11 13Z" fill="currentColor" stroke="none" opacity="0.7"/>
+      <path d="M13 10 C15 9 15 7 14 6 C13 7 12 9 13 10Z" fill="currentColor" stroke="none" opacity="0.7"/>
     </svg>
     Parsely Admin
   </div>
@@ -532,6 +774,12 @@ main {
     </svg>
     Back to Dashboard
   </a>
+  <form id="logout-form" method="post" action="/logout" style="display:none;margin:0">
+    <button type="submit" class="back-link" style="border:none;cursor:pointer;font-family:inherit;gap:6px" title="Sign out">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span id="logout-label">Sign out</span>
+    </button>
+  </form>
 </header>
 
 <div class="main-wrap">
@@ -578,6 +826,45 @@ main {
       </svg>
       Database
     </div>
+    <div class="side-tab" id="users-tab" data-tab="users" onclick="setTab('users')" style="display:none">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        <line x1="19" y1="8" x2="23" y2="8"/>
+        <line x1="21" y1="6" x2="21" y2="10"/>
+      </svg>
+      Users
+    </div>
+    <div class="side-tab" data-tab="settings" onclick="setTab('settings')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      Settings
+    </div>
+    <div class="side-tab" data-tab="audit" onclick="setTab('audit')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="9" y1="12" x2="15" y2="12"/>
+        <line x1="9" y1="16" x2="13" y2="16"/>
+        <circle cx="17" cy="17" r="3"/>
+        <line x1="21" y1="21" x2="19.5" y2="19.5"/>
+      </svg>
+      Audit Log
+    </div>
+    
+    <div class="side-divider"></div>
+    
+    <div class="side-header">Support</div>
+    <a href="/help" class="side-tab" style="text-decoration:none">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      Help & Documentation
+    </a>
   </aside>
 
   <main id="main-content">
@@ -587,6 +874,37 @@ main {
 
 <!-- Toast Container -->
 <div id="toast-container"></div>
+
+<!-- User Form Modal -->
+<div class="modal-overlay" id="user-modal-overlay">
+  <div class="modal" style="max-width:360px">
+    <h3 id="user-modal-title">Add User</h3>
+    <div class="form-error" id="user-modal-error"></div>
+    <div class="form-field" id="username-field">
+      <label for="um-username">Username</label>
+      <input type="text" id="um-username" autocomplete="off" autocapitalize="none" autocorrect="off">
+    </div>
+    <div class="form-field">
+      <label for="um-password" id="um-password-label">Password</label>
+      <input type="password" id="um-password" autocomplete="new-password">
+    </div>
+    <div class="form-field" id="um-confirm-field">
+      <label for="um-confirm">Confirm Password</label>
+      <input type="password" id="um-confirm" autocomplete="new-password">
+    </div>
+    <div class="form-field">
+      <label for="um-role">Role</label>
+      <select id="um-role">
+        <option value="user">user — dashboard only</option>
+        <option value="admin">admin — dashboard + admin page</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeUserModal()">Cancel</button>
+      <button class="btn btn-primary" id="user-modal-save">Save</button>
+    </div>
+  </div>
+</div>
 
 <!-- Confirmation Modal -->
 <div class="modal-overlay" id="modal-overlay">
@@ -607,39 +925,29 @@ const S = {
   data: {},
   editing: null, // row index being edited
   editValues: {}, // edited values
+  filteredRows: {}, // filtered rows for data tables
 };
 
 // API helpers
+function _handleApiResponse(r) {
+  if (!r.ok) {
+    return r.json().then(e => {
+      let msg = r.statusText;
+      if (e.detail) {
+        msg = typeof e.detail === 'string' ? e.detail
+            : Array.isArray(e.detail) ? e.detail.map(d => typeof d === 'string' ? d : JSON.stringify(d)).join(', ')
+            : JSON.stringify(e.detail);
+      }
+      throw new Error(msg);
+    }).catch(err => { if (err.message !== r.statusText) throw err; throw new Error(r.statusText); });
+  }
+  return r.json();
+}
 const api = {
-  get:  url => fetch(url).then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); }),
-  post: (url, body) => fetch(url, { 
-    method: 'POST', 
-    headers: {'Content-Type':'application/json'}, 
-    body: JSON.stringify(body) 
-  }).then(r => { 
-    if (!r.ok) {
-      return r.json().then(e => {
-        // Handle different error response formats
-        let msg = r.statusText;
-        if (e.detail) {
-          if (typeof e.detail === 'string') {
-            msg = e.detail;
-          } else if (Array.isArray(e.detail)) {
-            msg = e.detail.map(d => typeof d === 'string' ? d : JSON.stringify(d)).join(', ');
-          } else {
-            msg = JSON.stringify(e.detail);
-          }
-        }
-        throw new Error(msg);
-      }).catch(err => {
-        // If JSON parsing fails, throw status text
-        if (err.message !== r.statusText) throw err;
-        throw new Error(r.statusText);
-      });
-    }
-    return r.json();
-  }),
-  del:  url => fetch(url, { method: 'DELETE' }).then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); }),
+  get:   url => fetch(url).then(_handleApiResponse),
+  post:  (url, body) => fetch(url, { method: 'POST',  headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(_handleApiResponse),
+  patch: (url, body) => fetch(url, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(_handleApiResponse),
+  del:   url => fetch(url, { method: 'DELETE' }).then(_handleApiResponse),
 };
 
 // Add spinner styles for buttons
@@ -681,6 +989,16 @@ async function setTab(tab) {
   if (tab === 'database') {
     renderDatabasePanel();
     await loadDatabaseStats();
+    await loadCSVStatus();
+  } else if (tab === 'users') {
+    renderUsersPanel();
+    await loadUsers();
+  } else if (tab === 'settings') {
+    renderSettingsPanel();
+    await loadSettings();
+  } else if (tab === 'audit') {
+    renderAuditPanel();
+    await loadAuditLog();
   } else {
     renderDataTable(tab);
     await loadData(tab);
@@ -700,6 +1018,16 @@ function renderDataTable(type) {
     <div class="content-header">
       <div class="content-title">${titles[type]}<span class="row-count" id="row-count"></span></div>
       <div class="content-actions">
+        <div class="search-box" style="position:relative;margin-right:8px">
+          <input type="text" id="table-search" placeholder="Search..." 
+                 oninput="filterTable('${type}')"
+                 style="padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:180px;background:var(--card);color:var(--text);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
+               style="position:absolute;left:8px;top:50%;transform:translateY(-50%);opacity:0.5;pointer-events:none">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </div>
         <button class="btn btn-secondary" onclick="triggerCSVUpload('${type}')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -737,8 +1065,9 @@ async function loadData(type) {
   try {
     const response = await api.get(`/api/admin/${type}`);
     S.data[type] = response;
+    S.filteredRows[type] = null; // Reset filter
     renderTable(type, response);
-    document.getElementById('row-count').textContent = `(${response.rows.length})`;
+    updateRowCount(type);
   } catch (e) {
     document.getElementById('table-wrap').innerHTML = `
       <div class="empty-state">
@@ -750,9 +1079,51 @@ async function loadData(type) {
   }
 }
 
+// Filter table rows based on search query
+function filterTable(type) {
+  const query = document.getElementById('table-search')?.value.toLowerCase().trim();
+  const data = S.data[type];
+  if (!data) return;
+  
+  if (!query) {
+    S.filteredRows[type] = null;
+  } else {
+    S.filteredRows[type] = data.rows.filter(row => {
+      // Search across all fields
+      return data.headers.some(header => {
+        const value = String(row[header] || '').toLowerCase();
+        return value.includes(query);
+      });
+    });
+  }
+  
+  renderTable(type, data);
+  updateRowCount(type);
+}
+
+// Update row count display (shows filtered/total)
+function updateRowCount(type) {
+  const data = S.data[type];
+  if (!data) return;
+  
+  const filtered = S.filteredRows[type];
+  const visibleCount = filtered ? filtered.length : data.rows.length;
+  const totalCount = data.rows.length;
+  
+  const countEl = document.getElementById('row-count');
+  if (countEl) {
+    if (filtered) {
+      countEl.textContent = `(${visibleCount} of ${totalCount})`;
+    } else {
+      countEl.textContent = `(${totalCount})`;
+    }
+  }
+}
+
 // Render table
 function renderTable(type, data) {
   const wrap = document.getElementById('table-wrap');
+  const searchQuery = document.getElementById('table-search')?.value.toLowerCase().trim();
   
   if (!data.rows.length) {
     wrap.innerHTML = `
@@ -764,10 +1135,27 @@ function renderTable(type, data) {
     return;
   }
   
+  // Use filtered rows if search is active, otherwise show all
+  const filteredRows = searchQuery ? S.filteredRows[type] : null;
+  const rowsToRender = filteredRows || data.rows;
+  
+  // If search returned no results
+  if (searchQuery && filteredRows && filteredRows.length === 0) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <h3>No matches</h3>
+        <p>No rows match your search query.</p>
+      </div>
+    `;
+    return;
+  }
+  
   const ths = data.headers.map(h => `<th>${esc(h)}</th>`).join('') + '<th style="width:80px">Actions</th>';
   
-  const trs = data.rows.map((row, idx) => {
-    const isEditing = S.editing === idx;
+  const trs = rowsToRender.map((row, displayIdx) => {
+    // Find the original index for editing operations
+    const originalIdx = filteredRows ? data.rows.indexOf(row) : displayIdx;
+    const isEditing = S.editing === originalIdx;
     const tds = data.headers.map(h => {
       const val = isEditing ? (S.editValues[h] ?? row[h] ?? '') : (row[h] ?? '');
       if (isEditing) {
@@ -778,7 +1166,7 @@ function renderTable(type, data) {
     
     const actions = isEditing
       ? `<td class="actions">
-          <button class="btn-icon" onclick="saveRow(${idx})" title="Save">
+          <button class="btn-icon" onclick="saveRow(${originalIdx})" title="Save">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
@@ -791,13 +1179,13 @@ function renderTable(type, data) {
           </button>
         </td>`
       : `<td class="actions">
-          <button class="btn-icon" onclick="startEdit(${idx})" title="Edit">
+          <button class="btn-icon" onclick="startEdit(${originalIdx})" title="Edit">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
           </button>
-          <button class="btn-icon delete" onclick="deleteRow(${idx})" title="Delete">
+          <button class="btn-icon delete" onclick="deleteRow(${originalIdx})" title="Delete">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
@@ -805,7 +1193,7 @@ function renderTable(type, data) {
           </button>
         </td>`;
     
-    return `<tr class="${isEditing ? 'editing' : ''}" data-idx="${idx}">${tds}${actions}</td></tr>`;
+    return `<tr class="${isEditing ? 'editing' : ''}" data-idx="${originalIdx}">${tds}${actions}</td></tr>`;
   }).join('');
   
   wrap.innerHTML = `
@@ -845,7 +1233,8 @@ async function saveRow(idx) {
     
     S.editing = null;
     S.editValues = {};
-    renderTable(S.currentTab, data);
+    // Reapply filter if active
+    filterTable(S.currentTab);
     toast('Row saved successfully', 'success');
   } catch (e) {
     toast('Failed to save: ' + e.message, 'error');
@@ -865,8 +1254,9 @@ async function deleteRow(idx) {
     });
     
     S.editing = null;
-    renderTable(S.currentTab, data);
-    document.getElementById('row-count').textContent = `(${data.rows.length})`;
+    // Reapply filter if active
+    filterTable(S.currentTab);
+    updateRowCount(S.currentTab);
     toast('Row deleted', 'success');
   } catch (e) {
     toast('Failed to delete: ' + e.message, 'error');
@@ -885,8 +1275,13 @@ async function addRow() {
       rows: data.rows
     });
     
+    // Clear search filter when adding a row so the new row is visible
+    const searchInput = document.getElementById('table-search');
+    if (searchInput) searchInput.value = '';
+    S.filteredRows[S.currentTab] = null;
+    
     renderTable(S.currentTab, data);
-    document.getElementById('row-count').textContent = `(${data.rows.length})`;
+    updateRowCount(S.currentTab);
     
     // Start editing the new row
     startEdit(data.rows.length - 1);
@@ -985,8 +1380,10 @@ function renderDatabasePanel() {
     <div class="content-header">
       <div class="content-title">Database Management</div>
     </div>
-    <div class="db-panel" id="db-panel">
-      <div class="spinner"><div class="spin-ring"></div>Loading...</div>
+    <div class="table-wrap">
+      <div class="db-panel" id="db-panel">
+        <div class="spinner"><div class="spin-ring"></div>Loading...</div>
+      </div>
     </div>
   `;
 }
@@ -1043,15 +1440,15 @@ async function loadDatabaseStats() {
             <polyline points="14 2 14 8 20 8"/>
           </svg>
           CSV File Status
-          <button class="btn btn-primary" style="margin-left:auto;font-size:11px;padding:4px 10px" onclick="reloadCSVFiles()" title="Reload CSV files into pipeline memory">
+          <button class="btn btn-primary" style="margin-left:auto;font-size:11px;padding:4px 10px" onclick="reloadCSVFiles()" title="Refresh file status">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="23 4 23 10 17 10"/>
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
             </svg>
-            Reload into Pipeline
+            Refresh Status
           </button>
         </h3>
-        <p>Edit the CSV files below, then click "Reload into Pipeline" to apply changes immediately. New invoices will use the updated data.</p>
+        <p>Edit the CSV files below and save. The pipeline detects changes automatically and reloads on its next poll cycle — no restart required.</p>
         <div id="csv-status-list" style="display:flex;flex-direction:column;gap:10px">
           <div style="color:var(--muted);font-size:12px">Loading...</div>
         </div>
@@ -1192,15 +1589,531 @@ async function loadCSVStatus() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// User management
+// ---------------------------------------------------------------------------
+let _userModalMode = null;    // 'add' | 'edit'
+let _userModalTarget = null;  // username being edited
+
+async function initUsersTab() {
+  try {
+    const result = await api.get('/api/admin/users');
+    const tab = document.getElementById('users-tab');
+    if (tab) tab.style.display = result.auth_mode !== 'disabled' ? '' : 'none';
+  } catch (e) {
+    // Non-fatal — tab stays hidden
+  }
+}
+
+function renderUsersPanel() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    <div class="content-header">
+      <div class="content-title">Users</div>
+      <div class="content-actions">
+        <button class="btn btn-primary" onclick="showAddUserModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add User
+        </button>
+      </div>
+    </div>
+    <div class="table-wrap" id="users-wrap">
+      <div class="spinner"><div class="spin-ring"></div>Loading...</div>
+    </div>
+  `;
+}
+
+async function loadUsers() {
+  try {
+    const result = await api.get('/api/admin/users');
+    renderUsersTable(result.users, result.auth_mode);
+  } catch (e) {
+    document.getElementById('users-wrap').innerHTML =
+      `<div class="empty-state"><h3>Failed to load users</h3><p>${esc(e.message)}</p></div>`;
+  }
+}
+
+function renderUsersTable(users, authMode) {
+  const wrap = document.getElementById('users-wrap');
+
+  if (authMode === 'disabled') {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <h3>Authentication is disabled</h3>
+        <p>Set <code>AUTH_MODE=admin_only</code> or <code>AUTH_MODE=full</code> in your .env file and restart the dashboard to enable user management.</p>
+      </div>`;
+    return;
+  }
+
+  if (!users.length) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <h3>No users configured</h3>
+        <p>Click "Add User" to create an account.</p>
+      </div>`;
+    return;
+  }
+
+  const rows = users.map(u => `
+    <tr>
+      <td><strong>${esc(u.username)}</strong></td>
+      <td><span class="role-badge ${esc(u.role)}">${esc(u.role)}</span></td>
+      <td class="actions">
+        <button class="btn-icon" onclick="showEditUserModal('${esc(u.username)}','${esc(u.role)}')" title="Edit">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="btn-icon delete" onclick="confirmDeleteUser('${esc(u.username)}')" title="Delete">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          </svg>
+        </button>
+      </td>
+    </tr>`).join('');
+
+  wrap.innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>Username</th><th>Role</th><th style="width:80px">Actions</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function _openUserModal(title, mode, username, role) {
+  _userModalMode = mode;
+  _userModalTarget = username;
+  const isAdd = mode === 'add';
+  document.getElementById('user-modal-title').textContent = title;
+  document.getElementById('username-field').style.display = isAdd ? '' : 'none';
+  document.getElementById('um-username').value = '';
+  document.getElementById('um-password').value = '';
+  document.getElementById('um-confirm').value = '';
+  document.getElementById('um-password-label').textContent = isAdd ? 'Password' : 'New Password (leave blank to keep current)';
+  document.getElementById('um-confirm-field').style.display = '';
+  document.getElementById('um-role').value = role || 'user';
+  document.getElementById('user-modal-error').style.display = 'none';
+  document.getElementById('user-modal-save').onclick = isAdd ? saveNewUser : saveEditUser;
+  document.getElementById('user-modal-overlay').classList.add('visible');
+  setTimeout(() => document.getElementById(isAdd ? 'um-username' : 'um-password').focus(), 50);
+}
+
+function showAddUserModal()               { _openUserModal('Add User', 'add', null, 'user'); }
+function showEditUserModal(username, role) { _openUserModal(`Edit — ${username}`, 'edit', username, role); }
+function closeUserModal() { document.getElementById('user-modal-overlay').classList.remove('visible'); }
+
+function _userModalError(msg) {
+  const el = document.getElementById('user-modal-error');
+  el.textContent = msg;
+  el.style.display = '';
+}
+
+async function saveNewUser() {
+  const username = document.getElementById('um-username').value.trim();
+  const password = document.getElementById('um-password').value;
+  const confirm  = document.getElementById('um-confirm').value;
+  const role     = document.getElementById('um-role').value;
+  if (!username)            return _userModalError('Username is required');
+  if (!password)            return _userModalError('Password is required');
+  if (password.length < 8)  return _userModalError('Password must be at least 8 characters');
+  if (password !== confirm)  return _userModalError('Passwords do not match');
+  try {
+    await api.post('/api/admin/users', { username, password, role });
+    closeUserModal();
+    toast(`User "${username}" created`, 'success');
+    await loadUsers();
+  } catch (e) { _userModalError(e.message); }
+}
+
+async function saveEditUser() {
+  const password = document.getElementById('um-password').value;
+  const confirm  = document.getElementById('um-confirm').value;
+  const role     = document.getElementById('um-role').value;
+  if (password && password.length < 8)  return _userModalError('Password must be at least 8 characters');
+  if (password !== confirm)              return _userModalError('Passwords do not match');
+  const body = { role };
+  if (password) body.password = password;
+  try {
+    await api.patch(`/api/admin/users/${encodeURIComponent(_userModalTarget)}`, body);
+    closeUserModal();
+    toast(`User "${_userModalTarget}" updated`, 'success');
+    await loadUsers();
+  } catch (e) { _userModalError(e.message); }
+}
+
+function confirmDeleteUser(username) {
+  showModal(
+    'Delete User?',
+    `Are you sure you want to delete the account "${username}"? This cannot be undone.`,
+    () => deleteUser(username)
+  );
+}
+
+async function deleteUser(username) {
+  closeModal();
+  try {
+    await api.del(`/api/admin/users/${encodeURIComponent(username)}`);
+    toast(`User "${username}" deleted`, 'success');
+    await loadUsers();
+  } catch (e) { toast('Failed to delete user: ' + e.message, 'error'); }
+}
+
+// ---------------------------------------------------------------------------
+// Settings panel
+// ---------------------------------------------------------------------------
+function renderSettingsPanel() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    <div class="content-header">
+      <div class="content-title">Settings</div>
+    </div>
+    <div class="table-wrap">
+      <div id="settings-panel" style="max-width:720px">
+        <div class="spinner"><div class="spin-ring"></div>Loading...</div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadSettings() {
+  try {
+    const data = await api.get('/api/admin/settings');
+    const panel = document.getElementById('settings-panel');
+
+    // Group settings by their 'group' field
+    const groups = {};
+    data.settings.forEach(s => {
+      const g = s.group || 'General';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(s);
+    });
+
+    const renderGroup = (title, settings) => {
+      const fields = settings.map(s => {
+        let control = '';
+        if (s.ui_type === 'dropdown') {
+          const options = s.options || data[s.options_key] || [];
+          control = `
+            <select id="setting-${esc(s.key)}" data-type="${esc(s.type)}">
+              ${options.map(opt => `<option value="${esc(opt)}" ${opt === s.value ? 'selected' : ''}>${esc(opt)}</option>`).join('')}
+            </select>`;
+        } else if (s.ui_type === 'bool') {
+          control = `<input type="checkbox" id="setting-${esc(s.key)}" ${s.value ? 'checked' : ''} data-type="bool">`;
+        } else if (s.ui_type === 'textarea') {
+          control = `<textarea id="setting-${esc(s.key)}" data-type="str" rows="4">${esc(s.value)}</textarea>`;
+        } else if (s.ui_type === 'long_str') {
+          control = `<input type="text" id="setting-${esc(s.key)}" value="${esc(s.value)}" data-type="str" class="long">`;
+        } else {
+          control = `
+            <div class="settings-field-input-row">
+              <input type="number" id="setting-${esc(s.key)}"
+                     value="${s.value}" min="${s.min || ''}" max="${s.max || ''}" step="${s.step || ''}"
+                     data-type="${esc(s.type)}">
+              ${s.unit ? `<span class="settings-unit">${esc(s.unit)}</span>` : ''}
+            </div>`;
+        }
+
+        return `
+          <div class="settings-field">
+            <div class="settings-field-label">${esc(s.label)}</div>
+            <div class="settings-field-desc">${esc(s.description)}</div>
+            <div class="settings-field-control">
+              ${control}
+              <span class="settings-field-default"
+                    onclick="resetSetting('${esc(s.key)}', ${JSON.stringify(s.default)}, '${s.ui_type}')"
+                    title="Click to reset to default">default: ${s.default}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const isWebhook = title === 'Webhook Export';
+      const testBtn = isWebhook ? `
+        <button class="btn btn-secondary" id="btn-test-webhook" onclick="testWebhook()" style="margin-top:16px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          Test Webhook
+        </button>` : '';
+
+      return `
+        <div class="settings-group">
+          <div class="settings-group-title">${esc(title)}</div>
+          <div class="settings-fields">${fields}</div>
+          <div style="display:flex;justify-content:flex-end">${testBtn}</div>
+        </div>
+      `;
+    };
+
+    const sections = Object.entries(groups).map(([title, items]) => renderGroup(title, items)).join('');
+
+    // ── Read-only env vars table ───────────────────────────────────────────
+    const envGroups = {};
+    data.env.forEach(e => { (envGroups[e.group] = envGroups[e.group] || []).push(e); });
+    const envRows = Object.entries(envGroups).map(([group, items]) => `
+      <tr class="env-group-hdr"><td colspan="2">${esc(group)}</td></tr>
+      ${items.map(e => `
+        <tr>
+          <td class="env-key"><code>${esc(e.key)}</code></td>
+          <td class="env-value">${esc(e.value)}</td>
+        </tr>`).join('')}
+    `).join('');
+
+    panel.innerHTML = `
+      <div class="db-card">
+        <h3>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          Pipeline Settings
+        </h3>
+        <div class="settings-note">
+          ℹ Changes apply on the <strong>next pipeline run</strong>.
+          To apply updated thresholds to already-processed invoices, use <strong>Reprocess</strong> from the dashboard invoice view.
+        </div>
+        
+        ${sections}
+
+        <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
+          <button class="btn btn-primary btn-lg" onclick="saveSettings()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Save All Settings
+          </button>
+        </div>
+      </div>
+
+      <div class="db-card">
+        <h3>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          System Information
+          <span class="build-badge">
+            Build <code>${esc(data.build.commit)}</code>
+            &nbsp;·&nbsp; Python ${esc(data.build.python)}
+          </span>
+        </h3>
+        <p>Non-sensitive environment variables and deployment configuration. API keys and secrets are omitted.</p>
+        <table class="data-table">
+          <thead><tr><th>Variable</th><th>Value</th></tr></thead>
+          <tbody>${envRows}</tbody>
+        </table>
+      </div>
+    `;
+  } catch (e) {
+    document.getElementById('settings-panel').innerHTML = `
+      <div class="db-card"><h3>Error</h3><p>Failed to load settings: ${esc(e.message)}</p></div>`;
+  }
+}
+
+function resetSetting(key, defaultValue, uiType) {
+  const el = document.getElementById('setting-' + key);
+  if (!el) return;
+  if (uiType === 'bool') el.checked = !!defaultValue;
+  else el.value = defaultValue;
+}
+
+async function testWebhook() {
+  const body = {};
+  document.querySelectorAll('[id^="setting-"]').forEach(input => {
+    const key  = input.id.replace('setting-', '');
+    const type = input.dataset.type;
+    let val;
+    if (type === 'bool') val = input.checked;
+    else if (type === 'float') val = parseFloat(input.value);
+    else if (type === 'int') val = parseInt(input.value, 10);
+    else val = input.value;
+    body[key] = val;
+  });
+
+  const btn = document.getElementById('btn-test-webhook');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spin-ring" style="width:12px;height:12px;border-width:2px;display:inline-block"></div> Testing…`;
+
+  try {
+    const res = await api.post('/api/admin/webhook-export/test', body);
+    if (res.status === 'success') {
+      toast(`Success! Webhook sent (HTTP ${res.status_code})`, 'success');
+    } else {
+      toast(`Failed: ${res.error || res.reason || 'Unknown error'}`, 'error');
+    }
+  } catch (e) {
+    toast('Test request failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  }
+}
+
+async function saveSettings() {
+  const body = {};
+  document.querySelectorAll('[id^="setting-"]').forEach(input => {
+    const key  = input.id.replace('setting-', '');
+    const type = input.dataset.type;
+    let val;
+    if (type === 'bool') {
+      val = input.checked;
+    } else if (type === 'float') {
+      val = parseFloat(input.value);
+    } else if (type === 'int') {
+      val = parseInt(input.value, 10);
+    } else {
+      val = input.value;
+    }
+    
+    if (val !== undefined && (typeof val !== 'number' || !isNaN(val))) {
+      body[key] = val;
+    }
+  });
+
+  const btn = document.querySelector('#settings-panel .btn-primary');
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = `<div class="spin-ring" style="width:12px;height:12px;border-width:2px;display:inline-block"></div> Saving…`; }
+
+  try {
+    await api.post('/api/admin/settings', body);
+    toast('Settings saved. Changes apply on the next pipeline run.', 'success');
+  } catch (e) {
+    toast('Failed to save settings: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Audit Log panel
+// ---------------------------------------------------------------------------
+const _AUDIT_LABELS = {
+  processed:         'Processed',
+  processing_failed: 'Processing failed',
+  status_changed:    'Status changed',
+  corrections_saved: 'Corrections saved',
+  notes_updated:     'Notes updated',
+  exported:          'Exported',
+  webhook_export_triggered: 'Webhook Export',
+};
+const _AUDIT_BADGE = {
+  processed:         'status-ready',
+  processing_failed: 'status-review',
+  status_changed:    'status-review',
+  corrections_saved: 'status-ready',
+  notes_updated:     '',
+  exported:          'status-exported',
+  webhook_export_triggered: 'status-ready',
+};
+
+function renderAuditPanel() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    <div class="content-header" style="display:flex;align-items:center;justify-content:space-between">
+      <div class="content-title">Audit Log</div>
+      <button class="btn btn-sm btn-primary" onclick="loadAuditLog()">Refresh</button>
+    </div>
+    <div class="table-wrap">
+      <div id="audit-panel">
+        <div class="spinner"><div class="spin-ring"></div>Loading…</div>
+      </div>
+    </div>
+  `;
+}
+
+let _auditOffset = 0;
+const _AUDIT_PAGE = 200;
+
+async function loadAuditLog(reset = true) {
+  if (reset) _auditOffset = 0;
+  const panel = document.getElementById('audit-panel');
+  if (!panel) return;
+  if (reset) panel.innerHTML = '<div class="spinner"><div class="spin-ring"></div>Loading…</div>';
+
+  try {
+    const entries = await fetch(`/api/admin/audit?limit=${_AUDIT_PAGE}&offset=${_auditOffset}`).then(r => r.json());
+    if (reset) panel.innerHTML = '';
+
+    if (!entries.length && _auditOffset === 0) {
+      panel.innerHTML = '<div class="empty-state"><p>No audit events recorded yet.</p></div>';
+      return;
+    }
+
+    const fmtTime = iso => {
+      try { return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }); }
+      catch { return iso; }
+    };
+    const fmtDetail = e => {
+      const d = e.detail;
+      if (!d) return '';
+      if (e.action === 'status_changed') return `${esc(d.from || '')} → ${esc(d.to || '')}`;
+      if (e.action === 'corrections_saved' && d.fields?.length) return esc(d.fields.join(', '));
+      if (e.action === 'exported') return d.format ? `${esc(d.format)}${d.bulk ? ' (bulk)' : ''}` : '';
+      if (e.action === 'processing_failed' && d.error) return esc(d.error);
+      return '';
+    };
+
+    const table = document.createElement('table');
+    table.className = 'data-table';
+    table.innerHTML = `
+      <thead><tr>
+        <th>Time</th>
+        <th>Invoice</th>
+        <th>Action</th>
+        <th>Actor</th>
+        <th>Detail</th>
+      </tr></thead>
+      <tbody>
+        ${entries.map(e => `
+          <tr>
+            <td style="white-space:nowrap;color:var(--muted)">${fmtTime(e.timestamp)}</td>
+            <td><a href="/?stem=${encodeURIComponent(e.stem)}" target="_blank"
+                   style="color:var(--accent);text-decoration:none">${esc(e.stem)}</a></td>
+            <td>
+              ${_AUDIT_BADGE[e.action]
+                ? `<span class="status-badge ${_AUDIT_BADGE[e.action]}">${esc(_AUDIT_LABELS[e.action] || e.action)}</span>`
+                : `<span style="color:var(--muted)">${esc(_AUDIT_LABELS[e.action] || e.action)}</span>`}
+            </td>
+            <td>${esc(e.actor)}</td>
+            <td style="color:var(--muted);font-style:italic">${fmtDetail(e)}</td>
+          </tr>`).join('')}
+      </tbody>`;
+    panel.appendChild(table);
+
+    if (entries.length === _AUDIT_PAGE) {
+      const more = document.createElement('div');
+      more.style.cssText = 'text-align:center;padding:16px';
+      more.innerHTML = `<button class="btn btn-sm" onclick="_auditOffset+=${_AUDIT_PAGE};loadAuditLog(false)">Load more</button>`;
+      panel.appendChild(more);
+    }
+  } catch (e) {
+    panel.innerHTML = `<div class="empty-state"><p>Failed to load audit log: ${esc(e.message)}</p></div>`;
+  }
+}
+
+// Auth — show logout button when a session is active
+(async function initAuth() {
+  try {
+    const r = await fetch('/api/auth/me').then(r => r.json());
+    if (r.user) {
+      const form = document.getElementById('logout-form');
+      document.getElementById('logout-label').textContent = `${r.user.username} · Sign out`;
+      form.style.display = '';
+    }
+  } catch (_) {}
+})();
+
 // Initialize
 setTab('suppliers');
+initUsersTab();
 
-// Load CSV status when database panel is shown
-const originalRenderDatabasePanel = renderDatabasePanel;
-renderDatabasePanel = function() {
-  originalRenderDatabasePanel();
-  loadCSVStatus();
-};
 </script>
 
 </body>

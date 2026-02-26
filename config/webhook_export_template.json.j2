@@ -1,0 +1,47 @@
+{
+  "event": "invoice_exported",
+  "timestamp": "{{ exported_at }}",
+  "stem": "{{ stem }}",
+  "invoice_number": "{{ extracted_invoice.invoice_number | default('') }}",
+  "invoice_date": "{{ extracted_invoice.invoice_date | default('') }}",
+  "due_date": "{{ extracted_invoice.due_date | default('') }}",
+  "po_number": "{{ extracted_invoice.po_number | default('') }}",
+  "currency": "{{ extracted_invoice.currency | default('USD') }}",
+  "subtotal": {{ extracted_invoice.subtotal | default(0) }},
+  "tax_amount": {{ extracted_invoice.tax_amount | default(0) }},
+  "total": {{ extracted_invoice.total | default(0) }},
+  "supplier": {
+    "id": "{{ supplier.id | default('') }}",
+    "name": "{{ supplier.name | default('') }}",
+    "abn": "{{ supplier.abn | default('') }}",
+    "email": "{{ supplier.email | default('') }}",
+    "source": "{{ supplier.source }}"
+  },
+  "line_items": [
+    {% for item in line_items %}
+    {
+      "line_number": {{ item.line_number }},
+      "description": "{{ item.description | replace('"', '"') }}",
+      "quantity": {{ item.quantity | default(0) }},
+      "unit_price": {{ item.unit_price | default(0) }},
+      "line_total": {{ item.line_total | default(0) }},
+      "po_match": {{ item.po_match | tojson if item.po_match else 'null' }}
+    }{{ "," if not loop.last else "" }}
+    {% endfor %}
+  ],
+  "metadata": {
+    "corrections_applied": {{ corrections_applied | lower }},
+    "operator_notes": "{{ operator_notes | replace('"', '"') | default('') }}",
+    "processed_at": "{{ processed_at }}"
+  },
+  {% if pdf_base64 %}
+  "pdf_attachment": {
+    "filename": "{{ stem }}.pdf",
+    "size_bytes": {{ pdf_size_bytes }},
+    "content_type": "application/pdf",
+    "data_base64": "{{ pdf_base64 }}"
+  }
+  {% else %}
+  "pdf_attachment": null
+  {% endif %}
+}

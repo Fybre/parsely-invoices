@@ -17,3 +17,8 @@ data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local instance data
+config/pipeline_settings.json
+config/users.json
+backups/

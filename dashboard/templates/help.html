@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parsely — Help</title>
+<style>
+/* ── Reset & Variables ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --hdr-h:     56px;
+  --bg:        #f0f2f5;
+  --card:      #ffffff;
+  --sidebar:   #1a2035;
+  --side-item: #242d47;
+  --side-sel:  #2e3f6e;
+  --border:    #e2e6ea;
+  --text:      #1c2533;
+  --muted:     #6b7280;
+  --ok:        #16a34a;
+  --warn:      #d97706;
+  --err:       #dc2626;
+  --info:      #2563eb;
+  --ok-bg:     #dcfce7;
+  --warn-bg:   #fef3c7;
+  --err-bg:    #fee2e2;
+  --info-bg:   #dbeafe;
+  --accent:    #3b5bdb;
+  --radius:    8px;
+  --shadow:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+}
+
+/* Dark mode theme */
+[data-theme="dark"] {
+  --bg:        #0f172a;
+  --card:      #1e293b;
+  --sidebar:   #0f172a;
+  --side-item: #1e293b;
+  --side-sel:  #334155;
+  --border:    #334155;
+  --text:      #e2e8f0;
+  --muted:     #94a3b8;
+  --ok-bg:     rgba(22, 163, 74, 0.2);
+  --warn-bg:   rgba(217, 119, 6, 0.2);
+  --err-bg:    rgba(220, 38, 38, 0.2);
+  --info-bg:   rgba(37, 99, 235, 0.2);
+  --shadow:    0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.4), 0 2px 4px rgba(0,0,0,.3);
+}
+
+/* ── Layout ────────────────────────────────────────────────────────────── */
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+header {
+  height: var(--hdr-h);
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 24px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow);
+  z-index: 10;
+}
+
+.app-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #16a34a;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.app-title svg { opacity: 1; color: #16a34a; }
+
+.back-link {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.back-link:hover {
+  background: var(--card);
+  color: var(--text);
+}
+
+/* Theme toggle button */
+.btn-theme {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-theme:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+.btn-theme .icon-sun { display: none; }
+.btn-theme .icon-moon { display: block; }
+[data-theme="dark"] .btn-theme .icon-sun { display: block; }
+[data-theme="dark"] .btn-theme .icon-moon { display: none; }
+
+/* ── Main Layout ───────────────────────────────────────────────────────── */
+.main-wrap {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+aside {
+  width: 240px;
+  background: var(--sidebar);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.side-header {
+  padding: 16px 16px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,.4);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.side-tab {
+  padding: 10px 16px;
+  font-size: 12px;
+  color: rgba(255,255,255,.7);
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background .1s, color .1s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.side-tab:hover {
+  background: rgba(255,255,255,.05);
+  color: #fff;
+}
+.side-tab.active {
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  border-left-color: var(--accent);
+}
+
+.side-tab .icon {
+  width: 16px;
+  height: 16px;
+  opacity: .7;
+}
+
+.side-divider {
+  margin: 16px;
+  height: 1px;
+  background: rgba(255,255,255,.1);
+}
+
+/* ── Content Area ──────────────────────────────────────────────────────── */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.content-header {
+  padding: 16px 20px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.content-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.content-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.content-scroll::-webkit-scrollbar { width: 6px; }
+.content-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ── Help Content Styling ──────────────────────────────────────────────── */
+.help-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.help-section {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.help-section h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.help-section h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+.help-section h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.help-section p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.help-section ul, .help-section ol {
+  margin-left: 20px;
+  margin-bottom: 16px;
+}
+
+.help-section li {
+  font-size: 13px;
+  line-height: 1.7;
+  margin-bottom: 6px;
+}
+
+.help-section code {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 12px;
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.help-section pre {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.help-section pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* Info boxes */
+.info-box {
+  background: var(--info-bg);
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 12px;
+}
+.info-box.warn {
+  background: var(--warn-bg);
+  border-color: #fde68a;
+}
+.info-box.success {
+  background: var(--ok-bg);
+  border-color: #bbf7d0;
+}
+.info-box-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.info-box-content {
+  flex: 1;
+}
+.info-box-content strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+.info-box-content p {
+  margin: 0;
+  font-size: 12px;
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status-badge.needs_review { background: var(--warn-bg); color: var(--warn); }
+.status-badge.ready { background: var(--ok-bg); color: var(--ok); }
+.status-badge.exported { background: var(--exported-bg); color: var(--exported); }
+
+/* Feature cards */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.feature-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.feature-card h4 {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.feature-card p {
+  margin-bottom: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Table of contents */
+.toc {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.toc h4 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--muted);
+}
+
+.toc ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.toc li {
+  margin-bottom: 4px;
+}
+
+.toc a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 12px;
+}
+.toc a:hover { text-decoration: underline; }
+
+/* Keyboard shortcuts */
+kbd {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 11px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  display: inline-block;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  aside {
+    width: 200px;
+  }
+  .help-section {
+    padding: 16px;
+  }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="app-title">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 20 C12 18 12 16 12 14 C12 12 12 10 13 8" fill="none"/>
+      <path d="M12 15 C9 15 7 13 7 10 C7 7 9 5 12 6 C11 8 10 10 11 12 C12 13 13 14 12 15Z" fill="currentColor" stroke="none" opacity="0.9"/>
+      <path d="M12 12 C15 12 17 10 17 7 C17 4 15 3 12 4 C13 6 14 8 13 10 C12 11 11 11 12 12Z" fill="currentColor" stroke="none" opacity="0.9"/>
+      <path d="M13 8 C11 6 12 4 14 3 C15 4 15 6 13 8Z" fill="currentColor" stroke="none"/>
+      <path d="M11 13 C9 12 9 10 10 9 C11 10 12 12 11 13Z" fill="currentColor" stroke="none" opacity="0.7"/>
+      <path d="M13 10 C15 9 15 7 14 6 C13 7 12 9 13 10Z" fill="currentColor" stroke="none" opacity="0.7"/>
+    </svg>
+    Parsely Help Center
+  </div>
+  <button class="btn-theme" onclick="toggleTheme()" title="Toggle dark mode">
+    <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+    <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/>
+      <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+  </button>
+  <a href="/" class="back-link">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </svg>
+    Back to Dashboard
+  </a>
+</header>
+
+<div class="main-wrap">
+  <aside>
+    <div class="side-header">Help Sections</div>
+    <div class="side-tab active" data-tab="getting-started" onclick="setTab('getting-started')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      Getting Started
+    </div>
+    <div class="side-tab" data-tab="user-guide" onclick="setTab('user-guide')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+      User Guide
+    </div>
+    <div class="side-tab" data-tab="system-functions" onclick="setTab('system-functions')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+      System Functions
+    </div>
+    <div class="side-tab" data-tab="workflows" onclick="setTab('workflows')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      Workflows
+    </div>
+    <div class="side-tab" data-tab="troubleshooting" onclick="setTab('troubleshooting')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      Troubleshooting
+    </div>
+    <div class="side-tab" data-tab="api-reference" onclick="setTab('api-reference')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="16 18 22 12 16 6"/>
+        <polyline points="8 6 2 12 8 18"/>
+      </svg>
+      API Reference
+    </div>
+    
+    <div class="side-divider"></div>
+    
+    <div class="side-header">Resources</div>
+    <div class="side-tab" data-tab="glossary" onclick="setTab('glossary')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+      Glossary
+    </div>
+    <div class="side-tab" data-tab="keyboard-shortcuts" onclick="setTab('keyboard-shortcuts')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="4" width="20" height="16" rx="2"/>
+        <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/>
+      </svg>
+      Shortcuts
+    </div>
+  </aside>
+
+  <main>
+    <div class="content-header">
+      <div class="content-title" id="page-title">Getting Started</div>
+    </div>
+    <div class="content-scroll" id="content-area">
+      <!-- Content dynamically loaded here -->
+    </div>
+  </main>
+</div>
+
+<script>
+// Theme handling
+function initTheme() {
+  const saved = localStorage.getItem('parsely-theme');
+  if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('parsely-theme', 'light');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('parsely-theme', 'dark');
+  }
+}
+
+initTheme();
+
+// Tab switching
+const sections = {
+  'getting-started': {
+    title: 'Getting Started',
+    content: `
+      <div class="help-container">
+        <div class="help-section">
+          <h2>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            Welcome to Parsely
+          </h2>
+          <p>Parsely is an AI-powered invoice processing pipeline that extracts structured data from PDF invoices, matches them against Purchase Orders and supplier master data, flags discrepancies, and provides a web dashboard for review and approval.</p>
+          
+          <div class="info-box">
+            <span class="info-box-icon">💡</span>
+            <div class="info-box-content">
+              <strong>Quick Start</strong>
+              <p>New to Parsely? Follow this guide to get up and running in minutes.</p>
+            </div>
+          </div>
+          
+          <h3>What Parsely Does</h3>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <h4>📄 PDF Extraction</h4>
+              <p>Automatically extracts text, tables, and structured data from invoice PDFs using advanced AI.</p>
+            </div>
+            <div class="feature-card">
+              <h4>🔗 Supplier Matching</h4>
+              <p>Matches invoices to suppliers using ABN, name, and email domain for accurate identification.</p>
+            </div>
+            <div class="feature-card">
+              <h4>📋 PO Matching</h4>
+              <p>Compares invoice line items against purchase orders to identify discrepancies.</p>
+            </div>
+            <div class="feature-card">
+              <h4>⚠️ Validation</h4>
+              <p>Flags arithmetic errors, date issues, and mismatches for operator review.</p>
+            </div>
+          </div>
+          
+          <h3>System Overview</h3>
+          <p>The Parsely workflow follows these stages:</p>
+          <ol>
+            <li><strong>Upload</strong> — Drop PDF invoices into the inbox or upload via the dashboard</li>
+            <li><strong>Extract</strong> — AI extracts invoice data including line items, totals, and supplier info</li>
+            <li><strong>Match</strong> — System matches to suppliers and purchase orders</li>
+            <li><strong>Review</strong> — Operators review flagged discrepancies and make corrections</li>
+            <li><strong>Approve</strong> — Approved invoices are exported to your backend system</li>
+          </ol>
+          
+          <h3>First Steps</h3>
+          <ol>
+            <li>Ensure your supplier data is loaded (Admin → Suppliers)</li>
+            <li>Upload your purchase orders (Admin → Purchase Orders)</li>
+            <li>Drop invoice PDFs into the inbox folder</li>
+            <li>Open the dashboard to review extracted invoices</li>
+            <li>Correct any errors and mark invoices as "Ready"</li>
+            <li>Export approved invoices to your system</li>
+          </ol>
+        </div>
+        
+        <div class="help-section">
+          <h2>Dashboard Overview</h2>
+          <p>The main dashboard is split into three panels:</p>
+          
+          <h4>Left Sidebar — Invoice List</h4>
+          <ul>
+            <li>Filter by status: Needs Review, Ready, Exported</li>
+            <li>Search by invoice number or supplier name</li>
+            <li>Click an invoice to view details</li>
+            <li>Upload new invoices with the upload button</li>
+          </ul>
+          
+          <h4>Center Panel — PDF Viewer</h4>
+          <ul>
+            <li>View the original PDF for reference</li>
+            <li>Resize the panel by dragging the divider</li>
+            <li>Zoom in/out for detailed review</li>
+          </ul>
+          
+          <h4>Right Panel — Data & Actions</h4>
+          <ul>
+            <li>Review extracted invoice data</li>
+            <li>Edit fields when corrections are needed</li>
+            <li>View discrepancies and warnings</li>
+            <li>Add operator notes</li>
+            <li>Export approved invoices</li>
+          </ul>
+        </div>
+      </div>
+    `
+  },
+  'user-guide': {
+    title: 'User Guide',
+    content: `
+      <div class="help-container">
+        <div class="help-section">
+          <h2>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Processing Invoices
+          </h2>
+          
+          <h3>Uploading Invoices</h3>
+          <p>There are two ways to add invoices to the system:</p>
+          
+          <h4>Method 1: File Drop (Recommended for bulk)</h4>
+          <ol>
+            <li>Copy PDF files to the <code>invoices/</code> folder</li>
+            <li>The pipeline automatically detects and processes them</li>
+            <li>Refresh the dashboard to see new invoices appear</li>
+          </ol>
+          
+          <h4>Method 2: Dashboard Upload</h4>
+          <ol>
+            <li>Click the "Upload Invoice" button in the left sidebar</li>
+            <li>Select a PDF file from your computer</li>
+            <li>The file is queued for processing immediately</li>
+          </ol>
+          
+          <div class="info-box">
+            <span class="info-box-icon">ℹ️</span>
+            <div class="info-box-content">
+              <strong>Supported Formats</strong>
+              <p>Only PDF files are supported. Both digital PDFs and scanned documents (with OCR) are accepted.</p>
+            </div>
+          </div>
+          
+          <h3>Understanding Invoice Status</h3>
+          <p>Every invoice has one of three statuses:</p>
+          <ul>
+            <li><span class="status-badge needs_review">Needs Review</span> — The invoice has discrepancies or requires operator verification before export.</li>
+            <li><span class="status-badge ready">Ready</span> — The invoice has passed validation and is ready for export.</li>
+            <li><span class="status-badge exported">Exported</span> — The invoice has been approved and exported to the backend system.</li>
+          </ul>
+          
+          <h3>Reviewing an Invoice</h3>
+          <ol>
+            <li>Click an invoice in the left sidebar to select it</li>
+            <li>Review the PDF in the center panel</li>
+            <li>Check the extracted data in the right panel</li>
+            <li>Pay attention to any discrepancy warnings</li>
+            <li>Make corrections if needed (click "Edit Fields")</li>
+            <li>Add notes if relevant (optional)</li>
+          </ol>
+          
+          <h3>Making Corrections</h3>
+          <p>When the extracted data doesn't match the PDF:</p>
+          <ol>
+            <li>Click the "Edit Fields" button in the action bar</li>
+            <li>Click on any field value to edit it</li>
+            <li>For supplier mismatches, use the lookup button to search suppliers</li>
+            <li>Line items can be edited individually</li>
+            <li>Click "Save Changes" when done</li>
+          </ol>
+          
+          <h3>Supplier Lookup</h3>
+          <p>If the system didn't match the correct supplier:</p>
+          <ol>
+            <li>Click the "Edit Fields" button</li>
+            <li>Next to the supplier name, click the lookup icon (🔍)</li>
+            <li>Search by name, ABN, or email</li>
+            <li>Click the correct supplier from the list</li>
+            <li>Save your changes</li>
+          </ol>
+        </div>
+        
+        <div class="help-section">
+          <h2>Exporting Invoices</h2>
+          
+          <h3>Single Invoice Export</h3>
+          <ol>
+            <li>Select the invoice you want to export</li>
+            <li>Ensure all data is correct and discrepancies are resolved</li>
+            <li>Click the "Export" button in the action bar</li>
+            <li>The invoice status changes to "Exported"</li>
+            <li>Exported files are written to <code>output/export/</code></li>
+          </ol>
+          
+          <h3>Bulk Export</h3>
+          <p>To export all ready invoices at once:</p>
+          <ol>
+            <li>Click "Export All Ready" at the bottom of the invoice list</li>
+            <li>Confirm the action in the dialog</li>
+            <li>All invoices with "Ready" status will be exported</li>
+          </ol>
+          
+          <div class="info-box warn">
+            <span class="info-box-icon">⚠️</span>
+            <div class="info-box-content">
+              <strong>Important</strong>
+              <p>Once exported, invoices cannot be edited or deleted. The export folder becomes the system of record.</p>
+            </div>
+          </div>
+          
+          <h3>Export Formats</h3>
+          <p>Depending on configuration, exports may include:</p>
+          <ul>
+            <li><code>.json</code> — Structured data with all extracted fields</li>
+            <li><code>.xml</code> — XML format for backend integration</li>
+            <li><code>.pdf</code> — The original PDF file</li>
+          </ul>
+        </div>
+        
+        <div class="help-section">
+          <h2>Understanding Discrepancies</h2>
+          <p>The system flags several types of issues:</p>
+          
+          <h4>🔴 Errors (Must be resolved)</h4>
+          <ul>
+            <li><strong>Arithmetic Error</strong> — Subtotal + Tax ≠ Total</li>
+            <li><strong>Future Date</strong> — Invoice date is in the future</li>
+            <li><strong>PO Mismatch</strong> — Line items don't match the purchase order</li>
+          </ul>
+          
+          <h4>🟡 Warnings (Should be reviewed)</h4>
+          <ul>
+            <li><strong>Old Invoice</strong> — Invoice date is more than 90 days old</li>
+            <li><strong>Supplier Fuzzy Match</strong> — Supplier name is similar but not exact</li>
+            <li><strong>Missing PO</strong> — PO number on invoice not found in system</li>
+          </ul>
+          
+          <h4>🟢 Info (For awareness)</h4>
+          <ul>
+            <li><strong>Supplier Created</strong> — New supplier added via quick-create</li>
+            <li><strong>Corrections Applied</strong> — Operator has made manual corrections</li>
+          </ul>
+        </div>
+      </div>
+    `
+  },
+  'system-functions': {
+    title: 'System Functions',
+    content: `
+      <div class="help-container">
+        <div class="help-section">
+          <h2>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            System Architecture
+          </h2>
+          
+          <h3>Pipeline Components</h3>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <h4>PDF Extractor</h4>
+              <p>Uses Docling and pdfplumber for layout-aware extraction and OCR support.</p>
+            </div>
+            <div class="feature-card">
+              <h4>LLM Parser</h4>
+              <p>OpenAI-compatible API for structured data extraction from invoice content.</p>
+            </div>
+            <div class="feature-card">
+              <h4>Supplier Matcher</h4>
+              <p>Fuzzy matching using ABN → exact name → fuzzy name → email domain.</p>
+            </div>
+            <div class="feature-card">
+              <h4>PO Matcher</h4>
+              <p>Line-item comparison between invoices and purchase orders.</p>
+            </div>
+            <div class="feature-card">
+              <h4>Validator</h4>
+              <p>Discrepancy detection for arithmetic, dates, and PO mismatches.</p>
+            </div>
+            <div class="feature-card">
+              <h4>Database</h4>
+              <p>SQLite-backed state persistence with web dashboard integration.</p>
+            </div>
+          </div>
+          
+          <h3>Data Flow</h3>
+          <pre><code>PDF → DoclingExtractor → Markdown + Tables
+         ↓
+TableLineItemExtractor (direct table parsing)
+         ↓
+LLMParser (metadata extraction) → ExtractedInvoice
+         ↓
+SupplierMatcher → POMatcher → InvoiceValidator
+         ↓
+SQLite Database
+         ↓
+Dashboard (Review/Approval) → Export</code></pre>
+        </div>
+        
+        <div class="help-section">
+          <h2>Admin Functions</h2>
+          
+          <h3>Data Management</h3>
+          <h4>Suppliers</h4>
+          <ul>
+            <li>View, add, and edit supplier records</li>
+            <li>Fields: ID, Name, ABN, ACN, Email, Phone, Address, Aliases</li>
+            <li>CSV upload/download for bulk operations</li>
+            <li>Duplicate detection on create</li>
+          </ul>
+          
+          <h4>Purchase Orders</h4>
+          <ul>
+            <li>Manage PO headers and line items</li>
+            <li>Link POs to suppliers via supplier_id</li>
+            <li>Track PO status and totals</li>
+          </ul>
+          
+          <h3>Pipeline Settings</h3>
+          <p>Configure extraction and validation thresholds:</p>
+          
+          <table style="width:100%; border-collapse:collapse; font-size:12px; margin:16px 0;">
+            <thead>
+              <tr style="background:var(--bg);">
+                <th style="padding:8px 12px; text-align:left; border-bottom:1px solid var(--border);">Setting</th>
+                <th style="padding:8px 12px; text-align:left; border-bottom:1px solid var(--border);">Description</th>
+                <th style="padding:8px 12px; text-align:left; border-bottom:1px solid var(--border);">Default</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>arithmetic_tolerance</code></td>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);">Max rounding error allowed in totals</td>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);">$0.05</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>max_invoice_age_days</code></td>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);">Warn if invoice is older than this</td>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);">90 days</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>max_future_days</code></td>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);">Error if invoice date is this far ahead</td>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);">7 days</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>supplier_fuzzy_threshold</code></td>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);">Min similarity for supplier name matching</td>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);">75/100</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);"><code>po_line_fuzzy_threshold</code></td>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);">Min similarity for PO line description matching</td>
+                <td style="padding:8px 12px; border-bottom:1px solid var(--border);">65/100</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <h3>User Management</h3>
+          <p>When authentication is enabled:</p>
+          <ul>
+            <li><strong>Admin</strong> — Full access to dashboard and admin pages</li>
+            <li><strong>User</strong> — Dashboard access only (invoice processing)</li>
+          </ul>
+          
+          <h4>Authentication Modes</h4>
+          <ul>
+            <li><code>disabled</code> — No authentication, open access</li>
+            <li><code>admin_only</code> — Only admin pages require login</li>
+            <li><code>full</code> — All pages require login</li>
+          </ul>
+        </div>
+        
+        <div class="help-section">
+          <h2>Database Operations</h2>
+          
+          <h3>SQLite Schema</h3>
+          <p>The <code>pipeline.db</code> file contains the following main table:</p>
+          
+          <h4>invoices table</h4>
+          <ul>
+            <li><code>stem</code> (PK) — filename without extension</li>
+            <li><code>source_file</code> — original PDF path</li>
+            <li><code>source_mtime</code> — file modification time</li>
+            <li><code>extracted_data</code> — JSON blob of extraction results</li>
+            <li><code>status</code> — needs_review | ready | exported</li>
+            <li><code>corrections</code> — JSON of operator corrections</li>
+            <li><code>notes</code> — operator free-text notes</li>
+            <li><code>error_message</code> — set if processing failed</li>
+            <li><code>created_at</code>, <code>updated_at</code>, <code>exported_at</code> — timestamps</li>
+          </ul>
+          
+          <h3>Maintenance Operations</h3>
+          <p>Available in the Admin → Database section:</p>
+          <ul>
+            <li><strong>Clear Database</strong> — Removes all invoice records (does not affect exported files)</li>
+            <li><strong>Reload CSVs</strong> — Refreshes supplier and PO data from CSV files</li>
+          </ul>
+          
+          <div class="info-box warn">
+            <span class="info-box-icon">⚠️</span>
+            <div class="info-box-content">
+              <strong>Warning</strong>
+              <p>Clearing the database removes all processing history. Exported invoices in the export/ folder are preserved.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  'workflows': {
+    title: 'Workflows',
+    content: `
+      <div class="help-container">
+        <div class="help-section">
+          <h2>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Standard Workflow
+          </h2>
+          
+          <h3>Daily Operations</h3>
+          <ol>
+            <li><strong>Morning Check</strong>
+              <ul>
+                <li>Review new invoices in "Needs Review"</li>
+                <li>Check the stats bar for overnight processing</li>
+              </ul>
+            </li>
+            <li><strong>Processing Queue</strong>
+              <ul>
+                <li>Select an invoice from the list</li>
+                <li>Compare extracted data to PDF</li>
+                <li>Resolve any discrepancies</li>
+                <li>Mark as "Ready" when validated</li>
+              </ul>
+            </li>
+            <li><strong>End of Day Export</strong>
+              <ul>
+                <li>Bulk export all "Ready" invoices</li>
+                <li>Verify exports in output/export/</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <h3>Exception Handling</h3>
+          <h4>Poor Quality Scans</h4>
+          <ol>
+            <li>Check if text is readable in the PDF viewer</li>
+            <li>If illegible, request a better copy from supplier</li>
+            <li>If partially readable, manually enter missing fields</li>
+          </ol>
+          
+          <h4>Unknown Suppliers</h4>
+          <ol>
+            <li>Use the supplier lookup to search existing records</li>
+            <li>If not found, use Admin → Suppliers → Create</li>
+            <li>Return to invoice and select the new supplier</li>
+          </ol>
+          
+          <h4>PO Discrepancies</h4>
+          <ol>
+            <li>Verify the PO number is correct</li>
+            <li>Check if PO exists in the system (Admin → Purchase Orders)</li>
+            <li>If PO is valid, investigate line item differences</li>
+            <li>Add notes explaining any accepted variances</li>
+          </ol>
+        </div>
+        
+        <div class="help-section">
+          <h2>Watch Mode Workflow</h2>
+          <p>When running in continuous mode:</p>
+          
+          <ol>
+            <li>Pipeline polls the invoices folder every 30 seconds (configurable)</li>
+            <li>New PDFs are automatically processed</li>
+            <li>Dashboard updates in real-time with new invoices</li>
+            <li>Operators receive visual notifications of new items</li>
+          </ol>
+          
+          <div class="info-box">
+            <span class="info-box-icon">💡</span>
+            <div class="info-box-content">
+              <strong>Tip</strong>
+              <p>Enable the live badge in the dashboard to see when new invoices arrive without refreshing.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="help-section">
+          <h2>Reprocessing Workflow</h2>
+          <p>Sometimes invoices need to be re-extracted:</p>
+          
+          <h4>When to Reprocess</h4>
+          <ul>
+            <li>Extraction failed or produced garbage data</li>
+            <li>LLM model has been updated with better prompts</li>
+            <li>Custom field extraction rules changed</li>
+          </ul>
+          
+          <h4>How to Reprocess</h4>
+          <ol>
+            <li>Select the invoice in the dashboard</li>
+            <li>Click the "Reprocess" button in the action bar</li>
+            <li>The invoice temporarily disappears from the list</li>
+            <li>After processing completes, it reappears with fresh data</li>
+          </ol>
+          
+          <div class="info-box warn">
+            <span class="info-box-icon">⚠️</span>
+            <div class="info-box-content">
+              <strong>Warning</strong>
+              <p>Reprocessing discards all corrections and notes. You cannot reprocess exported invoices.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  'troubleshooting': {
+    title: 'Troubleshooting',
+    content: `
+      <div class="help-container">
+        <div class="help-section">
+          <h2>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Common Issues
+          </h2>
+          
+          <h3>🔴 Extraction Issues</h3>
+          
+          <h4>Invoice not extracting properly</h4>
+          <p><strong>Symptoms:</strong> No text extracted, garbled output, or missing fields</p>
+          <p><strong>Solutions:</strong></p>
+          <ol>
+            <li>Check if PDF is image-based (scanned) — OCR may be needed</li>
+            <li>Verify the PDF is not password-protected</li>
+            <li>Try reprocessing with USE_DOCLING=true if disabled</li>
+            <li>Check LLM service connectivity</li>
+          </ol>
+          
+          <h4>Table extraction failing</h4>
+          <p><strong>Solutions:</strong></p>
+          <ol>
+            <li>Check if table has clear borders</li>
+            <li>Verify column_keys.json has synonyms for your headers</li>
+            <li>Manually enter line items if automatic extraction fails</li>
+          </ol>
+          
+          <h3>🟡 Matching Issues</h3>
+          
+          <h4>Supplier not matching</h4>
+          <p><strong>Solutions:</strong></p>
+          <ol>
+            <li>Check suppliers.csv has the correct ABN</li>
+            <li>Add supplier aliases if they use multiple names</li>
+            <li>Lower the supplier_fuzzy_threshold if matches are too strict</li>
+            <li>Use manual supplier selection in the dashboard</li>
+          </ol>
+          
+          <h4>PO matching returning wrong results</h4>
+          <p><strong>Solutions:</strong></p>
+          <ol>
+            <li>Verify PO number format matches between invoice and CSV</li>
+            <li>Check PO lines exist for the PO number</li>
+            <li>Adjust po_line_fuzzy_threshold if descriptions are slightly different</li>
+          </ol>
+          
+          <h3>🔵 System Issues</h3>
+          
+          <h4>Dashboard won't load</h4>
+          <ol>
+            <li>Check if the service is running: <code>docker compose ps</code></li>
+            <li>Verify port 8080 is not in use by another application</li>
+            <li>Check logs: <code>docker compose logs dashboard</code></li>
+          </ol>
+          
+          <h4>Database locked errors</h4>
+          <ol>
+            <li>Ensure only one pipeline process is running</li>
+            <li>WAL mode should handle concurrent reads, but avoid simultaneous writes</li>
+            <li>Restart the dashboard container if locks persist</li>
+          </ol>
+          
+          <h4>LLM connection failures</h4>
+          <ol>
+            <li>Verify LLM_BASE_URL is correct (host.docker.internal for local Ollama)</li>
+            <li>Ensure Ollama is running on the host: <code>ollama list</code></li>
+            <li>Check the model is pulled: <code>ollama pull llama3.2</code></li>
+            <li>Test connectivity: <code>docker compose run --rm pipeline check</code></li>
+          </ol>
+        </div>
+        
+        <div class="help-section">
+          <h2>Performance Optimization</h2>
+          
+          <h3>Slow Processing</h3>
+          <p>If invoices take too long to process:</p>
+          <ul>
+            <li>Use a faster LLM model (GPT-4o-mini is faster than local models)</li>
+            <li>Reduce PDF file size before processing</li>
+            <li>Ensure sufficient memory allocation for containers</li>
+          </ul>
+          
+          <h3>Large File Handling</h3>
+          <p>For invoices with many pages or line items:</p>
+          <ul>
+            <li>Processing is limited to first 12 pages for PDF rendering</li>
+            <li>Very large tables may need manual entry</li>
+            <li>Consider splitting multi-invoice PDFs before upload</li>
+          </ul>
+        </div>
+        
+        <div class="help-section">
+          <h2>Getting Help</h2>
+          
+          <p>If issues persist:</p>
+          <ol>
+            <li>Check the logs: <code>docker compose logs -f</code></li>
+            <li>Review the Admin → Settings page for configuration values</li>
+            <li>Check the GitHub repository for known issues</li>
+            <li>Export system diagnostics from the admin panel</li>
+          </ol>
+          
+          <div class="info-box success">
+            <span class="info-box-icon">✓</span>
+            <div class="info-box-content">
+              <strong>Diagnostic Info</strong>
+              <p>When reporting issues, include the build commit (shown in Admin → Settings) and relevant log excerpts.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  'api-reference': {
+    title: 'API Reference',
+    content: `
+      <div class="help-container">
+        <div class="help-section">
+          <h2>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 18 22 12 16 6"/>
+              <polyline points="8 6 2 12 8 18"/>
+            </svg>
+            REST API
+          </h2>
+          
+          <p>The dashboard provides a REST API for integration and automation.</p>
+          
+          <h3>Health & Stats</h3>
+          <pre><code>GET /api/health
+GET /api/stats
+GET /api/auth/me</code></pre>
+          
+          <h3>Invoice Operations</h3>
+          <h4>List & Detail</h4>
+          <pre><code>GET /api/invoices?status=ready&search=ACME&limit=100&offset=0
+GET /api/invoices/{stem}</code></pre>
+
+          <h4>PDF & Rendering</h4>
+          <pre><code>GET /api/invoices/{stem}/pages    // Base64 JPEG images (for dashboard)
+GET /api/invoices/{stem}/pdf      // Raw PDF file (for native viewer)</code></pre>
+
+          <h4>Updates</h4>
+          <pre><code>PATCH /api/invoices/{stem}/status       // Body: {"status": "ready"}
+PATCH /api/invoices/{stem}/corrections  // Body: {"corrections": {...}}
+PATCH /api/invoices/{stem}/notes        // Body: {"notes": "operator notes"}</code></pre>
+          
+          <h4>Lifecycle</h4>
+          <pre><code>POST /api/invoices/{stem}/export
+POST /api/invoices/{stem}/reprocess
+DELETE /api/invoices/{stem}
+POST /api/bulk-export</code></pre>
+          
+          <h4>Audit & Tracking</h4>
+          <pre><code>GET /api/invoices/{stem}/audit   // Full history for one invoice
+GET /api/admin/audit             // Recent history across all invoices</code></pre>
+
+          <h3>Ingestion</h3>
+          <pre><code>POST /api/upload
+Content-Type: multipart/form-data
+file: (binary PDF data)</code></pre>
+        </div>
+        
+        <div class="help-section">
+          <h2>Admin API</h2>
+          
+          <h3>System Control</h3>
+          <pre><code>GET  /api/admin/status
+POST /api/admin/reload
+POST /api/admin/database/clear</code></pre>
+          
+          <h3>Master Data Management</h3>
+          <pre><code>GET  /api/admin/suppliers
+GET  /api/admin/purchase_orders
+GET  /api/admin/purchase_order_lines
+
+POST /api/admin/{tab}             // Update/Replace data
+POST /api/admin/{tab}/upload      // Upload new CSV file</code></pre>
+          
+          <h3>Settings & Configuration</h3>
+          <pre><code>GET  /api/admin/settings
+POST /api/admin/settings</code></pre>
+          
+          <h3>User Management</h3>
+          <pre><code>GET    /api/admin/users
+POST   /api/admin/users
+PATCH  /api/admin/users/{name}
+DELETE /api/admin/users/{name}</code></pre>
+          
+          <h3>Quick Actions</h3>
+          <pre><code>POST /api/suppliers/create   // Add single supplier</code></pre>
+        </div>
+      </div>
+    `
+  },
+  'glossary': {
+    title: 'Glossary',
+    content: `
+      <div class="help-container">
+        <div class="help-section">
+          <h2>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            Terms & Definitions
+          </h2>
+          
+          <h3>Invoice Processing</h3>
+          <dl style="margin:16px 0; font-size:13px; line-height:1.7;">
+            <dt style="font-weight:600; margin-top:16px;">Extraction</dt>
+            <dd>The process of reading a PDF and identifying structured data like invoice numbers, dates, and line items.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">Line Items</dt>
+            <dd>Individual products or services listed on an invoice, typically including description, quantity, unit price, and total.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">Discrepancy</dt>
+            <dd>A difference between expected and actual values, such as arithmetic errors or PO mismatches.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">Correction</dt>
+            <dd>Operator-made changes to extracted data to fix errors identified during review.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">Stem</dt>
+            <dd>The filename without extension, used as a unique identifier for invoices.</dd>
+          </dl>
+          
+          <h3>Matching</h3>
+          <dl style="margin:16px 0; font-size:13px; line-height:1.7;">
+            <dt style="font-weight:600; margin-top:16px;">Supplier Matching</dt>
+            <dd>The process of linking an invoice to a supplier record using ABN, name, or email domain.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">Fuzzy Matching</dt>
+            <dd>Text comparison that allows for slight differences (typos, abbreviations) using similarity scores.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">PO Matching</dt>
+            <dd>Comparing invoice line items against purchase order lines to verify accuracy.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">ABN</dt>
+            <dd>Australian Business Number — unique 11-digit identifier for businesses.</dd>
+          </dl>
+          
+          <h3>System Terms</h3>
+          <dl style="margin:16px 0; font-size:13px; line-height:1.7;">
+            <dt style="font-weight:600; margin-top:16px;">Pipeline</dt>
+            <dd>The automated process flow from PDF ingestion to database storage.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">Watch Mode</dt>
+            <dd>Continuous monitoring of the invoices folder for new files to process.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">Docling</dt>
+            <dd>PDF extraction library that understands document layout and structure.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">LLM</dt>
+            <dd>Large Language Model — AI system used for intelligent data extraction.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">OCR</dt>
+            <dd>Optical Character Recognition — technology to extract text from scanned images.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">WAL Mode</dt>
+            <dd>Write-Ahead Logging — SQLite feature enabling concurrent reads during writes.</dd>
+          </dl>
+          
+          <h3>Status Values</h3>
+          <dl style="margin:16px 0; font-size:13px; line-height:1.7;">
+            <dt style="font-weight:600; margin-top:16px;">Needs Review</dt>
+            <dd>Invoice has issues requiring operator attention before export.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">Ready</dt>
+            <dd>Invoice passed validation and is approved for export.</dd>
+            
+            <dt style="font-weight:600; margin-top:16px;">Exported</dt>
+            <dd>Invoice has been exported to the backend system and is locked.</dd>
+          </dl>
+        </div>
+      </div>
+    `
+  },
+  'keyboard-shortcuts': {
+    title: 'Keyboard Shortcuts',
+    content: `
+      <div class="help-container">
+        <div class="help-section">
+          <h2>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/>
+            </svg>
+            Keyboard Shortcuts
+          </h2>
+          
+          <p>The dashboard supports several keyboard shortcuts to speed up your workflow.</p>
+
+          <h3>General</h3>
+          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+              <tr style="background:var(--bg);">
+                <th style="padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); width:40%;">Shortcut</th>
+                <th style="padding:10px 12px; text-align:left; border-bottom:1px solid var(--border);">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:10px 12px; border-bottom:1px solid var(--border);"><kbd>Esc</kbd></td>
+                <td style="padding:10px 12px; border-bottom:1px solid var(--border);">Close PO match panel or Supplier lookup</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <h3>PDF Viewer</h3>
+          <table style="width:100%; border-collapse:collapse; font-size:13px; margin-top:16px;">
+            <thead>
+              <tr style="background:var(--bg);">
+                <th style="padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); width:40%;">Shortcut</th>
+                <th style="padding:10px 12px; text-align:left; border-bottom:1px solid var(--border);">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:10px 12px; border-bottom:1px solid var(--border);"><kbd>Space</kbd> (Hold)</td>
+                <td style="padding:10px 12px; border-bottom:1px solid var(--border);">Enable "Grab to Pan" mode</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 12px; border-bottom:1px solid var(--border);"><kbd>Ctrl</kbd> + <kbd>Scroll</kbd></td>
+                <td style="padding:10px 12px; border-bottom:1px solid var(--border);">Zoom in/out at cursor position</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div class="info-box" style="margin-top:24px;">
+            <span class="info-box-icon">💡</span>
+            <div class="info-box-content">
+              <strong>Tip</strong>
+              <p>When holding Space, your cursor changes to a hand icon. You can then click and drag the PDF to move it around.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  }
+};
+
+function setTab(tab) {
+  document.querySelectorAll('.side-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  
+  const section = sections[tab];
+  if (section) {
+    document.getElementById('page-title').textContent = section.title;
+    document.getElementById('content-area').innerHTML = section.content;
+    
+    // Update URL hash for bookmarking
+    history.replaceState(null, null, '#' + tab);
+  }
+}
+
+// Initialize from URL hash
+const initialTab = location.hash.slice(1) || 'getting-started';
+setTab(initialTab);
+</script>
+</body>
+</html>

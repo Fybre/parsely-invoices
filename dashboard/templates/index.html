@@ -534,6 +534,17 @@ main {
   flex-direction: column;
   overflow: hidden;
 }
+
+/* Modal box (compact variant for create supplier, etc.) */
+.modal-box {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 .modal-header {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
@@ -631,6 +642,104 @@ main {
   text-align: center;
   color: var(--muted);
   font-size: 13px;
+}
+.modal-warning {
+  margin: 0;
+  padding: 10px 16px;
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+[data-theme="dark"] .modal-warning {
+  background: #2d2005;
+  border-color: #78350f;
+  color: #fcd34d;
+}
+.modal-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ── Audit / History ─────────────────────────────────────────── */
+.audit-section {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.audit-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  user-select: none;
+}
+.audit-toggle svg { transition: transform .2s; }
+.audit-toggle.open svg { transform: rotate(90deg); }
+.audit-timeline {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.audit-entry {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 0 10px;
+  position: relative;
+  padding-bottom: 10px;
+}
+.audit-entry::before {          /* connecting line */
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 16px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+.audit-entry:last-child::before { display: none; }
+.audit-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--border);
+  border: 2px solid var(--bg);
+  flex-shrink: 0;
+  margin-top: 1px;
+  z-index: 1;
+}
+.audit-dot.system    { background: #9ca3af; }
+.audit-dot.operator  { background: var(--accent); }
+.audit-dot.exported  { background: #8b5cf6; }
+.audit-dot.status    { background: #f59e0b; }
+.audit-body { min-width: 0; }
+.audit-action {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+.audit-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.audit-detail {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
 }
 
 .pdf-placeholder {
@@ -1144,6 +1253,24 @@ td.match-none { color: var(--muted); font-style: italic; }
   .kv-item:last-child { border-bottom: none; }
 }
 
+/* ── Keyboard shortcuts help ────────────────────────────────────────────── */
+kbd {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 11px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  display: inline-block;
+  min-width: 20px;
+  text-align: center;
+}
+[data-theme="dark"] kbd {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
 /* ── Edit mode ──────────────────────────────────────────────────────────── */
 .edit-input {
   width: 100%;
@@ -1238,13 +1365,20 @@ td.match-none { color: var(--muted); font-style: italic; }
   flex-shrink: 0;
 }
 
-/* PDF.js Text Layer Styles (Override built-in) */
+/* PDF.js Text Layer Styles */
 .textLayer {
-  opacity: 1.0;
+  overflow: hidden;
+  line-height: 1;
   z-index: 2;
 }
-/* Text selection enabled by default, disabled in grab mode */
+/* Each span is absolutely positioned by PDF.js transforms.
+   color:transparent hides the duplicate text (canvas renders the visible copy).
+   transform-origin and white-space:pre are required for correct placement. */
 .textLayer span {
+  position: absolute;
+  white-space: pre;
+  color: transparent;
+  transform-origin: 0% 0%;
   cursor: text;
   user-select: text;
   -webkit-user-select: text;
@@ -1302,7 +1436,8 @@ td.match-none { color: var(--muted); font-style: italic; }
   border-color: var(--border);
   color: var(--text);
 }
-[data-theme="dark"] .modal-dialog {
+[data-theme="dark"] .modal-dialog,
+[data-theme="dark"] .modal-box {
   background: var(--card);
 }
 [data-theme="dark"] .modal-header,
@@ -1639,7 +1774,6 @@ td.match-none { color: var(--muted); font-style: italic; }
     </svg>
     Parsely <span class="build-tag">build 2026-02-25-i</span>
   </div>
-  <a href="/admin" style="text-decoration:none; font-size:10px; font-weight:700; padding:4px 8px; border-radius:12px; border:1px solid var(--border); color:var(--muted); background:var(--bg); margin-left:-12px; text-transform:uppercase; letter-spacing:.5px;">Admin</a>
   <button class="btn-theme" id="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
     <!-- Sun icon (shown in dark mode) -->
     <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1680,6 +1814,14 @@ td.match-none { color: var(--muted); font-style: italic; }
     <div class="live-dot" id="live-dot"></div>
     <span id="live-label">Connecting…</span>
   </div>
+  <button onclick="showShortcutsHelp()" title="Keyboard shortcuts (?)" style="text-decoration:none;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;font-family:inherit">⌨️ ?</button>
+  <a href="/admin" style="text-decoration:none;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Admin</a>
+  <form id="logout-form" method="post" action="/logout" style="display:none;margin:0">
+    <button type="submit" id="logout-btn" title="Sign out" style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);cursor:pointer;text-transform:uppercase;letter-spacing:.5px;font-family:inherit;white-space:nowrap">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span id="logout-label">Sign out</span>
+    </button>
+  </form>
 </header>
 
 <!-- Toast container -->
@@ -1724,6 +1866,16 @@ td.match-none { color: var(--muted); font-style: italic; }
         </svg>
         Export All Ready (<span id="export-all-count">0</span>)
       </button>
+    </div>
+    <div class="side-footer" style="margin-top:auto;padding:12px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0">
+      <a href="/help" class="side-help-link" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;color:rgba(255,255,255,.6);text-decoration:none;font-size:12px;transition:all .15s" onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.color='rgba(255,255,255,.6)';this.style.background='transparent'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.7">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Help & Documentation
+      </a>
     </div>
   </aside>
 
@@ -1817,6 +1969,7 @@ const api = {
   setStatus: (stem, status) => api.patch(`/api/invoices/${encodeURIComponent(stem)}/status`, { status }),
   saveNotes:       (stem, notes) => api.patch(`/api/invoices/${encodeURIComponent(stem)}/notes`, { notes }),
   saveCorrections: (stem, corr)  => api.patch(`/api/invoices/${encodeURIComponent(stem)}/corrections`, { corrections: corr }),
+  auditLog:        stem           => api.get(`/api/invoices/${encodeURIComponent(stem)}/audit`),
 };
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1862,7 +2015,7 @@ function updateLiveBadge(ok) {
   label.textContent = sec < 5 ? 'Live' : `Updated ${sec}s ago`;
 }
 
-setInterval(() => S.lastUpdated && updateLiveBadge(true), 5000);
+setInterval(() => S.lastUpdated && updateLiveBadge(S.pollErrors === 0), 5000);
 
 // ════════════════════════════════════════════════════════════════════════════
 // Tab switching
@@ -1977,6 +2130,7 @@ async function selectInvoice(stem) {
     const [result, pages] = await Promise.all([api.detail(stem), api.pages(stem)]);
     renderPdf(result, pages && pages.length > 0);
     renderData(result);
+    loadAuditLog(stem);   // async — appends history section after render
     // On tablet: switch to data panel and close sidebar
     if (isTablet()) { setPanel('data'); closeSidebar(); }
   } catch (e) {
@@ -2280,6 +2434,7 @@ async function fitToWidth() {
 // ════════════════════════════════════════════════════════════════════════════
 let supplierCache = null;
 let selectedSupplierId = null;
+let _lookupSupplierId = null;   // set when operator picks a supplier via the lookup modal
 
 async function openSupplierLookup() {
   // Create modal if not exists
@@ -2364,7 +2519,7 @@ function renderSupplierList(suppliers) {
          onclick="onSupplierClick('${esc(s.id || '')}')">
       <div class="supplier-info">
         <div class="supplier-name">${esc(s.name || 'Unnamed')}</div>
-        <div class="supplier-meta">${esc(s.email || '')} ${s.phone ? '• ' + esc(s.phone) : ''}</div>
+        <div class="supplier-meta">${esc(s.id || '')} ${s.abn ? '• ' + esc(s.abn) : ''}</div>
       </div>
       ${s.abn ? `<div class="supplier-abn">${esc(s.abn)}</div>` : ''}
     </div>
@@ -2401,11 +2556,12 @@ function filterSuppliers() {
   }
   
   const filtered = supplierCache.filter(s => {
+    const id = (s.id || '').toLowerCase();
     const name = (s.name || '').toLowerCase();
     const abn = (s.abn || '').toLowerCase();
     const email = (s.email || '').toLowerCase();
     const aliases = (s.aliases || '').toLowerCase();
-    return name.includes(query) || abn.includes(query) || email.includes(query) || aliases.includes(query);
+    return id.includes(query) || name.includes(query) || abn.includes(query) || email.includes(query) || aliases.includes(query);
   });
   
   renderSupplierList(filtered);
@@ -2426,23 +2582,225 @@ function selectSupplier() {
   if (!supplier) return;
   
   // Populate the form fields
+  const idInput = document.getElementById('edit-supplier_id');
   const nameInput = document.getElementById('edit-supplier_name');
   const abnInput = document.getElementById('edit-supplier_abn');
   const emailInput = document.getElementById('edit-supplier_email');
   const phoneInput = document.getElementById('edit-supplier_phone');
   const addressInput = document.getElementById('edit-supplier_address');
   
+  if (idInput) idInput.value = supplier.id || '';
   if (nameInput) nameInput.value = supplier.name || '';
   if (abnInput) abnInput.value = supplier.abn || '';
   if (emailInput) emailInput.value = supplier.email || '';
   if (phoneInput) phoneInput.value = supplier.phone || '';
   if (addressInput) addressInput.value = supplier.address || '';
-  
+
+  // Track which supplier was picked so saveEdit() can persist the supplier_id
+  _lookupSupplierId = supplier.id;
+
   // Close modal
   closeSupplierLookup();
   
   // Show feedback
   showToast(`Supplier updated to: ${supplier.name}`, 'success', 3000);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Audit / History
+// ════════════════════════════════════════════════════════════════════════════
+
+const _AUDIT_ACTION_LABELS = {
+  processed:          'Processed by pipeline',
+  processing_failed:  'Processing failed',
+  status_changed:     'Status changed',
+  corrections_saved:  'Corrections saved',
+  notes_updated:      'Notes updated',
+  exported:           'Exported',
+};
+
+function _auditDotClass(action) {
+  if (action === 'exported')           return 'exported';
+  if (action === 'status_changed')     return 'status';
+  if (action === 'processed' || action === 'processing_failed') return 'system';
+  return 'operator';
+}
+
+function _auditDetailText(entry) {
+  const d = entry.detail;
+  if (!d) return '';
+  if (entry.action === 'status_changed')
+    return `${d.from} → ${d.to}`;
+  if (entry.action === 'corrections_saved' && d.fields?.length)
+    return d.fields.join(', ');
+  if (entry.action === 'exported')
+    return d.format ? `format: ${d.format}${d.bulk ? ', bulk' : ''}` : '';
+  if (entry.action === 'processing_failed' && d.error)
+    return d.error;
+  return '';
+}
+
+function _fmtAuditTime(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+  } catch { return iso; }
+}
+
+async function loadAuditLog(stem) {
+  // Find or create the audit section placeholder appended after data-panel content
+  const panel = document.getElementById('data-panel');
+  if (!panel) return;
+
+  // Remove any existing audit section first (panel may have been re-rendered)
+  panel.querySelector('.audit-section')?.remove();
+
+  const section = document.createElement('div');
+  section.className = 'audit-section';
+  section.innerHTML = `
+    <button class="audit-toggle" onclick="toggleAudit(this)" aria-expanded="false">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+      History
+    </button>
+    <div class="audit-timeline" hidden></div>
+  `;
+  panel.appendChild(section);
+
+  try {
+    const entries = await api.auditLog(stem);
+    const timeline = section.querySelector('.audit-timeline');
+    if (!entries.length) {
+      timeline.innerHTML = '<div class="audit-meta" style="padding:4px 0">No history recorded yet.</div>';
+    } else {
+      timeline.innerHTML = entries.map(e => {
+        const label  = _AUDIT_ACTION_LABELS[e.action] || e.action;
+        const detail = _auditDetailText(e);
+        const dot    = _auditDotClass(e.action);
+        const actor  = e.actor !== 'system' ? ` · ${esc(e.actor)}` : '';
+        return `
+          <div class="audit-entry">
+            <div class="audit-dot ${dot}"></div>
+            <div class="audit-body">
+              <div class="audit-action">${esc(label)}</div>
+              <div class="audit-meta">${_fmtAuditTime(e.timestamp)}${actor}</div>
+              ${detail ? `<div class="audit-detail">${esc(detail)}</div>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
+  } catch {
+    // Silently skip — audit log is non-critical
+  }
+}
+
+function toggleAudit(btn) {
+  const timeline = btn.nextElementSibling;
+  const open = !timeline.hidden;
+  timeline.hidden = open;
+  btn.classList.toggle('open', !open);
+  btn.setAttribute('aria-expanded', String(!open));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Create Supplier from edit form
+// ════════════════════════════════════════════════════════════════════════════
+async function openCreateSupplierModal() {
+  const name    = (document.getElementById('edit-supplier_name')?.value    || '').trim();
+  const abn     = (document.getElementById('edit-supplier_abn')?.value     || '').trim();
+  const email   = (document.getElementById('edit-supplier_email')?.value   || '').trim();
+  const phone   = (document.getElementById('edit-supplier_phone')?.value   || '').trim();
+  const address = (document.getElementById('edit-supplier_address')?.value || '').trim();
+
+  if (!name) {
+    showToast('Supplier name is required before creating a supplier record.', 'error');
+    return;
+  }
+
+  // Load supplier cache if not already loaded (reuses existing lookup cache)
+  if (!supplierCache) {
+    try {
+      const data = await api.get('/api/admin/suppliers');
+      supplierCache = data.rows || [];
+    } catch (_) { supplierCache = []; }
+  }
+
+  // Client-side duplicate check (non-blocking)
+  let duplicateWarning = null;
+  const abnClean = abn.replace(/\s/g, '');
+  if (abnClean) {
+    const match = supplierCache.find(s => s.abn && s.abn.replace(/\s/g, '') === abnClean);
+    if (match) duplicateWarning = `A supplier with this ABN already exists: ${match.name} (${match.id})`;
+  }
+  if (!duplicateWarning) {
+    const match = supplierCache.find(s => s.name && s.name.trim().toLowerCase() === name.toLowerCase());
+    if (match) duplicateWarning = `A supplier with this name already exists (${match.id})`;
+  }
+
+  const existing = document.getElementById('create-supplier-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'create-supplier-modal';
+  modal.className = 'modal-overlay';
+
+  const row = (label, val) =>
+    `<div class="kv-label">${esc(label)}</div><div class="kv-value">${val ? esc(val) : '<span style="color:var(--muted)">—</span>'}</div>`;
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:460px">
+      <div class="modal-header">
+        <span style="font-weight:600;font-size:14px">Create New Supplier</span>
+        <button class="btn-sm" onclick="document.getElementById('create-supplier-modal').remove()" style="margin-left:auto">✕</button>
+      </div>
+      ${duplicateWarning ? `<div class="modal-warning">⚠ ${esc(duplicateWarning)}</div>` : ''}
+      <div class="modal-body" style="padding:16px">
+        <div class="kv-grid" style="row-gap:6px">
+          ${row('Name', name)}
+          ${row('ABN / Tax ID', abn)}
+          ${row('Email', email)}
+          ${row('Phone', phone)}
+          ${row('Address', address)}
+        </div>
+        <p class="modal-note">A new supplier record will be created with an auto-assigned ID. The supplier will be available for matching on the next pipeline run.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel-edit" onclick="document.getElementById('create-supplier-modal').remove()">Cancel</button>
+        <button class="btn btn-save-edit" id="confirm-create-supplier-btn">${duplicateWarning ? 'Create Anyway' : 'Create Supplier'}</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  document.getElementById('confirm-create-supplier-btn').onclick =
+    () => confirmCreateSupplier({ name, abn, email, phone, address });
+}
+
+async function confirmCreateSupplier(data) {
+  const modal = document.getElementById('create-supplier-modal');
+  const btn = document.getElementById('confirm-create-supplier-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+
+  try {
+    const result = await fetch('/api/suppliers/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(async r => {
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail || r.status); }
+      return r.json();
+    });
+
+    modal?.remove();
+    supplierCache = null; // invalidate so next lookup shows the new record
+    showToast(`Supplier created: ${result.id}`, 'success', 4000);
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Create Supplier'; }
+    showToast(`Failed to create supplier: ${e.message}`, 'error');
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2911,8 +3269,9 @@ function renderData(result) {
         ${kv('ABN / Tax ID',   sup.abn,   !!corr.supplier_abn)}
         ${kv('Email',          sup.email, !!corr.supplier_email)}
         ${kv('Phone',          sup.phone, !!corr.supplier_phone)}
-        ${ms ? kv('Matched ID',        ms.supplier_id)                                          : ''}
-        ${ms ? kv('Match Confidence',  ms.confidence != null ? ms.confidence + '%' : null)      : ''}
+        ${kv('Supplier ID',    corr.corrected_supplier_id || (ms && ms.supplier_id) || '—', !!corr.corrected_supplier_id)}
+        ${ms && !corr.corrected_supplier_id ? kv('Match Detail', formatMatchDetail(ms)) : ''}
+        ${corr.corrected_supplier_id && ms ? kvStrike('Original Match', formatMatchDetail(ms)) : ''}
         ${sup.address ? kvWide('Address', sup.address, !!corr.supplier_address) : ''}
       </div>
     </div>
@@ -3397,6 +3756,12 @@ function kvWide(label, value, corrected=false) {
     <div class="kv-value">${esc(String(value ?? ''))}${tag}</div>
   </div>`;
 }
+function kvStrike(label, value) {
+  return `<div class="kv-item">
+    <div class="kv-label">${esc(label)}</div>
+    <div class="kv-value" style="text-decoration:line-through;opacity:0.6;color:var(--muted)">${esc(String(value ?? '—'))}</div>
+  </div>`;
+}
 
 function placeholderHtml() {
   return `<div class="pdf-placeholder" id="pdf-placeholder">
@@ -3447,6 +3812,49 @@ function fmtDate(iso) {
     });
   } catch { return iso; }
 }
+
+function formatMatchDetail(ms) {
+  if (!ms) return '';
+  
+  const methodLabels = {
+    'abn_exact': 'ABN Exact',
+    'name_exact': 'Name Exact',
+    'name_fuzzy': 'Name Fuzzy',
+    'email_domain': 'Email Domain',
+    'operator_override': 'Manual'
+  };
+  
+  const method = methodLabels[ms.match_method] || ms.match_method || 'Unknown';
+  const confidence = ms.confidence != null ? Math.round(ms.confidence * 100) : null;
+  const matchedOn = ms.matched_on;
+  
+  // Build the detail string
+  let detail = method;
+  
+  // Add what was matched on (before confidence for fuzzy matches)
+  if (matchedOn) {
+    const fieldLabels = {
+      'abn': 'ABN',
+      'name': 'Name',
+      'email_domain': 'Domain'
+    };
+    const field = fieldLabels[matchedOn.field] || matchedOn.field;
+    detail += ` · ${field}`;
+    
+    // For fuzzy matches, show the fuzzy score instead of confidence
+    if (matchedOn.fuzzy_score != null) {
+      detail += ` ${Math.round(matchedOn.fuzzy_score * 100)}%`;
+      return detail; // Don't add confidence for fuzzy (already shown)
+    }
+  }
+  
+  // Add confidence for non-fuzzy matches
+  if (confidence != null) {
+    detail += ` (${confidence}%)`;
+  }
+  
+  return detail;
+}
 function setText(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
@@ -3481,6 +3889,9 @@ function mergeCorrections(result) {
   // Line items (full replacement)
   if (corr.line_items !== undefined) inv.line_items = corr.line_items;
 
+  // Custom fields (full replacement)
+  if (corr.custom_fields !== undefined) inv.custom_fields = corr.custom_fields;
+
   inv.supplier = sup;
   return { inv, sup, corr };
 }
@@ -3500,6 +3911,7 @@ function startEdit(result) {
 
 function cancelEdit() {
   S.editing = false;
+  _lookupSupplierId = null;
   renderData(S.currentResult);
 }
 
@@ -3545,14 +3957,40 @@ async function saveEdit(stem) {
   diffStr('supplier_phone',   getVal('edit-supplier_phone'),   rawSup.phone);
   diffStr('supplier_address', getVal('edit-supplier_address'), rawSup.address);
 
+  // If operator used the lookup button or manually changed the supplier ID field,
+  // persist the chosen supplier_id so the export JSON carries the correct ID.
+  const origSupplierId = (result.matched_supplier || {}).supplier_id || null;
+  const manualSupplierId = getVal('edit-supplier_id');
+  if (_lookupSupplierId !== null && _lookupSupplierId !== origSupplierId) {
+    corr.corrected_supplier_id = _lookupSupplierId;
+  } else if (manualSupplierId && manualSupplierId !== origSupplierId) {
+    corr.corrected_supplier_id = manualSupplierId;
+  }
+
   // Line items — only save if they actually changed vs. the raw original
   const rawItems = JSON.stringify(rawInv.line_items || []);
   const newItems = JSON.stringify(S.editLineItems);
   if (newItems !== rawItems) corr.line_items = S.editLineItems;
 
+  // Custom fields — save entire dict if any value changed
+  const rawCF = rawInv.custom_fields || {};
+  const cfKeys = Object.keys(rawCF);
+  if (cfKeys.length) {
+    let cfChanged = false;
+    const newCF = {};
+    cfKeys.forEach(k => {
+      const el = document.getElementById(`edit-cf-${k}`);
+      const newVal = el ? el.value.trim() : String(rawCF[k] ?? '').trim();
+      newCF[k] = newVal;
+      if (newVal !== String(rawCF[k] ?? '').trim()) cfChanged = true;
+    });
+    if (cfChanged) corr.custom_fields = newCF;
+  }
+
   S.editing = false;
   try {
     await api.saveCorrections(stem, corr);
+    _lookupSupplierId = null;
     // Re-fetch to get the DB-persisted corrections
     const [updated, pages] = await Promise.all([api.detail(stem), api.pages(stem)]);
     renderPdf(updated, pages);
@@ -3642,7 +4080,9 @@ function editLineItemRowsHtml() {
 // ════════════════════════════════════════════════════════════════════════════
 
 function renderEditData(result) {
+  _lookupSupplierId = null;   // clear on each new edit session
   const { inv, sup } = mergeCorrections(result);
+  const ms = result.matched_supplier || null;
   const stem = result.stem || '';
 
   document.getElementById('data-panel').innerHTML = `
@@ -3707,8 +4147,17 @@ function renderEditData(result) {
           </svg>
           Lookup
         </button>
+        ${S.config && S.config.allow_create_supplier ? `
+        <button class="btn-lookup" onclick="openCreateSupplierModal()" title="Create new supplier from current details" style="margin-left:4px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Create
+        </button>` : ''}
       </div>
       <div class="kv-grid">
+        ${kvE('Supplier ID',  'edit-supplier_id',      _lookupSupplierId || (ms && ms.supplier_id) || '', true)}
         ${kvE('Name',         'edit-supplier_name',    sup.name)}
         ${kvE('ABN / Tax ID', 'edit-supplier_abn',     sup.abn)}
         ${kvE('Email',        'edit-supplier_email',   sup.email)}
@@ -3751,16 +4200,40 @@ function renderEditData(result) {
       <button class="btn-add-row" onclick="addLineItem()">+ Add Line Item</button>
     </div>
 
+    ${customFieldsEditCard(inv)}
     ${notesCard(result)}
     <div style="height:10px"></div>
   `;
 }
 
+function customFieldsEditCard(inv) {
+  const cf = inv.custom_fields || {};
+  const entries = Object.entries(cf);
+  if (!entries.length) return '';
+  const title = inv.custom_fields_title || 'Custom Fields';
+  const items = entries.map(([k, v]) => {
+    const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return kvE(label, `edit-cf-${esc(k)}`, v);
+  }).join('');
+  return `<div class="card">
+    <div class="card-header">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      ${esc(title)}
+    </div>
+    <div class="kv-grid">${items}</div>
+  </div>`;
+}
+
 // Edit-mode kv helpers (input fields instead of read-only values)
-function kvE(label, id, value) {
+function kvE(label, id, value, readOnly=false) {
+  const roAttr = readOnly ? 'readonly style="background:var(--bg);color:var(--muted)"' : '';
   return `<div class="kv-item">
     <div class="kv-label">${esc(label)}</div>
-    <input id="${id}" class="edit-input" value="${esc(String(value ?? ''))}">
+    <input id="${id}" class="edit-input" value="${esc(String(value ?? ''))}" ${roAttr}>
   </div>`;
 }
 function kvEWide(label, id, value) {
@@ -3855,16 +4328,22 @@ function setPanel(name) {
 })();
 
 // ════════════════════════════════════════════════════════════════════════════
-// PDF pan (drag-to-scroll) + shift-wheel horizontal scroll
+// PDF pan (drag-to-scroll) + shift-wheel horizontal scroll + ctrl-wheel zoom
 // ════════════════════════════════════════════════════════════════════════════
 (function() {
   const panel = document.getElementById('pdf-panel');
   
   // Shift+scroll → horizontal pan
+  // Ctrl+scroll → zoom in/out
   panel.addEventListener('wheel', e => {
     if (e.shiftKey) {
       e.preventDefault();
       panel.scrollLeft += e.deltaY;
+    } else if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      // Zoom: negative deltaY = scroll up = zoom in, positive = zoom out
+      const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
+      updateZoom(zoomDelta);
     }
   }, { passive: false });
 })();
@@ -3958,6 +4437,167 @@ function toggleTheme() {
 
 // Initialize theme immediately to prevent flash
 initTheme();
+
+// ════════════════════════════════════════════════════════════════════════════
+// Auth — show logout button when a session is active
+// ════════════════════════════════════════════════════════════════════════════
+(async function initAuth() {
+  try {
+    const r = await fetch('/api/auth/me').then(r => r.json());
+    S.config = r.config || {};
+    if (r.user) {
+      const form = document.getElementById('logout-form');
+      document.getElementById('logout-label').textContent = `${r.user.username} · Sign out`;
+      form.style.display = '';
+    }
+  } catch (_) {}
+})();
+
+// ════════════════════════════════════════════════════════════════════════════
+// Keyboard shortcuts
+// ════════════════════════════════════════════════════════════════════════════
+
+document.addEventListener('keydown', e => {
+  // Ignore if in an input/textarea (except for / and ? which work anywhere)
+  const target = e.target;
+  const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+  
+  // ? - Show keyboard shortcuts help (works anywhere)
+  if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    showShortcutsHelp();
+    return;
+  }
+  
+  // / - Focus search (works anywhere)
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    document.getElementById('search-input')?.focus();
+    showToast('Search focused', 'info', 1500);
+    return;
+  }
+  
+  // Ignore other shortcuts if in an input
+  if (isInput) return;
+  
+  // Don't intercept if modal is open
+  const modalOpen = document.querySelector('.modal-overlay:not(.hidden)') || 
+                    document.getElementById('supplier-modal') ||
+                    document.getElementById('create-supplier-modal');
+  if (modalOpen) return;
+  
+  const stem = S.selected;
+  
+  switch (e.key.toLowerCase()) {
+    case 'e':
+      // Edit mode
+      if (stem && !S.editing && S.currentResult?.status !== 'exported') {
+        e.preventDefault();
+        enterEditMode();
+        showToast('Edit mode', 'info', 1500);
+      }
+      break;
+      
+    case 's':
+      // Mark as Ready
+      if (stem && !S.editing && S.currentResult?.status !== 'exported') {
+        e.preventDefault();
+        updateStatus(stem, 'ready');
+        showToast('Marked as Ready', 'success', 1500);
+      }
+      break;
+      
+    case 'f':
+      // Flag for review (needs_review)
+      if (stem && !S.editing && S.currentResult?.status !== 'exported') {
+        e.preventDefault();
+        updateStatus(stem, 'needs_review');
+        showToast('Flagged for review', 'warning', 1500);
+      }
+      break;
+      
+    case 'x':
+      // Export
+      if (stem && !S.editing && S.currentResult?.status === 'ready') {
+        e.preventDefault();
+        exportInvoice(stem);
+        // Toast shown by exportInvoice function
+      }
+      break;
+      
+    case 'r':
+      // Reprocess
+      if (stem && !S.editing && S.currentResult?.status !== 'exported') {
+        e.preventDefault();
+        if (confirm('Reprocess this invoice? All corrections will be lost.')) {
+          reprocessInvoice(stem);
+        }
+      }
+      break;
+      
+    case 'n':
+      // Focus notes field
+      if (stem && !S.editing) {
+        e.preventDefault();
+        document.getElementById('notes-area')?.focus();
+        showToast('Notes focused', 'info', 1500);
+      }
+      break;
+      
+    case 'escape':
+      // Exit edit mode or close panels
+      if (S.editing) {
+        e.preventDefault();
+        cancelEdit();
+        showToast('Edit cancelled', 'info', 1500);
+      }
+      break;
+  }
+});
+
+function showShortcutsHelp() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'shortcuts-help-modal';
+  modal.innerHTML = `
+    <div class="modal-dialog" style="max-width:480px">
+      <div class="modal-header">
+        <span style="font-weight:600;font-size:14px">⌨️ Keyboard Shortcuts</span>
+        <button class="btn-sm" onclick="document.getElementById('shortcuts-help-modal').remove()" style="margin-left:auto">✕</button>
+      </div>
+      <div class="modal-body" style="padding:16px">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:12px 24px;font-size:13px;line-height:1.6">
+          <div style="font-weight:600;color:var(--accent)">Navigation</div><div></div>
+          <kbd>↑</kbd> <div>Previous invoice</div>
+          <kbd>↓</kbd> <div>Next invoice</div>
+          <kbd>Enter</kbd> <div>Select invoice</div>
+          <kbd>/</kbd> <div>Focus search</div>
+          
+          <div style="font-weight:600;color:var(--accent);margin-top:8px">Actions</div><div></div>
+          <kbd>e</kbd> <div>Edit mode</div>
+          <kbd>s</kbd> <div>Mark as Ready</div>
+          <kbd>f</kbd> <div>Flag for review</div>
+          <kbd>x</kbd> <div>Export invoice</div>
+          <kbd>r</kbd> <div>Reprocess</div>
+          <kbd>n</kbd> <div>Focus notes field</div>
+          <kbd>Esc</kbd> <div>Cancel edit / close</div>
+          
+          <div style="font-weight:600;color:var(--accent);margin-top:8px">PDF Viewer</div><div></div>
+          <kbd>Ctrl + Scroll</kbd> <div>Zoom in/out</div>
+          <kbd>Shift + Scroll</kbd> <div>Horizontal scroll</div>
+          
+          <div style="font-weight:600;color:var(--accent);margin-top:8px">Help</div><div></div>
+          <kbd>?</kbd> <div>Show this help</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('shortcuts-help-modal').remove()">Close</button>
+      </div>
+    </div>
+  `;
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // Boot

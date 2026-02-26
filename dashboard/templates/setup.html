@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Initial Setup — Parsely</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20 C12 18 12 16 12 14 C12 12 12 10 13 8' fill='none'/%3E%3Cpath d='M12 15 C9 15 7 13 7 10 C7 7 9 5 12 6 C11 8 10 10 11 12 C12 13 13 14 12 15Z' fill='%2316a34a' stroke='none' opacity='0.9'/%3E%3Cpath d='M12 12 C15 12 17 10 17 7 C17 4 15 3 12 4 C13 6 14 8 13 10 C12 11 11 11 12 12Z' fill='%2316a34a' stroke='none' opacity='0.9'/%3E%3Cpath d='M13 8 C11 6 12 4 14 3 C15 4 15 6 13 8Z' fill='%2316a34a' stroke='none'/%3E%3Cpath d='M11 13 C9 12 9 10 10 9 C11 10 12 12 11 13Z' fill='%2316a34a' stroke='none' opacity='0.7'/%3E%3Cpath d='M13 10 C15 9 15 7 14 6 C13 7 12 9 13 10Z' fill='%2316a34a' stroke='none' opacity='0.7'/%3E%3C/svg%3E">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:        #f0f2f5;
+  --card:      #ffffff;
+  --border:    #e2e6ea;
+  --text:      #1c2533;
+  --muted:     #6b7280;
+  --ok:        #16a34a;
+  --ok-bg:     #dcfce7;
+  --err:       #dc2626;
+  --err-bg:    #fee2e2;
+  --accent:    #3b5bdb;
+  --radius:    8px;
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:        #0f172a;
+    --card:      #1e293b;
+    --border:    #334155;
+    --text:      #e2e8f0;
+    --muted:     #94a3b8;
+    --ok-bg:     rgba(22, 163, 74, 0.2);
+    --err-bg:    rgba(220, 38, 38, 0.2);
+    --shadow-md: 0 4px 6px rgba(0,0,0,.4), 0 2px 4px rgba(0,0,0,.3);
+  }
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.login-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 40px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.brand-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+h1 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.alert {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.alert-error {
+  background: var(--err-bg);
+  color: var(--err);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 6px;
+}
+
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59, 91, 219, 0.12);
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+button[type="submit"] {
+  width: 100%;
+  padding: 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: opacity 0.15s;
+}
+
+button[type="submit"]:hover { opacity: 0.88; }
+button[type="submit"]:active { opacity: 0.78; }
+</style>
+</head>
+<body>
+<div class="login-card">
+  <div class="brand">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 20 C12 18 12 16 12 14 C12 12 12 10 13 8" fill="none"/>
+      <path d="M12 15 C9 15 7 13 7 10 C7 7 9 5 12 6 C11 8 10 10 11 12 C12 13 13 14 12 15Z" fill="#16a34a" stroke="none" opacity="0.9"/>
+      <path d="M12 12 C15 12 17 10 17 7 C17 4 15 3 12 4 C13 6 14 8 13 10 C12 11 11 11 12 12Z" fill="#16a34a" stroke="none" opacity="0.9"/>
+      <path d="M13 8 C11 6 12 4 14 3 C15 4 15 6 13 8Z" fill="#16a34a" stroke="none"/>
+    </svg>
+    <div>
+      <div class="brand-text">Parsely</div>
+      <div class="brand-sub">Invoice Processing</div>
+    </div>
+  </div>
+
+  <h1>Create admin account</h1>
+  <p class="subtitle">Set a password to secure this dashboard. You can add more users in <code>config/users.json</code> afterwards.</p>
+
+  <div id="alert-box"></div>
+
+  <form method="post" action="/setup">
+    <div class="field">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" value="admin"
+             autocomplete="username" autocapitalize="none" autocorrect="off" required>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password"
+             autocomplete="new-password" required>
+      <div class="hint">Minimum 8 characters</div>
+    </div>
+    <div class="field">
+      <label for="confirm">Confirm password</label>
+      <input type="password" id="confirm" name="confirm"
+             autocomplete="new-password" required>
+    </div>
+    <button type="submit">Create account &amp; sign in</button>
+  </form>
+</div>
+
+<script>
+(function () {
+  var error = new URLSearchParams(window.location.search).get('error');
+  var messages = {
+    mismatch:  'Passwords do not match.',
+    tooshort:  'Password must be at least 8 characters.',
+    unavailable: 'Setup is not available — an admin account already exists.',
+  };
+  var msg = messages[error];
+  if (msg) {
+    document.getElementById('alert-box').innerHTML =
+      '<div class="alert alert-error">' + msg + '</div>';
+  }
+})();
+</script>
+</body>
+</html>

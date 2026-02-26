@@ -39,9 +39,11 @@ class InvoiceValidator:
         self,
         max_days_past: int = MAX_DAYS_IN_PAST,
         max_days_future: int = MAX_DAYS_IN_FUTURE,
+        arithmetic_tolerance: float = ARITHMETIC_TOLERANCE,
     ):
         self.max_days_past = max_days_past
         self.max_days_future = max_days_future
+        self.arithmetic_tolerance = arithmetic_tolerance
 
     def validate(
         self,
@@ -142,7 +144,7 @@ class InvoiceValidator:
 
     def _check_arithmetic(self, inv: ExtractedInvoice) -> list[Discrepancy]:
         issues = []
-        tol = ARITHMETIC_TOLERANCE
+        tol = self.arithmetic_tolerance
 
         # Sum of line item totals vs subtotal
         if inv.line_items and inv.subtotal is not None:

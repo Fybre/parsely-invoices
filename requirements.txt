@@ -25,6 +25,10 @@ pdfplumber>=0.10.0
 # Docling uses pandas internally for export_to_dataframe()
 pandas>=2.0.0
 
+# ── LLM response handling ───────────────────────────────────────────────────
+# Robust JSON repair for malformed/truncated LLM output
+json-repair>=0.28.0
+
 # ── Dashboard ───────────────────────────────────────────────────────────────
 # Web server for the visualisation dashboard
 fastapi>=0.100.0
@@ -32,3 +36,6 @@ uvicorn[standard]>=0.23.0
 python-multipart>=0.0.9   # required for FastAPI file upload (UploadFile)
 # PDF-to-image rendering (uses poppler-utils, already installed in the Docker image)
 pdf2image>=1.16.0
+# Authentication
+bcrypt>=4.0.0             # password hashing for dashboard auth
+itsdangerous>=2.1.0       # signed session cookies (explicit; transitive dep of Starlette)

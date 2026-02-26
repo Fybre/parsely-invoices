@@ -78,6 +78,19 @@ CREATE INDEX IF NOT EXISTS idx_invoices_status       ON invoices (status);
 CREATE INDEX IF NOT EXISTS idx_invoices_processed_at ON invoices (processed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_invoices_supplier     ON invoices (supplier_name);
 CREATE INDEX IF NOT EXISTS idx_invoices_invoice_num  ON invoices (invoice_number);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    stem        TEXT    NOT NULL,
+    timestamp   TEXT    NOT NULL,   -- ISO-8601 UTC
+    action      TEXT    NOT NULL,   -- processed | processing_failed | status_changed |
+                                    -- corrections_saved | notes_updated | exported | deleted
+    actor       TEXT    NOT NULL DEFAULT 'system',  -- username, 'system', or 'anonymous'
+    detail      TEXT                -- optional JSON blob with action-specific context
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_stem      ON audit_log (stem);
+CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log (timestamp DESC);
 """
 
 
@@ -218,6 +231,7 @@ class Database:
             )
 
         logger.info("DB upserted: %s  status=%s", stem, status)
+        self.log_audit(stem, "processed", actor="system", detail={"status": status})
         return status
 
     def record_failure(
@@ -265,6 +279,7 @@ class Database:
                     source_mtime,
                 ),
             )
+        self.log_audit(stem, "processing_failed", actor="system", detail={"error": error[:300]})
 
     def update_status(self, stem: str, status: str) -> bool:
         """
@@ -306,6 +321,27 @@ class Database:
                 (notes, stem),
             )
             return conn.execute("SELECT changes()").fetchone()[0] > 0
+
+    def log_audit(
+        self,
+        stem: str,
+        action: str,
+        actor: str = "system",
+        detail: Optional[dict] = None,
+    ) -> None:
+        """Append one entry to the audit log."""
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT INTO audit_log (stem, timestamp, action, actor, detail)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (
+                    stem,
+                    datetime.now(timezone.utc).isoformat(),
+                    action,
+                    actor,
+                    json.dumps(detail) if detail is not None else None,
+                ),
+            )
 
     def reset_for_reprocess(self, stem: str) -> bool:
         """
@@ -436,3 +472,27 @@ class Database:
                 """
             ).fetchone()
         return dict(row) if row else {}
+
+    def get_audit_log(self, stem: str) -> list[dict]:
+        """Return all audit entries for one invoice, oldest first."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                """SELECT id, timestamp, action, actor, detail
+                   FROM audit_log WHERE stem = ?
+                   ORDER BY timestamp ASC, id ASC""",
+                (stem,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_recent_audit_log(self, limit: int = 200, offset: int = 0) -> list[dict]:
+        """Return recent audit entries across all invoices, newest first."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                """SELECT id, stem, timestamp, action, actor, detail
+                   FROM audit_log
+                   ORDER BY timestamp DESC, id DESC
+                   LIMIT ? OFFSET ?""",
+                (limit, offset),
+            ).fetchall()
+        return [dict(r) for r in rows]
+

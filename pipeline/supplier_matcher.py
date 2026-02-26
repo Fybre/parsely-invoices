@@ -102,6 +102,7 @@ class SupplierMatcher:
                         match_method="abn_exact",
                         confidence=1.0,
                         abn=s.abn,
+                        matched_on={"field": "abn", "value": supplier_info.abn or supplier_info.acn},
                     )
 
         # 2. Name exact match (case-insensitive)
@@ -116,6 +117,7 @@ class SupplierMatcher:
                         match_method="name_exact",
                         confidence=0.95,
                         abn=s.abn,
+                        matched_on={"field": "name", "value": supplier_info.name},
                     )
 
         # 3. Fuzzy name match
@@ -137,6 +139,7 @@ class SupplierMatcher:
                         match_method="email_domain",
                         confidence=0.7,
                         abn=s.abn,
+                        matched_on={"field": "email_domain", "value": invoice_domain},
                     )
 
         logger.info("No supplier match found for: %s (ABN: %s)", supplier_info.name, invoice_abn)
@@ -173,6 +176,7 @@ class SupplierMatcher:
                 match_method="name_fuzzy",
                 confidence=confidence,
                 abn=best_supplier.abn,
+                matched_on={"field": "name", "value": invoice_name, "fuzzy_score": confidence},
             )
 
         logger.debug("Best fuzzy match score was %d (threshold=%d)", best_score, FUZZY_THRESHOLD)

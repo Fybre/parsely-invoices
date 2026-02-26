@@ -254,5 +254,73 @@ def watch(
     processor.watch_directory(directory, interval=config.poll_interval_seconds)
 
 
+# --------------------------------------------------------------------
+# backup command
+# --------------------------------------------------------------------
+
+@cli.command()
+@click.argument("destination", type=click.Path(), default="backups")
+@click.pass_context
+def backup(ctx: click.Context, destination: str) -> None:
+    """
+    Create a timestamped backup of the database, config, and data files.
+    """
+    import zipfile
+    import sqlite3
+    from datetime import datetime
+    
+    config = Config()
+    dest_dir = Path(destination)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    zip_name = f"parsely_backup_{timestamp}.zip"
+    zip_path = dest_dir / zip_name
+    
+    click.echo(f"Creating backup: {zip_path}")
+    
+    try:
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # 1. Backup Database (safely)
+            if config.db_path.exists():
+                click.echo("  + Database (safe copy)...")
+                # Create a temporary in-memory backup to avoid locking issues
+                temp_db = dest_dir / f"temp_{timestamp}.db"
+                try:
+                    src_conn = sqlite3.connect(config.db_path)
+                    dst_conn = sqlite3.connect(temp_db)
+                    with dst_conn:
+                        src_conn.backup(dst_conn)
+                    src_conn.close()
+                    dst_conn.close()
+                    zipf.write(temp_db, arcname="output/pipeline.db")
+                finally:
+                    if temp_db.exists():
+                        temp_db.unlink()
+            
+            # 2. Backup Config
+            config_dir = Path(os.getenv("CONFIG_DIR", str(PROJECT_ROOT / "config")))
+            if config_dir.exists():
+                click.echo("  + Configuration files...")
+                for f in config_dir.glob("*"):
+                    if f.is_file() and f.suffix != ".bak":
+                        zipf.write(f, arcname=f"config/{f.name}")
+            
+            # 3. Backup Data (CSVs)
+            data_dir = Path(os.getenv("DATA_DIR", str(PROJECT_ROOT / "data")))
+            if data_dir.exists():
+                click.echo("  + Data files (CSVs)...")
+                for f in data_dir.glob("*.csv"):
+                    zipf.write(f, arcname=f"data/{f.name}")
+
+        click.echo(f"\n✓ Backup successful: {zip_name}")
+        
+    except Exception as e:
+        click.echo(f"\n✗ Backup failed: {e}", err=True)
+        if zip_path.exists():
+            zip_path.unlink()
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     cli()

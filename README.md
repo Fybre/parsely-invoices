@@ -252,6 +252,70 @@ Access the admin page at **http://localhost:8080/admin** to manage reference dat
 
 ---
 
+## Authentication
+
+The dashboard ships with auth disabled by default. Three modes are available via the `AUTH_MODE` environment variable:
+
+| Mode | Behaviour |
+|---|---|
+| `disabled` | No login required — open access (default) |
+| `admin_only` | Main dashboard is open; `/admin` and all `/api/admin/*` routes require an `admin` role |
+| `full` | All routes require login; admin routes additionally require the `admin` role |
+
+### Roles
+
+| Role | Access |
+|---|---|
+| `admin` | Dashboard + admin page |
+| `user` | Dashboard only |
+
+### Setup
+
+**1. Set environment variables** (in `.env` or `docker-compose.yml`):
+
+```bash
+AUTH_MODE=full
+AUTH_SECRET_KEY=replace-with-a-long-random-string
+AUTH_SESSION_MINUTES=480   # optional, default 8 hours
+```
+
+**2. Restart the dashboard**
+
+```bash
+docker compose restart dashboard
+```
+
+**3. Open the dashboard** — you'll be redirected to a one-time setup page to create the admin account. Enter a username and password; you'll be logged in immediately and the hash is written to `config/users.json` automatically.
+
+#### Adding more users manually
+
+Edit `config/users.json` directly. Generate a bcrypt hash for each password:
+
+```bash
+docker compose run --rm dashboard python3 -c \
+  "import bcrypt; print(bcrypt.hashpw(b'yourpassword', bcrypt.gensalt()).decode())"
+```
+
+```json
+{
+  "users": [
+    { "username": "admin",    "password_hash": "$2b$12$...", "role": "admin" },
+    { "username": "operator", "password_hash": "$2b$12$...", "role": "user"  }
+  ]
+}
+```
+
+Restart the dashboard to pick up user changes.
+
+### Notes
+
+- Sessions are signed cookies using `itsdangerous`. Set `AUTH_SECRET_KEY` to a strong random string — if left empty, a warning is logged and session security is degraded.
+- The `/api/health` endpoint and the login/logout routes are always public.
+- API endpoints (paths starting with `/api/`) return JSON `401`/`403` responses for unauthenticated or unauthorised requests, making them suitable for scripted access.
+- Users are loaded from `config/users.json` at startup. Restart the dashboard to pick up user changes.
+
+---
+
 ## Project Structure
 
 ```
@@ -266,7 +330,8 @@ parsely-invoices/
 │
 ├── config/                      Operator-editable config (mounted into container)
 │   ├── custom_fields.json       Site-specific extraction fields
-│   └── column_keys.json         Column header synonyms for table extraction
+│   ├── column_keys.json         Column header synonyms for table extraction
+│   └── users.json               Dashboard user accounts (bcrypt-hashed passwords)
 │
 ├── pipeline/
 │   ├── extractor.py             Docling + pdfplumber PDF extraction
@@ -287,7 +352,9 @@ parsely-invoices/
 ├── dashboard/
 │   ├── app.py                   FastAPI backend
 │   ├── templates/index.html     Single-page dashboard UI
-│   └── templates/admin.html     Admin page for CSV/data management
+│   ├── templates/admin.html     Admin page for CSV/data management
+│   ├── templates/login.html     Login form (shown when auth is enabled)
+│   └── templates/setup.html     First-run admin account creation
 │
 ├── data/                        Reference CSVs (gitignored — add your own)
 │   ├── suppliers.csv

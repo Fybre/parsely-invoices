@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Invoice export template — customise this file to match your target system.
+  Template engine : Jinja2  (https://jinja.palletsprojects.com/)
+  Location        : config/export_template.xml.j2  (operator-editable, volume-mounted)
+
+  Values are XML-escaped automatically.  Use | safe only for trusted content.
+  Omit the | safe filter on user-supplied strings to avoid injection.
+
+  Top-level variables available in every export:
+    stem                 — invoice filename stem (no extension)
+    exported_at          — ISO-8601 UTC timestamp
+    pdf_file             — relative filename of the accompanying PDF  (e.g. invoice_abc.pdf)
+    corrections_applied  — Python bool (renders as True/False; use | string | lower for xml)
+    operator_notes       — free-text note added in the dashboard, may be None/empty
+    matched_supplier     — dict: supplier_id, supplier_name, match_method, confidence
+    extracted_invoice    — dict: invoice fields + supplier sub-dict + line_items list
+    matched_pos          — list of matched purchase order dicts
+
+  Tips:
+    - Use {% if value %} ... {% endif %} to omit empty elements.
+    - Use {{ value | default('') }} to output an empty string when a value is missing.
+    - Numeric fields (subtotal, tax_amount, total, quantity, unit_price, line_total)
+      may be None when the pipeline could not extract a value.
+    - matched_supplier may be None for invoices with no supplier match.
+-->
+<Invoice>
+
+  <Meta>
+    <Stem>{{ stem }}</Stem>
+    <ExportedAt>{{ exported_at }}</ExportedAt>
+    <PdfFile>{{ pdf_file }}</PdfFile>
+    <CorrectionsApplied>{{ corrections_applied | string | lower }}</CorrectionsApplied>
+    {% if operator_notes %}<OperatorNotes>{{ operator_notes }}</OperatorNotes>
+    {% endif %}
+  </Meta>
+
+  {% set ms  = matched_supplier or {} %}
+  {% set inv = extracted_invoice or {} %}
+  {% set s   = inv.supplier or {} %}
+  <Supplier>
+    {% if ms.supplier_id %}<Id>{{ ms.supplier_id }}</Id>
+    {% endif %}
+    <Name>{{ ms.supplier_name or s.name or '' }}</Name>
+    {% if s.abn %}<ABN>{{ s.abn }}</ABN>
+    {% endif %}
+    {% if s.acn %}<ACN>{{ s.acn }}</ACN>
+    {% endif %}
+    {% if s.email %}<Email>{{ s.email }}</Email>
+    {% endif %}
+    {% if s.phone %}<Phone>{{ s.phone }}</Phone>
+    {% endif %}
+    {% if s.address %}<Address>{{ s.address }}</Address>
+    {% endif %}
+    {% if ms.match_method %}<MatchMethod>{{ ms.match_method }}</MatchMethod>
+    {% endif %}
+  </Supplier>
+
+  <InvoiceDetails>
+    {% if inv.invoice_number %}<InvoiceNumber>{{ inv.invoice_number }}</InvoiceNumber>
+    {% endif %}
+    {% if inv.invoice_date %}<InvoiceDate>{{ inv.invoice_date }}</InvoiceDate>
+    {% endif %}
+    {% if inv.due_date %}<DueDate>{{ inv.due_date }}</DueDate>
+    {% endif %}
+    {% if inv.po_number %}<PONumber>{{ inv.po_number }}</PONumber>
+    {% endif %}
+    {% if inv.currency %}<Currency>{{ inv.currency }}</Currency>
+    {% endif %}
+    {% if inv.subtotal is not none %}<Subtotal>{{ inv.subtotal }}</Subtotal>
+    {% endif %}
+    {% if inv.tax_amount is not none %}<TaxAmount>{{ inv.tax_amount }}</TaxAmount>
+    {% endif %}
+    {% if inv.total is not none %}<Total>{{ inv.total }}</Total>
+    {% endif %}
+  </InvoiceDetails>
+
+  {% if inv.line_items %}
+  <LineItems>
+    {% for item in inv.line_items %}
+    <LineItem number="{{ item.line_number | default(loop.index) }}">
+      {% if item.description %}<Description>{{ item.description }}</Description>
+      {% endif %}
+      {% if item.sku %}<SKU>{{ item.sku }}</SKU>
+      {% endif %}
+      {% if item.quantity is not none %}<Quantity>{{ item.quantity }}</Quantity>
+      {% endif %}
+      {% if item.unit_price is not none %}<UnitPrice>{{ item.unit_price }}</UnitPrice>
+      {% endif %}
+      {% if item.line_total is not none %}<LineTotal>{{ item.line_total }}</LineTotal>
+      {% endif %}
+    </LineItem>
+    {% endfor %}
+  </LineItems>
+  {% endif %}
+
+  {% if inv.custom_fields %}
+  <CustomFields>
+    {% for key, value in inv.custom_fields.items() %}
+    <Field name="{{ key }}">{{ value }}</Field>
+    {% endfor %}
+  </CustomFields>
+  {% endif %}
+
+</Invoice>

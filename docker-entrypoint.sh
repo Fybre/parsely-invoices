@@ -27,6 +27,9 @@
 # =============================================================================
 set -e
 
+# Ensure configuration files exist in the mounted volume
+python3 bootstrap.py
+
 # If any arguments were supplied, forward them directly and exit.
 if [ "$#" -gt 0 ]; then
     exec python main.py "$@"

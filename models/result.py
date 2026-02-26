@@ -80,6 +80,7 @@ class MatchedSupplier(BaseModel):
     match_method: str                       # e.g. "abn_exact", "name_fuzzy"
     confidence: float                       # 0-1
     abn: Optional[str] = None
+    matched_on: Optional[dict] = None       # Details of what field was matched: {field, value, fuzzy_score?}
 
 
 class InvoiceProcessingResult(BaseModel):

@@ -37,6 +37,7 @@ from .llm_parser import LLMParser
 from .supplier_matcher import SupplierMatcher
 from .po_matcher import POMatcher
 from .validator import InvoiceValidator
+from .backup import BackupService
 
 logger = logging.getLogger(__name__)
 
@@ -97,10 +98,14 @@ class InvoiceProcessor:
         )
         self.supplier_matcher = SupplierMatcher(self.config.suppliers_csv)
         self.po_matcher = POMatcher(self.config.po_csv, self.config.po_lines_csv)
+        self._csv_mtimes = self._current_csv_mtimes()
         self.validator = InvoiceValidator(
             max_days_past=self.config.max_invoice_age_days,
             max_days_future=self.config.max_future_days,
+            arithmetic_tolerance=self.config.arithmetic_tolerance,
         )
+        self.backup_service = BackupService(self.config)
+        self._last_backup_run = self.backup_service.get_last_backup_time()
 
     # ------------------------------------------------------------------
     # Public API
@@ -218,6 +223,7 @@ class InvoiceProcessor:
             logger.warning("No PDF files found in %s", directory)
             return []
 
+        self._reload_matchers_if_changed()
         logger.info("Batch processing %d invoices from %s", len(pdfs), directory)
         results = []
         for i, pdf in enumerate(pdfs, 1):
@@ -289,6 +295,8 @@ class InvoiceProcessor:
         try:
             while not _shutdown["requested"]:
                 scan_start = time.monotonic()
+                self._run_periodic_backup()
+                self._reload_matchers_if_changed()
                 new_pdfs = self._find_new_pdfs(directory)
 
                 if new_pdfs:
@@ -334,6 +342,38 @@ class InvoiceProcessor:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _current_csv_mtimes(self) -> dict[str, float]:
+        """Return a mtime snapshot for all three CSV data files."""
+        paths = [self.config.suppliers_csv, self.config.po_csv, self.config.po_lines_csv]
+        return {str(p): p.stat().st_mtime for p in paths if p.exists()}
+
+    def _reload_matchers_if_changed(self) -> None:
+        """Reload supplier and PO matchers if any CSV file has changed on disk."""
+        current = self._current_csv_mtimes()
+        if current == self._csv_mtimes:
+            return
+        changed = [p for p in current if current[p] != self._csv_mtimes.get(p)]
+        logger.info("CSV file(s) changed, reloading matchers: %s", changed)
+        self.supplier_matcher = SupplierMatcher(self.config.suppliers_csv)
+        self.po_matcher = POMatcher(self.config.po_csv, self.config.po_lines_csv)
+        self._csv_mtimes = current
+
+    def _run_periodic_backup(self) -> None:
+        """Trigger an automated backup if the interval has elapsed."""
+        if not self.config.backup_enabled:
+            return
+
+        now = datetime.now()
+        interval = self.config.backup_interval_hours
+        
+        # If no last backup or interval elapsed, run now
+        if not self._last_backup_run or (now - self._last_backup_run).total_seconds() >= (interval * 3600):
+            try:
+                self.backup_service.create_backup()
+                self._last_backup_run = now
+            except Exception as e:
+                logger.error("Automated backup failed: %s", e)
 
     def _find_new_pdfs(self, directory: Path) -> list[Path]:
         """

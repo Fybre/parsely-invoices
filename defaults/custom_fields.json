@@ -1,0 +1,14 @@
+{
+  "_comment": "Add your custom field definitions to the 'fields' list below.",
+  "section_title": "Additional Fields",
+  "fields": [
+    {
+      "name": "example_field",
+      "label": "Example Field",
+      "regex": "(?:example[:\s#]*)(\d+)",
+      "table_keys": ["example ref"],
+      "llm_hint": "An example field showing how to use regex and hints",
+      "enabled": false
+    }
+  ]
+}

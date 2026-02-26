@@ -215,7 +215,8 @@ class POMatcher:
             for i, po_line in enumerate(po_lines):
                 if i in used:
                     continue
-                score = fuzz.token_sort_ratio(inv_desc, po_line.description.lower())
+                po_desc = (po_line.description or "").lower()
+                score = fuzz.token_sort_ratio(inv_desc, po_desc)
                 if score > best_score:
                     best_score = score
                     best_idx = i
@@ -225,9 +226,10 @@ class POMatcher:
             # Fall back to simple substring check
             for i, po_line in enumerate(po_lines):
                 if i in used:
-                    desc = po_line.description.lower()
-                    if inv_desc in desc or desc in inv_desc:
-                        return i, po_line, 80.0
+                    continue
+                desc = (po_line.description or "").lower()
+                if inv_desc in desc or desc in inv_desc:
+                    return i, po_line, 80.0
 
         return None
 
