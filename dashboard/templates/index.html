@@ -2216,6 +2216,10 @@ function fitToWidthIcon() {
 
 async function renderPdf(result, hasPages) {
   const panel = document.getElementById('pdf-panel');
+  
+  // Clear any existing PDF document to prevent stale renders
+  PDF.doc = null;
+  
   if (PDF.currentStem !== result.stem) {
     PDF.currentStem = result.stem;
     // Use saved zoom or default
@@ -2267,15 +2271,17 @@ async function renderPdf(result, hasPages) {
   try {
     const loadingTask = pdfjsLib.getDocument(pdfUrl);
     PDF.doc = await loadingTask.promise;
-    renderPages();
+    renderPages(PDF.currentStem);
   } catch (e) {
     console.error("PDF.js loading failed", e);
     panel.innerHTML = `<div class="pdf-placeholder"><p>Failed to load PDF viewer: ${esc(e.message)}</p></div>`;
   }
 }
 
-async function renderPages() {
+async function renderPages(expectedStem) {
   const viewer = document.getElementById('viewer-pages');
+  // Guard against stale renders - only render if stem matches (or no specific stem expected)
+  if (expectedStem && PDF.currentStem !== expectedStem) return;
   if (!viewer || !PDF.doc) return;
   viewer.innerHTML = '';
 
@@ -2354,7 +2360,7 @@ function updateZoom(delta) {
   // Save to localStorage
   localStorage.setItem('pdf-zoom', Math.round(PDF.zoom * 100));
   
-  renderPages().then(() => {
+  renderPages(PDF.currentStem).then(() => {
     // Restore scroll position to maintain center point
     if (container) {
       const newCenterX = scrollRatioX * container.scrollWidth;
@@ -2418,7 +2424,7 @@ async function fitToWidth() {
   localStorage.setItem('pdf-zoom', Math.round(PDF.zoom * 100));
   
   // Re-render pages
-  await renderPages();
+  await renderPages(PDF.currentStem);
   
   // Update zoom label
   const label = document.querySelector('.zoom-label');
