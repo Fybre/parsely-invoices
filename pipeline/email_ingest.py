@@ -7,6 +7,7 @@ import imaplib
 import logging
 import os
 import re
+from email.message import Message
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -132,7 +133,7 @@ class EmailIngestService:
                 except:
                     pass
 
-    def _extract_attachments(self, msg: email.message.Message) -> int:
+    def _extract_attachments(self, msg: Message) -> int:
         """
         Walk through email parts and save any PDF attachments.
         Returns count of PDFs saved from this specific email.
