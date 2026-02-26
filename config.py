@@ -124,6 +124,38 @@ class Config:
         default_factory=lambda: int(os.getenv("BACKUP_RETENTION_COUNT", "7"))
     )
 
+    # --- Email Ingestion settings ---
+    email_ingest_enabled: bool = field(
+        default_factory=lambda: os.getenv("EMAIL_INGEST_ENABLED", "false").lower() == "true"
+    )
+    email_imap_host: Optional[str] = field(
+        default_factory=lambda: os.getenv("EMAIL_IMAP_HOST")
+    )
+    email_imap_port: int = field(
+        default_factory=lambda: int(os.getenv("EMAIL_IMAP_PORT", "993"))
+    )
+    email_imap_user: Optional[str] = field(
+        default_factory=lambda: os.getenv("EMAIL_IMAP_USER")
+    )
+    email_imap_password: Optional[str] = field(
+        default_factory=lambda: os.getenv("EMAIL_IMAP_PASSWORD")
+    )
+    email_use_ssl: bool = field(
+        default_factory=lambda: os.getenv("EMAIL_USE_SSL", "true").lower() != "false"
+    )
+    email_mailbox: str = field(
+        default_factory=lambda: os.getenv("EMAIL_MAILBOX", "INBOX")
+    )
+    email_search_criteria: str = field(
+        default_factory=lambda: os.getenv("EMAIL_SEARCH_CRITERIA", "UNSEEN")
+    )
+    email_processed_mailbox: Optional[str] = field(
+        default_factory=lambda: os.getenv("EMAIL_PROCESSED_MAILBOX")
+    )
+    email_check_interval_minutes: int = field(
+        default_factory=lambda: int(os.getenv("EMAIL_CHECK_INTERVAL_MINUTES", "10"))
+    )
+
     def __post_init__(self) -> None:
         """Overlay runtime-tunable settings from pipeline_settings.json if present."""
         config_dir = Path(os.getenv("CONFIG_DIR", str(PROJECT_ROOT / "config")))
@@ -145,6 +177,16 @@ class Config:
             "backup_enabled":                bool,
             "backup_interval_hours":         int,
             "backup_retention_count":        int,
+            "email_ingest_enabled":          bool,
+            "email_imap_host":               str,
+            "email_imap_port":               int,
+            "email_imap_user":               str,
+            "email_imap_password":           str,
+            "email_use_ssl":                 bool,
+            "email_mailbox":                 str,
+            "email_search_criteria":         str,
+            "email_processed_mailbox":       str,
+            "email_check_interval_minutes":  int,
         }
         try:
             with open(settings_file, encoding="utf-8") as f:

@@ -1846,8 +1846,8 @@ kbd {
       <input type="file" id="upload-input" accept=".pdf" style="display:none" onchange="handleUpload(this)">
     </div>
     <div class="side-tabs">
-      <div class="side-tab active" data-tab="all"          onclick="setTab(null)">All<span class="tab-count" id="tab-count-all">—</span></div>
-      <div class="side-tab"        data-tab="needs_review" onclick="setTab('needs_review')">Review<span class="tab-count" id="tab-count-review">—</span></div>
+      <div class="side-tab"        data-tab="all"          onclick="setTab(null)">All<span class="tab-count" id="tab-count-all">—</span></div>
+      <div class="side-tab active" data-tab="needs_review" onclick="setTab('needs_review')">Review<span class="tab-count" id="tab-count-review">—</span></div>
       <div class="side-tab"        data-tab="ready"        onclick="setTab('ready')">Ready<span class="tab-count" id="tab-count-ready">—</span></div>
       <div class="side-tab"        data-tab="exported"     onclick="setTab('exported')">Done<span class="tab-count" id="tab-count-exported">—</span></div>
     </div>
@@ -1938,11 +1938,11 @@ const S = {
   invoices:         [],    // full list from /api/invoices (for current tab)
   filtered:         [],    // after search filter
   selected:         null,  // stem string
-  activeTab:        null,  // null = all, or 'needs_review'|'ready'|'exported'
+  activeTab:        'needs_review',  // default to review
   lastUpdated:      null,
   pollErrors:       0,
   stats:            {},
-  _autoSelectFirst: false, // set by setTab() — triggers first-item select after next poll
+  _autoSelectFirst: true, // auto-select first item on boot
   editing:          false, // edit mode active
   editLineItems:    [],    // working copy of line items in edit mode
   currentResult:    null,  // last-loaded full result (for edit / re-render)
@@ -3397,10 +3397,11 @@ async function exportInvoice(stem) {
   const prevIndex = S.filtered.findIndex(inv => inv.stem === stem);
   try {
     await api.export(stem);
+    toast(`Exported: ${stem}`, 'success');
     await poll();               // refreshes S.filtered and sidebar counts
     await autoAdvance(stem, prevIndex);
   } catch (e) {
-    alert('Export failed: ' + e.message);
+    toast('Export failed: ' + e.message, 'error');
     if (btn) { btn.disabled = false; btn.textContent = 'Export Invoice'; }
   }
 }
@@ -3449,7 +3450,7 @@ async function exportAll() {
       ${result.errors && result.errors.length ? `<p style="color:var(--err);font-size:11px;margin-top:8px">${result.errors.length} error${result.errors.length !== 1 ? 's' : ''} — check logs.</p>` : ''}
     </div>`;
   } catch (e) {
-    alert('Bulk export failed: ' + e.message);
+    toast('Bulk export failed: ' + e.message, 'error');
     if (btn) { btn.disabled = false; btn.textContent = `Export All Ready (${count})`; }
   }
 }

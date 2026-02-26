@@ -72,6 +72,7 @@ if str(_PIPELINE_DIR) not in sys.path:
 from pipeline.database import Database, STATUS_NEEDS_REVIEW, STATUS_READY  # noqa: E402
 from config import Config  # noqa: E402
 from pipeline.webhook_export import WebhookExportService  # noqa: E402
+from pipeline.email_ingest import EmailIngestService  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +249,99 @@ _SETTINGS_SCHEMA: list[dict] = [
         "max":         100,
         "step":        1,
     },
+    {
+        "key":         "email_ingest_enabled",
+        "group":       "Email Ingestion",
+        "type":        "bool",
+        "ui_type":     "bool",
+        "label":       "Enable Email Ingestion",
+        "description": "Poll a mailbox for new invoices arriving as PDF attachments",
+        "default":     False,
+    },
+    {
+        "key":         "email_imap_host",
+        "group":       "Email Ingestion",
+        "type":        "str",
+        "ui_type":     "long_str",
+        "label":       "IMAP Host",
+        "description": "Hostname of your IMAP server (e.g. imap.gmail.com)",
+        "default":     "",
+    },
+    {
+        "key":         "email_imap_port",
+        "group":       "Email Ingestion",
+        "type":        "int",
+        "label":       "IMAP Port",
+        "description": "IMAP server port (usually 993 for SSL)",
+        "default":     993,
+    },
+    {
+        "key":         "email_imap_user",
+        "group":       "Email Ingestion",
+        "type":        "str",
+        "ui_type":     "long_str",
+        "label":       "IMAP Username",
+        "description": "Your full email address or username",
+        "default":     "",
+    },
+    {
+        "key":         "email_imap_password",
+        "group":       "Email Ingestion",
+        "type":        "str",
+        "ui_type":     "password",
+        "label":       "IMAP Password",
+        "description": "Mailbox password (use App Passwords for Gmail/M365)",
+        "default":     "",
+    },
+    {
+        "key":         "email_use_ssl",
+        "group":       "Email Ingestion",
+        "type":        "bool",
+        "ui_type":     "bool",
+        "label":       "Use SSL/TLS",
+        "description": "Whether to use a secure connection (recommended)",
+        "default":     True,
+    },
+    {
+        "key":         "email_mailbox",
+        "group":       "Email Ingestion",
+        "type":        "str",
+        "ui_type":     "str",
+        "label":       "Mailbox Folder",
+        "description": "The folder to scan for unread messages",
+        "default":     "INBOX",
+    },
+    {
+        "key":         "email_search_criteria",
+        "group":       "Email Ingestion",
+        "type":        "str",
+        "ui_type":     "dropdown",
+        "options":     ["UNSEEN", "ALL"],
+        "label":       "Search Criteria",
+        "description": "UNSEEN = unread only; ALL = process everything in folder (requires Processed Folder to avoid loops)",
+        "default":     "UNSEEN",
+    },
+    {
+        "key":         "email_processed_mailbox",
+        "group":       "Email Ingestion",
+        "type":        "str",
+        "ui_type":     "str",
+        "label":       "Processed Folder",
+        "description": "Move emails here after successful extraction (e.g. 'Processed'). Recommended for robustness.",
+        "default":     "",
+    },
+    {
+        "key":         "email_check_interval_minutes",
+        "group":       "Email Ingestion",
+        "type":        "int",
+        "label":       "Poll Interval (Minutes)",
+        "description": "How often to check for new emails",
+        "unit":        "min",
+        "default":     10,
+        "min":         1,
+        "max":         1440,
+        "step":        1,
+    },
 ]
 
 
@@ -350,7 +444,8 @@ def _load_users() -> dict[str, dict]:
         return {}
     try:
         data = json.loads(AUTH_USERS_FILE.read_text(encoding="utf-8"))
-        return {u["username"]: u for u in data.get("users", []) if "username" in u}
+        # Store usernames in lowercase for case-insensitive lookup
+        return {u["username"].lower(): u for u in data.get("users", []) if "username" in u}
     except Exception as exc:
         logger.warning("Failed to load users file %s: %s", AUTH_USERS_FILE, exc)
         return {}
@@ -1572,10 +1667,11 @@ def list_users():
 
 @app.post("/api/admin/users", status_code=201)
 def create_user(body: UserCreate):
-    if not _USERNAME_RE.match(body.username):
+    username = body.username.lower()
+    if not _USERNAME_RE.match(username):
         raise HTTPException(400, "Username must be 1–64 characters: letters, digits, _ or -")
-    if body.username in _USERS:
-        raise HTTPException(409, f"User '{body.username}' already exists")
+    if username in _USERS:
+        raise HTTPException(409, f"User '{username}' already exists")
     if body.role not in ("admin", "user"):
         raise HTTPException(400, "Role must be 'admin' or 'user'")
     if len(body.password) < 8:
@@ -1587,14 +1683,15 @@ def create_user(body: UserCreate):
         {"username": u["username"], "password_hash": u["password_hash"], "role": u["role"]}
         for u in _USERS.values()
     ]
-    users_list.append({"username": body.username, "password_hash": hashed, "role": body.role})
+    users_list.append({"username": username, "password_hash": hashed, "role": body.role})
     _write_users_file(users_list)
-    logger.info("User created: %s (role=%s)", body.username, body.role)
-    return {"username": body.username, "role": body.role}
+    logger.info("User created: %s (role=%s)", username, body.role)
+    return {"username": username, "role": body.role}
 
 
 @app.patch("/api/admin/users/{username}")
 def update_user(username: str, body: UserUpdate):
+    username = username.lower()
     if username not in _USERS:
         raise HTTPException(404, f"User '{username}' not found")
     if body.role is not None and body.role not in ("admin", "user"):
@@ -1631,6 +1728,7 @@ def update_user(username: str, body: UserUpdate):
 
 @app.delete("/api/admin/users/{username}")
 def delete_user(username: str):
+    username = username.lower()
     if username not in _USERS:
         raise HTTPException(404, f"User '{username}' not found")
 
@@ -1717,11 +1815,56 @@ async def test_webhook_export(request: Request):
     return res
 
 
+@app.post("/api/admin/email-ingest/test")
+async def test_email_ingest(request: Request):
+    """
+    Test the email ingestion with transient configuration.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "Invalid JSON body")
+
+    # Handle masked password: if UI sends ********, use the actual stored password
+    imap_password = body.get("email_imap_password")
+    if imap_password == "********":
+        current_settings = _load_pipeline_settings()
+        imap_password = current_settings.get("email_imap_password", "")
+
+    from types import SimpleNamespace
+    mock_cfg = SimpleNamespace(
+        email_ingest_enabled=True,
+        email_imap_host=body.get("email_imap_host"),
+        email_imap_port=int(body.get("email_imap_port", 993)),
+        email_imap_user=body.get("email_imap_user"),
+        email_imap_password=imap_password,
+        email_use_ssl=body.get("email_use_ssl", True),
+        email_mailbox=body.get("email_mailbox", "INBOX"),
+        email_search_criteria=body.get("email_search_criteria", "UNSEEN"),
+        email_processed_mailbox=body.get("email_processed_mailbox"),
+    )
+
+    service = EmailIngestService(mock_cfg)
+    try:
+        count = service.poll_mailbox()
+        return {"status": "success", "pdfs_found": count}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 @app.get("/api/admin/settings")
 def get_admin_settings():
     """Return editable pipeline settings with schema, plus read-only env snapshot."""
     current = _load_pipeline_settings()
-    schema_with_values = [{**s, "value": current.get(s["key"], s["default"])} for s in _SETTINGS_SCHEMA]
+    
+    # Mask sensitive values before sending to the UI
+    schema_with_values = []
+    for s in _SETTINGS_SCHEMA:
+        val = current.get(s["key"], s["default"])
+        if s.get("ui_type") == "password" and val:
+            val = "********"
+        schema_with_values.append({**s, "value": val})
+
     return {
         "build":    {"commit": _BUILD_COMMIT, "python": sys.version.split()[0]},
         "settings": schema_with_values,
@@ -1747,7 +1890,13 @@ async def save_admin_settings(request: Request):
         key = field_schema["key"]
         if key not in body:
             continue
+        
         raw = body[key]
+        
+        # Skip updating if it's a masked password (preserve existing secret)
+        if field_schema.get("ui_type") == "password" and raw == "********":
+            continue
+
         try:
             val = _type_fns[field_schema["type"]](raw)
         except (TypeError, ValueError, KeyError):
@@ -1927,6 +2076,7 @@ async def login_submit(
     password: str = Form(...),
     next: str = Form(default="/"),
 ):
+    username = username.lower()
     user = _USERS.get(username)
     if user and _check_password(password, user.get("password_hash", "")):
         token = _make_session_token(username, user["role"])
@@ -1979,6 +2129,7 @@ async def setup_submit(
     if password != confirm:
         return RedirectResponse("/setup?error=mismatch", status_code=303)
 
+    username = username.lower()
     import bcrypt
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 

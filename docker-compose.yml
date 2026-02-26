@@ -40,7 +40,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./config:/app/config        # operator-editable config (column_keys.json etc.)
-      - ./invoices:/app/invoices:ro
+      - ./invoices:/app/invoices
       - ./output:/app/output
       - ./backups:/app/backups
       - docling-models:/root/.cache/docling

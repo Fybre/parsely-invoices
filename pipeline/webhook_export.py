@@ -81,11 +81,6 @@ class WebhookExportService:
             logger.error("Failed to render webhook export payload for %s: %s", stem, e)
             return {"status": "failed", "error": f"Template rendering failed: {str(e)}"}
 
-        # Debug print for Docker console
-        print(f"\n--- WEBHOOK EXPORT DEBUG [{stem}] ---")
-        print(f"URL:    {url}")
-        print(f"Method: {self.config.webhook_export_method.upper()}")
-        
         # Build request
         req = urllib.request.Request(
             url,
@@ -98,7 +93,6 @@ class WebhookExportService:
         req.add_header('User-Agent', 'Parsely-Invoices-Webhook-Export/1.0')
 
         # Add custom headers from config
-        custom_headers_dict = {}
         if self.config.webhook_export_headers_json:
             try:
                 custom_headers_dict = json.loads(self.config.webhook_export_headers_json)
@@ -106,16 +100,6 @@ class WebhookExportService:
                     req.add_header(k, str(v))
             except Exception as e:
                 logger.warning("Failed to parse WEBHOOK_EXPORT_HEADERS: %s", e)
-
-        print(f"Headers: {json.dumps(dict(req.headers), indent=2)}")
-        
-        # Print payload (truncated for console if very large, but usually fine for JSON)
-        try:
-            printable_payload = json.loads(payload_str)
-            print(f"Payload: {json.dumps(printable_payload, indent=2)}")
-        except:
-            print(f"Payload: {payload_str[:2000]}...") # Fallback for non-JSON or massive payloads
-        print(f"--- END DEBUG ---\n")
 
         # Execute request
         try:

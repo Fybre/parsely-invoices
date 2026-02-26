@@ -38,6 +38,7 @@ from .supplier_matcher import SupplierMatcher
 from .po_matcher import POMatcher
 from .validator import InvoiceValidator
 from .backup import BackupService
+from .email_ingest import EmailIngestService
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +107,9 @@ class InvoiceProcessor:
         )
         self.backup_service = BackupService(self.config)
         self._last_backup_run = self.backup_service.get_last_backup_time()
+        
+        self.email_ingest_service = EmailIngestService(self.config)
+        self._last_email_poll: Optional[datetime] = None
 
     # ------------------------------------------------------------------
     # Public API
@@ -296,6 +300,7 @@ class InvoiceProcessor:
             while not _shutdown["requested"]:
                 scan_start = time.monotonic()
                 self._run_periodic_backup()
+                self._run_periodic_email_poll()
                 self._reload_matchers_if_changed()
                 new_pdfs = self._find_new_pdfs(directory)
 
@@ -374,6 +379,22 @@ class InvoiceProcessor:
                 self._last_backup_run = now
             except Exception as e:
                 logger.error("Automated backup failed: %s", e)
+
+    def _run_periodic_email_poll(self) -> None:
+        """Trigger an email mailbox poll if the interval has elapsed."""
+        if not self.config.email_ingest_enabled:
+            return
+
+        now = datetime.now()
+        interval = self.config.email_check_interval_minutes
+        
+        # If no last poll or interval elapsed, run now
+        if not self._last_email_poll or (now - self._last_email_poll).total_seconds() >= (interval * 60):
+            try:
+                self.email_ingest_service.poll_mailbox()
+                self._last_email_poll = now
+            except Exception as e:
+                logger.error("Automated email poll failed: %s", e)
 
     def _find_new_pdfs(self, directory: Path) -> list[Path]:
         """
