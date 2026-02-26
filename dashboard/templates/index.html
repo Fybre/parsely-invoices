@@ -3409,12 +3409,12 @@ async function exportInvoice(stem) {
   let success = false;
   try {
     await api.export(stem);
-    toast(`Exported: ${stem}`, 'success');
+    showToast(`Exported: ${stem}`, 'success');
     success = true;
     await poll();               // refreshes S.filtered and sidebar counts
     await autoAdvance(stem, prevIndex);
   } catch (e) {
-    toast('Export failed: ' + e.message, 'error');
+    showToast('Export failed: ' + e.message, 'error');
   } finally {
     // Reset button state if export failed or if button is still in DOM
     // (On success, autoAdvance usually re-renders, but check just in case)
@@ -3469,7 +3469,7 @@ async function exportAll() {
       ${result.errors && result.errors.length ? `<p style="color:var(--err);font-size:11px;margin-top:8px">${result.errors.length} error${result.errors.length !== 1 ? 's' : ''} — check logs.</p>` : ''}
     </div>`;
   } catch (e) {
-    toast('Bulk export failed: ' + e.message, 'error');
+    showToast('Bulk export failed: ' + e.message, 'error');
     if (btn) { btn.disabled = false; btn.textContent = `Export All Ready (${count})`; }
   }
 }
