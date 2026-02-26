@@ -73,6 +73,7 @@ from pipeline.database import Database, STATUS_NEEDS_REVIEW, STATUS_READY  # noq
 from config import Config  # noqa: E402
 from pipeline.webhook_export import WebhookExportService  # noqa: E402
 from pipeline.email_ingest import EmailIngestService  # noqa: E402
+from pipeline.csv_manager import csv_manager  # noqa: E402
 
 # Import dashboard services
 from dashboard.models import (
@@ -1351,44 +1352,6 @@ async def upload_invoice(file: UploadFile = File(...)):
 # NOTE: Specific routes (/status, /reload, /database/clear) must be defined
 # BEFORE generic routes (/{tab}) or FastAPI will match them incorrectly.
 
-# Cache for CSV metadata
-_csv_meta_cache: dict[str, dict] = {}
-
-
-def _get_csv_metadata(path: Path) -> dict:
-    """Get metadata for a CSV file (with caching)."""
-    if not path.exists():
-        return {"exists": False, "mtime": None, "size": 0, "rows": 0}
-    
-    stat = path.stat()
-    mtime = stat.st_mtime
-    
-    # Check cache
-    cached = _csv_meta_cache.get(str(path))
-    if cached and cached.get("mtime") == mtime:
-        return cached
-    
-    # Count rows
-    rows = 0
-    try:
-        with open(path, newline="", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            next(reader)  # Skip header
-            rows = sum(1 for _ in reader)
-    except Exception:
-        pass
-    
-    meta = {
-        "exists": True,
-        "mtime": mtime,
-        "mtime_iso": datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat(),
-        "size": stat.st_size,
-        "rows": rows,
-    }
-    _csv_meta_cache[str(path)] = meta
-    return meta
-
-
 def _get_webhook_export_templates() -> list[str]:
     """List all .j2 template files in the config directory."""
     return sorted([
@@ -1401,9 +1364,9 @@ def _get_webhook_export_templates() -> list[str]:
 def get_admin_status():
     """Get status of CSV files - modification times, row counts, etc."""
     return {
-        "suppliers": _get_csv_metadata(SUPPLIERS_CSV),
-        "purchase_orders": _get_csv_metadata(PO_CSV),
-        "purchase_order_lines": _get_csv_metadata(PO_LINES_CSV),
+        "suppliers": csv_manager.get_metadata(SUPPLIERS_CSV),
+        "purchase_orders": csv_manager.get_metadata(PO_CSV),
+        "purchase_order_lines": csv_manager.get_metadata(PO_LINES_CSV),
     }
 
 
@@ -1416,15 +1379,14 @@ def reload_csv_files():
     explicit signal is needed.  This endpoint just clears the dashboard's
     metadata cache so the UI shows up-to-date file info immediately.
     """
-    global _csv_meta_cache
-    _csv_meta_cache.clear()
+    csv_manager.clear_cache()
     logger.info("CSV metadata cache cleared (pipeline will reload on next poll cycle)")
     return {
         "status": "ok",
         "files": {
-            "suppliers": _get_csv_metadata(SUPPLIERS_CSV),
-            "purchase_orders": _get_csv_metadata(PO_CSV),
-            "purchase_order_lines": _get_csv_metadata(PO_LINES_CSV),
+            "suppliers": csv_manager.get_metadata(SUPPLIERS_CSV),
+            "purchase_orders": csv_manager.get_metadata(PO_CSV),
+            "purchase_order_lines": csv_manager.get_metadata(PO_LINES_CSV),
         }
     }
 
