@@ -4686,6 +4686,24 @@ function showShortcutsHelp() {
 // ════════════════════════════════════════════════════════════════════════════
 // Boot
 // ════════════════════════════════════════════════════════════════════════════
+
+// Fetch build commit from API and update header
+async function loadBuildInfo() {
+  try {
+    const settings = await api.get('/api/admin/settings');
+    if (settings?.build?.commit) {
+      const buildTag = document.querySelector('.build-tag');
+      if (buildTag) {
+        buildTag.textContent = 'build ' + settings.build.commit;
+      }
+    }
+  } catch (e) {
+    // Silently fail - keep hardcoded build tag
+    console.debug('Could not load build info:', e.message);
+  }
+}
+
+loadBuildInfo();
 poll();
 setInterval(poll, 6000);
 </script>
