@@ -128,7 +128,7 @@ header {
 .stat-chip.exported{ color: var(--exported); background: var(--exported-bg); border-color: #c4b5fd; }
 .stat-chip.total   { color: var(--info);     background: var(--info-bg);     border-color: #bfdbfe; }
 
-.live-badge {
+.status-badge {
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -136,42 +136,10 @@ header {
   font-size: 11px;
   color: var(--muted);
   white-space: nowrap;
+  min-width: 80px;
 }
 
-/* Pipeline status indicator (sidebar) */
-.side-pipeline-status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 11px;
-  color: rgba(255,255,255,.7);
-  white-space: nowrap;
-  padding: 8px 12px;
-  margin: 0 12px 8px;
-  border-radius: 6px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.08);
-}
-.pipeline-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(255,255,255,.4);
-  flex-shrink: 0;
-}
-.pipeline-dot.processing {
-  background: #60a5fa;
-}
-.pipeline-dot.idle {
-  background: #4ade80;
-}
-.pipeline-dot.error {
-  background: #f87171;
-}
-.side-pipeline-status .pipeline-text {
-  font-weight: 500;
-}
+
 
 /* Theme toggle button */
 .btn-theme {
@@ -264,11 +232,27 @@ header {
 .toast.info    { background: var(--info-bg); border: 1px solid #bfdbfe; color: #1e40af; }
 .toast-icon { font-size: 14px; flex-shrink: 0; line-height: 1.4; }
 .toast-body { flex: 1; }
-.live-dot {
+.status-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
-  background: var(--ok);
+  background: var(--muted);
   animation: pulse 2s infinite;
+  flex-shrink: 0;
+}
+.status-badge.idle .status-dot {
+  background: var(--ok);
+}
+.status-badge.processing .status-dot {
+  background: var(--info);
+}
+.status-badge.error .status-dot {
+  background: var(--err);
+  animation: none;
+}
+.status-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
 }
 @keyframes pulse {
   0%,100% { opacity: 1; transform: scale(1); }
@@ -1845,9 +1829,9 @@ kbd {
       <span>Total</span>
     </div>
   </div>
-  <div class="live-badge">
-    <div class="live-dot" id="live-dot"></div>
-    <span id="live-label">Connecting…</span>
+  <div class="status-badge" id="status-badge" title="System status">
+    <div class="status-dot" id="status-dot"></div>
+    <span class="status-text" id="status-text">Connecting…</span>
   </div>
   <button onclick="showShortcutsHelp()" title="Keyboard shortcuts (?)" style="text-decoration:none;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;font-family:inherit">⌨️ ?</button>
   <a href="/admin" style="text-decoration:none;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Admin</a>
@@ -1879,10 +1863,6 @@ kbd {
         <span id="upload-btn-label">Upload Invoice</span>
       </button>
       <input type="file" id="upload-input" accept=".pdf" style="display:none" onchange="handleUpload(this)">
-    </div>
-    <div class="side-pipeline-status" id="pipeline-status" title="Pipeline status">
-      <span class="pipeline-dot" id="pipeline-dot"></span>
-      <span class="pipeline-text" id="pipeline-text">Idle</span>
     </div>
     <div class="side-tabs">
       <div class="side-tab"        data-tab="all"          onclick="setTab(null)">All<span class="tab-count" id="tab-count-all">—</span></div>
@@ -1986,6 +1966,7 @@ const S = {
   editLineItems:    [],    // working copy of line items in edit mode
   currentResult:    null,  // last-loaded full result (for edit / re-render)
   pdfZoom:          100,   // PDF zoom level (%);
+  lastPipelineStatus: null, // cached pipeline status
 };
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2027,6 +2008,7 @@ async function poll() {
     S.stats          = stats;
     S.pollErrors     = 0;
     S.lastUpdated    = new Date();
+    S.lastPipelineStatus = pipelineStatus;
 
     renderStats(stats);
     filterList();  // updates S.filtered
@@ -2042,50 +2024,62 @@ async function poll() {
       if (S.filtered.length > 0) selectInvoice(S.filtered[0].stem);
     }
 
-    updateLiveBadge(true);
-    updatePipelineStatus(pipelineStatus);
+    updateStatusIndicator(true, pipelineStatus);
   } catch (e) {
     S.pollErrors++;
-    updateLiveBadge(false);
+    updateStatusIndicator(false, null);
   }
 }
 
-function updateLiveBadge(ok) {
-  const dot   = document.getElementById('live-dot');
-  const label = document.getElementById('live-label');
-  if (!ok) { dot.style.background = 'var(--err)'; label.textContent = 'Connection error'; return; }
-  dot.style.background = 'var(--ok)';
-  const sec = S.lastUpdated ? Math.round((Date.now() - S.lastUpdated) / 1000) : 0;
-  label.textContent = sec < 5 ? 'Live' : `Updated ${sec}s ago`;
-}
-
-function updatePipelineStatus(status) {
-  const dot = document.getElementById('pipeline-dot');
-  const text = document.getElementById('pipeline-text');
-  if (!status || !dot || !text) return;
+function updateStatusIndicator(connectionOk, pipelineStatus) {
+  const badge = document.getElementById('status-badge');
+  const dot = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  if (!badge || !dot || !text) return;
   
   // Remove existing status classes
-  dot.classList.remove('idle', 'processing', 'error');
+  badge.classList.remove('idle', 'processing', 'error');
   
-  // Set new status
-  dot.classList.add(status.status);
+  // Connection error takes precedence
+  if (!connectionOk) {
+    badge.classList.add('error');
+    text.textContent = 'Connection error';
+    return;
+  }
   
-  // Update text based on status
-  if (status.status === 'processing' && status.current_file) {
-    text.textContent = `Processing: ${status.current_file}`;
-  } else if (status.status === 'processing') {
-    text.textContent = 'Processing...';
-  } else if (status.status === 'error' && status.last_error) {
-    text.textContent = 'Pipeline error';
-    dot.title = status.last_error;
-  } else if (status.queue_length > 0) {
-    text.textContent = `${status.queue_length} pending`;
+  // Pipeline status
+  if (pipelineStatus) {
+    if (pipelineStatus.status === 'processing') {
+      badge.classList.add('processing');
+      const filename = pipelineStatus.current_file || '...';
+      // Truncate filename if too long
+      text.textContent = filename.length > 20 ? `Processing: ${filename.substring(0, 17)}...` : `Processing: ${filename}`;
+    } else if (pipelineStatus.status === 'error') {
+      badge.classList.add('error');
+      text.textContent = 'Pipeline error';
+      badge.title = pipelineStatus.last_error || 'Unknown error';
+    } else if (pipelineStatus.queue_length > 0) {
+      badge.classList.add('idle');
+      text.textContent = `${pipelineStatus.queue_length} pending`;
+    } else {
+      badge.classList.add('idle');
+      const sec = S.lastUpdated ? Math.round((Date.now() - S.lastUpdated) / 1000) : 0;
+      text.textContent = sec < 5 ? 'Live' : `Updated ${sec}s ago`;
+    }
   } else {
-    text.textContent = 'Idle';
+    // No pipeline status yet, just show connection
+    badge.classList.add('idle');
+    const sec = S.lastUpdated ? Math.round((Date.now() - S.lastUpdated) / 1000) : 0;
+    text.textContent = sec < 5 ? 'Live' : `Updated ${sec}s ago`;
   }
 }
 
-setInterval(() => S.lastUpdated && updateLiveBadge(S.pollErrors === 0), 5000);
+setInterval(() => {
+  if (S.lastUpdated) {
+    // Re-update with cached status to refresh the time text
+    updateStatusIndicator(S.pollErrors === 0, S.lastPipelineStatus);
+  }
+}, 5000);
 
 // ════════════════════════════════════════════════════════════════════════════
 // Tab switching
