@@ -556,6 +556,9 @@ def _setup_required() -> bool:
 # ---------------------------------------------------------------------------
 _ALWAYS_PUBLIC = {"/login", "/logout", "/setup", "/api/health", "/api/auth/me"}
 
+def _is_public(path: str) -> bool:
+    return path in _ALWAYS_PUBLIC or path.startswith("/static/")
+
 def _requires_admin(path: str) -> bool:
     return path == "/admin" or path.startswith("/api/admin/") or path == "/api/admin"
 
@@ -569,11 +572,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
         path = request.url.path
 
         # First-run: redirect everything to setup until an admin password is set
-        if _setup_required() and path not in _ALWAYS_PUBLIC:
+        if _setup_required() and not _is_public(path):
             return RedirectResponse("/setup", status_code=303)
 
         # Always-public paths
-        if path in _ALWAYS_PUBLIC:
+        if _is_public(path):
             return await call_next(request)
 
         # No auth needed
@@ -881,7 +884,7 @@ def get_db() -> Database:
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
-app = FastAPI(title="Invoice Pipeline Dashboard", docs_url=None, redoc_url=None)
+app = FastAPI(title="Invoice Parsing Dashboard", docs_url=None, redoc_url=None)
 app.add_middleware(AuthMiddleware)
 
 # Mount static files (PWA icons, manifest)

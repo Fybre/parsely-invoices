@@ -1,7 +1,7 @@
 {
-  "name": "Parsely Invoice Processor",
+  "name": "Parsely Invoice Parser",
   "short_name": "Parsely",
-  "description": "AI-powered invoice processing dashboard",
+  "description": "AI-powered invoice parsing dashboard",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
