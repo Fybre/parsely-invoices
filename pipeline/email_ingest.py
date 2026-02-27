@@ -7,6 +7,7 @@ import imaplib
 import logging
 import os
 import re
+from datetime import datetime
 from email.message import Message
 from pathlib import Path
 from typing import Any, List, Optional
@@ -125,12 +126,12 @@ class EmailIngestService:
 
         except Exception as e:
             logger.error("IMAP connection/polling failed: %s", e)
-            raise e
+            raise
         finally:
             if mail:
                 try:
                     mail.logout()
-                except:
+                except Exception:
                     pass
 
     def _extract_attachments(self, msg: Message) -> int:
@@ -156,7 +157,6 @@ class EmailIngestService:
                 clean_name = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
                 
                 # Add timestamp to avoid collisions if multiple emails have same filename
-                from datetime import datetime
                 ts = datetime.now().strftime("%H%M%S")
                 save_path = self.invoices_dir / f"email_{ts}_{clean_name}"
                 

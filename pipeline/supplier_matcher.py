@@ -74,6 +74,23 @@ class SupplierMatcher:
                 )
                 self.suppliers.append(supplier)
         logger.info("Loaded %d suppliers from %s", len(self.suppliers), path.name)
+        self._build_indices()
+
+    def _build_indices(self) -> None:
+        """Build O(1) lookup indices from the loaded supplier list."""
+        self._abn_index: dict[str, Supplier] = {}
+        self._name_index: dict[str, Supplier] = {}
+        self._domain_index: dict[str, Supplier] = {}
+        for s in self.suppliers:
+            if s.abn_normalised and s.abn_normalised not in self._abn_index:
+                self._abn_index[s.abn_normalised] = s
+            for name in s.all_names:
+                key = name.lower()
+                if key not in self._name_index:
+                    self._name_index[key] = s
+            domain = _email_domain(s.email)
+            if domain and domain not in self._domain_index:
+                self._domain_index[domain] = s
 
     # ------------------------------------------------------------------
     # Public API
@@ -95,32 +112,32 @@ class SupplierMatcher:
         # 1. ABN exact match (most reliable)
         invoice_abn = _normalise_abn(supplier_info.abn or supplier_info.acn)
         if invoice_abn:
-            for s in self.suppliers:
-                if s.abn_normalised and s.abn_normalised == invoice_abn:
-                    logger.info("Supplier matched by ABN: %s -> %s", invoice_abn, s.name)
-                    return MatchedSupplier(
-                        supplier_id=s.id,
-                        supplier_name=s.name,
-                        match_method="abn_exact",
-                        confidence=1.0,
-                        abn=s.abn,
-                        matched_on={"field": "abn", "value": supplier_info.abn or supplier_info.acn},
-                    )
+            s = self._abn_index.get(invoice_abn)
+            if s:
+                logger.info("Supplier matched by ABN: %s -> %s", invoice_abn, s.name)
+                return MatchedSupplier(
+                    supplier_id=s.id,
+                    supplier_name=s.name,
+                    match_method="abn_exact",
+                    confidence=1.0,
+                    abn=s.abn,
+                    matched_on={"field": "abn", "value": supplier_info.abn or supplier_info.acn},
+                )
 
         # 2. Name exact match (case-insensitive)
         invoice_name = (supplier_info.name or "").strip().lower()
         if invoice_name:
-            for s in self.suppliers:
-                if any(n.lower() == invoice_name for n in s.all_names):
-                    logger.info("Supplier matched by exact name: %s", s.name)
-                    return MatchedSupplier(
-                        supplier_id=s.id,
-                        supplier_name=s.name,
-                        match_method="name_exact",
-                        confidence=0.95,
-                        abn=s.abn,
-                        matched_on={"field": "name", "value": supplier_info.name},
-                    )
+            s = self._name_index.get(invoice_name)
+            if s:
+                logger.info("Supplier matched by exact name: %s", s.name)
+                return MatchedSupplier(
+                    supplier_id=s.id,
+                    supplier_name=s.name,
+                    match_method="name_exact",
+                    confidence=0.95,
+                    abn=s.abn,
+                    matched_on={"field": "name", "value": supplier_info.name},
+                )
 
         # 3. Fuzzy name match
         if invoice_name:
@@ -131,18 +148,17 @@ class SupplierMatcher:
         # 4. Email domain match
         invoice_domain = _email_domain(supplier_info.email)
         if invoice_domain:
-            for s in self.suppliers:
-                s_domain = _email_domain(s.email)
-                if s_domain and s_domain == invoice_domain:
-                    logger.info("Supplier matched by email domain: %s -> %s", invoice_domain, s.name)
-                    return MatchedSupplier(
-                        supplier_id=s.id,
-                        supplier_name=s.name,
-                        match_method="email_domain",
-                        confidence=0.7,
-                        abn=s.abn,
-                        matched_on={"field": "email_domain", "value": invoice_domain},
-                    )
+            s = self._domain_index.get(invoice_domain)
+            if s:
+                logger.info("Supplier matched by email domain: %s -> %s", invoice_domain, s.name)
+                return MatchedSupplier(
+                    supplier_id=s.id,
+                    supplier_name=s.name,
+                    match_method="email_domain",
+                    confidence=0.7,
+                    abn=s.abn,
+                    matched_on={"field": "email_domain", "value": invoice_domain},
+                )
 
         logger.info("No supplier match found for: %s (ABN: %s)", supplier_info.name, invoice_abn)
         return None

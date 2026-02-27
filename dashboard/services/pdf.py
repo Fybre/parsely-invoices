@@ -4,6 +4,7 @@ PDF rendering and lookup service.
 import base64
 import io
 import logging
+import threading
 from collections import OrderedDict
 from pathlib import Path
 from typing import Optional
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 # In-memory PDF page-render cache  {stem: {"mtime": float, "pages": list}}
 _PAGE_CACHE_MAX = 50
 _PAGE_CACHE: OrderedDict[str, dict] = OrderedDict()
+_PAGE_CACHE_LOCK = threading.Lock()
 
 
 def find_pdf(source_file: str, stem: str, invoices_dir: Path, export_dir: Path) -> Optional[Path]:
@@ -82,20 +84,24 @@ def render_pages(pdf_path: Path, max_pages: int = 12) -> list[dict]:
 
 def get_cached_pages(stem: str, mtime: float) -> list[dict] | None:
     """Get cached pages if mtime matches."""
-    cached = _PAGE_CACHE.get(stem)
-    if cached and abs(cached["mtime"] - mtime) < 0.5:
-        return cached["pages"]
+    with _PAGE_CACHE_LOCK:
+        cached = _PAGE_CACHE.get(stem)
+        if cached and abs(cached["mtime"] - mtime) < 0.5:
+            _PAGE_CACHE.move_to_end(stem)
+            return cached["pages"]
     return None
 
 
 def cache_pages(stem: str, mtime: float, pages: list[dict]) -> None:
     """Cache rendered pages with LRU eviction."""
-    _PAGE_CACHE[stem] = {"mtime": mtime, "pages": pages}
-    _PAGE_CACHE.move_to_end(stem)
-    while len(_PAGE_CACHE) > _PAGE_CACHE_MAX:
-        _PAGE_CACHE.popitem(last=False)
+    with _PAGE_CACHE_LOCK:
+        _PAGE_CACHE[stem] = {"mtime": mtime, "pages": pages}
+        _PAGE_CACHE.move_to_end(stem)
+        while len(_PAGE_CACHE) > _PAGE_CACHE_MAX:
+            _PAGE_CACHE.popitem(last=False)
 
 
 def invalidate_cache(stem: str) -> None:
     """Remove a stem from the page cache."""
-    _PAGE_CACHE.pop(stem, None)
+    with _PAGE_CACHE_LOCK:
+        _PAGE_CACHE.pop(stem, None)

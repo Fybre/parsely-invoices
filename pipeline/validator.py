@@ -372,7 +372,7 @@ class InvoiceValidator:
                 continue
 
             if lm.quantity_matches is False:
-                inv_line = inv.line_items[lm.invoice_line_index] if lm.invoice_line_index < len(inv.line_items) else None
+                inv_line = inv.line_items[lm.invoice_line_index] if 0 <= lm.invoice_line_index < len(inv.line_items) else None
                 po_line = next(
                     (pl for pl in po_record.line_items if pl.line_number == lm.po_line_number),
                     None,
@@ -390,7 +390,7 @@ class InvoiceValidator:
                 ))
 
             if lm.price_matches is False:
-                inv_line = inv.line_items[lm.invoice_line_index] if lm.invoice_line_index < len(inv.line_items) else None
+                inv_line = inv.line_items[lm.invoice_line_index] if 0 <= lm.invoice_line_index < len(inv.line_items) else None
                 po_line = next(
                     (pl for pl in po_record.line_items if pl.line_number == lm.po_line_number),
                     None,
