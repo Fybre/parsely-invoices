@@ -1,6 +1,6 @@
-# Parsely — Invoice Processing Pipeline
+# Parsely — Invoice Processing
 
-An AI-powered invoice processing pipeline that extracts structured data from PDF invoices, matches them against Purchase Orders and a supplier master list, flags discrepancies, and surfaces everything through a web dashboard.
+An AI-powered invoice processing pipeline that extracts  and parses structured data from PDF invoices, matches them against Purchase Orders and a supplier master list, flags discrepancies, and surfaces everything through a web dashboard.
 
 **Docker is the recommended way to run Parsely.** All dependencies — Python, Docling ML models, PDF rendering tools — are bundled in the image.
 
@@ -82,6 +82,32 @@ Access at **http://localhost:8080/admin**.
 - **Test Webhook**: Use the "Test Webhook" button to verify your external integration with dummy data and see real-time console debug output.
 - **Edit CSVs**: Manage your suppliers and purchase orders directly in the browser.
 - **Reload**: Click "Reload into Pipeline" to push CSV changes to the running worker without a restart.
+
+### Screenshots
+
+**Login Page**  
+![Login Page](screenshots/login-page.png)
+
+**Invoice Review (Dark Mode)** — Side-by-side PDF viewer with extracted data, supplier matching, and discrepancy warnings  
+![Invoice Review Dark Mode](screenshots/invoice-review-dark.png)
+
+**Invoice Review with PO Matching (Light Mode)** — Purchase order matching with line item comparison  
+![PO Matching Light Mode](screenshots/po-matching-light.png)
+
+**Invoice with Discrepancies** — Detailed discrepancy detection showing tax errors and unmatched PO references  
+![Invoice with Discrepancies](screenshots/invoice-with-discrepancies.png)
+
+**Invoice Review with Warnings** — Invoice with line items and discrepancy warnings for date validation  
+![Invoice Review with Warnings](screenshots/invoice-review-with-warnings.png)
+
+**Admin Settings** — Categorized configuration management for extraction, pipeline, auth, and export settings  
+![Admin Settings](screenshots/admin-settings.png)
+
+**Help Documentation** — In-app help system with getting started guide  
+![Help Documentation](screenshots/help-documentation.png)
+
+**Invoice Details (Mobile)** — Responsive mobile view of invoice details with line items  
+![Invoice Details Mobile](screenshots/invoice-details-mobile.png)
 
 ---
 
