@@ -138,38 +138,39 @@ header {
   white-space: nowrap;
 }
 
-/* Pipeline status indicator */
-.pipeline-status {
+/* Pipeline status indicator (sidebar) */
+.side-pipeline-status {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   font-size: 11px;
-  color: var(--muted);
+  color: rgba(255,255,255,.7);
   white-space: nowrap;
-  padding-left: 12px;
-  border-left: 1px solid var(--border);
-  margin-left: 12px;
+  padding: 8px 12px;
+  margin: 0 12px 8px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
 }
 .pipeline-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--muted);
+  background: rgba(255,255,255,.4);
   flex-shrink: 0;
 }
 .pipeline-dot.processing {
-  background: var(--info);
-  animation: pipeline-pulse 1.5s infinite;
+  background: #60a5fa;
 }
 .pipeline-dot.idle {
-  background: var(--ok);
+  background: #4ade80;
 }
 .pipeline-dot.error {
-  background: var(--err);
+  background: #f87171;
 }
-@keyframes pipeline-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+.side-pipeline-status .pipeline-text {
+  font-weight: 500;
 }
 
 /* Theme toggle button */
@@ -1848,10 +1849,6 @@ kbd {
     <div class="live-dot" id="live-dot"></div>
     <span id="live-label">Connecting…</span>
   </div>
-  <div class="pipeline-status" id="pipeline-status" title="Pipeline status">
-    <span class="pipeline-dot" id="pipeline-dot"></span>
-    <span class="pipeline-text" id="pipeline-text">Idle</span>
-  </div>
   <button onclick="showShortcutsHelp()" title="Keyboard shortcuts (?)" style="text-decoration:none;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;font-family:inherit">⌨️ ?</button>
   <a href="/admin" style="text-decoration:none;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Admin</a>
   <form id="logout-form" method="post" action="/logout" style="display:none;margin:0">
@@ -1882,6 +1879,10 @@ kbd {
         <span id="upload-btn-label">Upload Invoice</span>
       </button>
       <input type="file" id="upload-input" accept=".pdf" style="display:none" onchange="handleUpload(this)">
+    </div>
+    <div class="side-pipeline-status" id="pipeline-status" title="Pipeline status">
+      <span class="pipeline-dot" id="pipeline-dot"></span>
+      <span class="pipeline-text" id="pipeline-text">Idle</span>
     </div>
     <div class="side-tabs">
       <div class="side-tab"        data-tab="all"          onclick="setTab(null)">All<span class="tab-count" id="tab-count-all">—</span></div>
