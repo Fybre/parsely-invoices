@@ -41,13 +41,18 @@ class BackupService:
                 if self.config.db_path.exists():
                     temp_db = self.backup_dir / f"temp_{timestamp}.db"
                     try:
-                        src_conn = sqlite3.connect(self.config.db_path)
-                        dst_conn = sqlite3.connect(temp_db)
-                        with dst_conn:
+                        src_conn = None
+                        dst_conn = None
+                        try:
+                            src_conn = sqlite3.connect(self.config.db_path)
+                            dst_conn = sqlite3.connect(temp_db)
                             src_conn.backup(dst_conn)
-                        src_conn.close()
-                        dst_conn.close()
-                        zipf.write(temp_db, arcname="output/pipeline.db")
+                            zipf.write(temp_db, arcname="output/pipeline.db")
+                        finally:
+                            if src_conn:
+                                src_conn.close()
+                            if dst_conn:
+                                dst_conn.close()
                     finally:
                         if temp_db.exists():
                             temp_db.unlink()

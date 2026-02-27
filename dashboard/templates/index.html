@@ -4513,7 +4513,7 @@ document.addEventListener('keydown', e => {
       // Edit mode
       if (stem && !S.editing && S.currentResult?.status !== 'exported') {
         e.preventDefault();
-        enterEditMode();
+        startEdit(S.currentResult);
         showToast('Edit mode', 'info', 1500);
       }
       break;
@@ -4522,7 +4522,7 @@ document.addEventListener('keydown', e => {
       // Mark as Ready
       if (stem && !S.editing && S.currentResult?.status !== 'exported') {
         e.preventDefault();
-        updateStatus(stem, 'ready');
+        clearFlag(stem);
         showToast('Marked as Ready', 'success', 1500);
       }
       break;
@@ -4531,7 +4531,7 @@ document.addEventListener('keydown', e => {
       // Flag for review (needs_review)
       if (stem && !S.editing && S.currentResult?.status !== 'exported') {
         e.preventDefault();
-        updateStatus(stem, 'needs_review');
+        flagInvoice(stem);
         showToast('Flagged for review', 'warning', 1500);
       }
       break;
@@ -4559,7 +4559,7 @@ document.addEventListener('keydown', e => {
       // Focus notes field
       if (stem && !S.editing) {
         e.preventDefault();
-        document.getElementById('notes-area')?.focus();
+        document.getElementById('notes-textarea')?.focus();
         showToast('Notes focused', 'info', 1500);
       }
       break;

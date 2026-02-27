@@ -102,6 +102,13 @@ from dashboard.services import pdf as pdf_service
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Export configuration
+# ---------------------------------------------------------------------------
+# Export format: json | xml | both  (default: json)
+EXPORT_FORMAT = os.getenv("EXPORT_FORMAT", "json").lower()
+_EXPORT_XML_TEMPLATE_FILE = Path(os.getenv("CONFIG_DIR", str(_PIPELINE_DIR / "config"))) / "export_template.xml.j2"
+
 
 # ---------------------------------------------------------------------------
 # Auth config
@@ -597,6 +604,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
 # Corrections helpers
 # ---------------------------------------------------------------------------
 
+# NOTE: This local apply_corrections intentionally shadows the imported function from
+# dashboard.services. The local version extends the base functionality to handle
+# custom_fields and corrected_supplier_id, which are dashboard-specific features.
 def apply_corrections(extracted: dict, corrections: dict) -> dict:
     """
     Return a deep copy of *extracted* with operator corrections applied.
@@ -608,6 +618,8 @@ def apply_corrections(extracted: dict, corrections: dict) -> dict:
       supplier_email, supplier_phone,
       supplier_address                     → extracted_invoice.supplier.<key>
       line_items                           → extracted_invoice.line_items (full replacement)
+      custom_fields                        → extracted_invoice.custom_fields (full replacement)
+      corrected_supplier_id                → matched_supplier.supplier_id (operator override)
     """
     import copy
     if not corrections:
@@ -826,6 +838,7 @@ def _get_actor(request: Request) -> str:
 
 
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # Config from environment (mirrors pipeline config so volumes line up)
 # ---------------------------------------------------------------------------
 OUTPUT_DIR    = Path(os.getenv("OUTPUT_DIR",   str(_PIPELINE_DIR / "output")))
@@ -834,10 +847,6 @@ DATA_DIR      = Path(os.getenv("DATA_DIR",     str(_PIPELINE_DIR / "data")))
 EXPORT_DIR    = Path(os.getenv("EXPORT_DIR",   str(OUTPUT_DIR / "export")))
 DB_PATH       = Path(os.getenv("DB_PATH",      str(OUTPUT_DIR / "pipeline.db")))
 CONFIG_DIR    = Path(os.getenv("CONFIG_DIR",   str(_PIPELINE_DIR / "config")))
-
-# Export format: json | xml | both  (default: json)
-EXPORT_FORMAT             = os.getenv("EXPORT_FORMAT", "json").lower()
-_EXPORT_XML_TEMPLATE_FILE = CONFIG_DIR / "export_template.xml.j2"
 DASHBOARD_DIR = Path(__file__).parent
 
 # Data files
@@ -1578,7 +1587,7 @@ async def test_webhook_export(request: Request):
     # Initialize service and send
     service = WebhookExportService(mock_cfg)
     # We don't provide a PDF path for the test
-    res = service.send_webhook_export("test-invoice", dummy_payload)
+    res = service.send_webhook_export("test-invoice", dummy_payload, None)
     
     return res
 

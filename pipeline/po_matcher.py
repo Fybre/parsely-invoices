@@ -88,10 +88,10 @@ class POMatcher:
                         line_number=int(row.get("line_number") or 0) or None,
                         sku=(row.get("sku") or "").strip() or None,
                         description=row["description"].strip(),
-                        quantity=float(row["quantity"]),
+                        quantity=_to_float(row.get("quantity")) or 0.0,
                         unit=(row.get("unit") or "").strip() or None,
-                        unit_price=float(row["unit_price"]),
-                        total=float(row["total"]),
+                        unit_price=_to_float(row.get("unit_price")) or 0.0,
+                        total=_to_float(row.get("total")) or 0.0,
                     )
                     self.purchase_orders[key].line_items.append(line)
         else:
@@ -275,13 +275,13 @@ class POMatcher:
             return None
         if b == 0:
             return a == 0
-        return abs(a - b) / b <= PRICE_TOLERANCE_PCT
+        return abs(a - b) / b <= DEFAULT_PRICE_TOLERANCE_PCT
 
     @staticmethod
     def _total_matches(a: Optional[float], b: float) -> Optional[bool]:
         if a is None:
             return None
-        return abs(a - b) <= TOTAL_TOLERANCE_ABS
+        return abs(a - b) <= DEFAULT_TOTAL_TOLERANCE_ABS
 
 
 # ------------------------------------------------------------------

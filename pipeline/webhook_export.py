@@ -13,7 +13,8 @@ import urllib.error
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import FileSystemLoader, select_autoescape
+from jinja2.sandbox import SandboxedEnvironment
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class WebhookExportService:
         self.config_dir = Path(os.getenv("CONFIG_DIR", str(Path(__file__).parent.parent / "config")))
         
         # Initialize Jinja2 environment for template rendering
-        self.jinja_env = Environment(
+        self.jinja_env = SandboxedEnvironment(
             loader=FileSystemLoader(str(self.config_dir)),
             autoescape=select_autoescape(['json', 'xml']),
             keep_trailing_newline=True
