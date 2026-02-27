@@ -292,7 +292,7 @@ def build_normalized_line_items(data: dict) -> list:
             "quantity": item.get("quantity"),
             "unit": item.get("unit"),
             "unit_price": item.get("unit_price"),
-            "line_total": item.get("line_total"),
+            "line_total": item.get("line_total") if item.get("line_total") is not None else item.get("total"),
             "tax_amount": item.get("tax_amount"),
             "po_match": None,
         }
