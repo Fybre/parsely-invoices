@@ -29,6 +29,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
+      args:
+        BUILD_COMMIT: ${BUILD_COMMIT:-unknown}
     image: invoice-pipeline:latest
     # ---------------------------------------------------------------------
     # Volume mounts
@@ -87,6 +89,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
+      args:
+        BUILD_COMMIT: ${BUILD_COMMIT:-unknown}
     image: invoice-pipeline:latest
     entrypoint: ["python", "-m", "uvicorn"]
     command: [

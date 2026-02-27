@@ -7,6 +7,9 @@ IMAGE   := invoice-pipeline:latest
 COMPOSE := docker compose
 RUN     := $(COMPOSE) run --rm pipeline
 
+# Auto-detect build commit from git (or use 'unknown' if not available)
+BUILD_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo 'unknown')
+
 # Colour helpers
 BOLD  := \033[1m
 RESET := \033[0m
@@ -20,12 +23,12 @@ CYAN  := \033[36m
 # ---------------------------------------------------------------------------
 
 .PHONY: build
-build:                        ## Build the Docker image
-	$(COMPOSE) build
+build:                        ## Build the Docker image (with git commit)
+	BUILD_COMMIT=$(BUILD_COMMIT) $(COMPOSE) build
 
 .PHONY: rebuild
 rebuild:                      ## Force a clean rebuild (no cache)
-	$(COMPOSE) build --no-cache
+	BUILD_COMMIT=$(BUILD_COMMIT) $(COMPOSE) build --no-cache
 
 .PHONY: pull
 pull:                         ## Pull the latest base images
@@ -37,14 +40,14 @@ pull:                         ## Pull the latest base images
 
 .PHONY: up
 up:                           ## Start pipeline (watch mode) + dashboard as background services
-	WATCH_MODE=true $(COMPOSE) up -d pipeline dashboard
+	BUILD_COMMIT=$(BUILD_COMMIT) WATCH_MODE=true $(COMPOSE) up -d pipeline dashboard
 	@echo "$(CYAN)Pipeline running in watch mode.$(RESET)"
 	@echo "$(CYAN)Dashboard: http://localhost:$${DASHBOARD_PORT:-8080}$(RESET)"
 	@echo "$(CYAN)Logs: make logs   Stop: make down$(RESET)"
 
 .PHONY: dashboard
 dashboard:                    ## Start only the dashboard (without starting the pipeline)
-	$(COMPOSE) up -d dashboard
+	BUILD_COMMIT=$(BUILD_COMMIT) $(COMPOSE) up -d dashboard
 	@echo "$(CYAN)Dashboard: http://localhost:$${DASHBOARD_PORT:-8080}$(RESET)"
 
 .PHONY: down

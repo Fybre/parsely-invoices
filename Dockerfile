@@ -27,6 +27,10 @@ RUN pip install --upgrade pip && \
 # --- Stage 2: runtime -------------------------------------------------------
 FROM python:3.12-slim AS runtime
 
+# Build metadata (set at build time)
+ARG BUILD_COMMIT=unknown
+ENV BUILD_COMMIT=${BUILD_COMMIT}
+
 # Runtime system libraries required by Docling's vision/OCR stack
 #   libgl1          — OpenCV (used by EasyOCR inside Docling)
 #   libglib2.0-0    — GLib (OpenCV dependency)
