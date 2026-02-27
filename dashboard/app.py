@@ -102,6 +102,14 @@ from dashboard.services import pdf as pdf_service
 
 logger = logging.getLogger(__name__)
 
+# Force root logger to use our configuration (uvicorn can override basicConfig)
+root_logger = logging.getLogger()
+root_logger.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
+if not root_logger.handlers:
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+    root_logger.addHandler(handler)
+
 # ---------------------------------------------------------------------------
 # Export configuration
 # ---------------------------------------------------------------------------
