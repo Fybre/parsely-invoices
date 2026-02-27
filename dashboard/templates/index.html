@@ -138,6 +138,40 @@ header {
   white-space: nowrap;
 }
 
+/* Pipeline status indicator */
+.pipeline-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+  margin-left: 12px;
+}
+.pipeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+.pipeline-dot.processing {
+  background: var(--info);
+  animation: pipeline-pulse 1.5s infinite;
+}
+.pipeline-dot.idle {
+  background: var(--ok);
+}
+.pipeline-dot.error {
+  background: var(--err);
+}
+@keyframes pipeline-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 /* Theme toggle button */
 .btn-theme {
   display: flex;
@@ -1814,6 +1848,10 @@ kbd {
     <div class="live-dot" id="live-dot"></div>
     <span id="live-label">Connecting…</span>
   </div>
+  <div class="pipeline-status" id="pipeline-status" title="Pipeline status">
+    <span class="pipeline-dot" id="pipeline-dot"></span>
+    <span class="pipeline-text" id="pipeline-text">Idle</span>
+  </div>
   <button onclick="showShortcutsHelp()" title="Keyboard shortcuts (?)" style="text-decoration:none;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;font-family:inherit">⌨️ ?</button>
   <a href="/admin" style="text-decoration:none;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Admin</a>
   <form id="logout-form" method="post" action="/logout" style="display:none;margin:0">
@@ -1977,7 +2015,11 @@ const api = {
 // ════════════════════════════════════════════════════════════════════════════
 async function poll() {
   try {
-    const [stats, invoices] = await Promise.all([api.stats(), api.list(S.activeTab)]);
+    const [stats, invoices, pipelineStatus] = await Promise.all([
+      api.stats(),
+      api.list(S.activeTab),
+      api.get('/api/pipeline/status').catch(() => null)
+    ]);
 
     const hadNone    = S.invoices.length === 0;
     S.invoices       = invoices;
@@ -2000,6 +2042,7 @@ async function poll() {
     }
 
     updateLiveBadge(true);
+    updatePipelineStatus(pipelineStatus);
   } catch (e) {
     S.pollErrors++;
     updateLiveBadge(false);
@@ -2013,6 +2056,32 @@ function updateLiveBadge(ok) {
   dot.style.background = 'var(--ok)';
   const sec = S.lastUpdated ? Math.round((Date.now() - S.lastUpdated) / 1000) : 0;
   label.textContent = sec < 5 ? 'Live' : `Updated ${sec}s ago`;
+}
+
+function updatePipelineStatus(status) {
+  const dot = document.getElementById('pipeline-dot');
+  const text = document.getElementById('pipeline-text');
+  if (!status || !dot || !text) return;
+  
+  // Remove existing status classes
+  dot.classList.remove('idle', 'processing', 'error');
+  
+  // Set new status
+  dot.classList.add(status.status);
+  
+  // Update text based on status
+  if (status.status === 'processing' && status.current_file) {
+    text.textContent = `Processing: ${status.current_file}`;
+  } else if (status.status === 'processing') {
+    text.textContent = 'Processing...';
+  } else if (status.status === 'error' && status.last_error) {
+    text.textContent = 'Pipeline error';
+    dot.title = status.last_error;
+  } else if (status.queue_length > 0) {
+    text.textContent = `${status.queue_length} pending`;
+  } else {
+    text.textContent = 'Idle';
+  }
 }
 
 setInterval(() => S.lastUpdated && updateLiveBadge(S.pollErrors === 0), 5000);

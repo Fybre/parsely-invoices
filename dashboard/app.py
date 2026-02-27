@@ -917,6 +917,12 @@ def stats():
     return get_db().get_stats()
 
 
+@app.get("/api/pipeline/status")
+def pipeline_status():
+    """Get current pipeline processing status for dashboard display."""
+    return get_db().get_pipeline_status()
+
+
 @app.get("/api/invoices")
 def list_invoices(
     status: Optional[str] = Query(default=None),

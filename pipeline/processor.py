@@ -133,6 +133,7 @@ class InvoiceProcessor:
         """
         pdf_path = Path(pdf_path)
         logger.info("=== Processing: %s ===", pdf_path.name)
+        self.db.set_pipeline_status("processing", current_file=pdf_path.name)
         start = time.monotonic()
 
         # Step 1: Extract document content
@@ -221,6 +222,7 @@ class InvoiceProcessor:
             result.error_count,
             result.warning_count,
         )
+        self.db.set_pipeline_status("idle")
         return result
 
     def process_batch(self, directory: str | Path) -> list[InvoiceProcessingResult]:
@@ -314,16 +316,19 @@ class InvoiceProcessor:
 
                 if new_pdfs:
                     logger.info("Found %d new invoice(s) to process.", len(new_pdfs))
-                    for pdf in new_pdfs:
+                    self.db.set_pipeline_queue_length(len(new_pdfs))
+                    for i, pdf in enumerate(new_pdfs):
                         if _shutdown["requested"]:
                             logger.info(
                                 "Shutdown requested — deferring remaining %d file(s).",
-                                len(new_pdfs) - new_pdfs.index(pdf),
+                                len(new_pdfs) - i,
                             )
+                            self.db.set_pipeline_queue_length(len(new_pdfs) - i)
                             break
                         try:
                             self.process(pdf)
                             total_processed += 1
+                            self.db.set_pipeline_queue_length(len(new_pdfs) - i - 1)
                         except Exception as exc:
                             logger.error(
                                 "Failed to process %s: %s", pdf.name, exc, exc_info=True
@@ -331,6 +336,7 @@ class InvoiceProcessor:
                             self.db.record_failure(
                                 pdf.stem, str(pdf), pdf.stat().st_mtime, str(exc)
                             )
+                            self.db.set_pipeline_status("error", error=str(exc)[:500])
                             total_errors += 1
                 else:
                     logger.debug(

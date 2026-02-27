@@ -91,6 +91,22 @@ CREATE TABLE IF NOT EXISTS audit_log (
 
 CREATE INDEX IF NOT EXISTS idx_audit_stem      ON audit_log (stem);
 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log (timestamp DESC);
+
+-- Pipeline status table for dashboard to show current processing state
+CREATE TABLE IF NOT EXISTS pipeline_status (
+    id                INTEGER PRIMARY KEY CHECK (id = 1),  -- Single row table
+    status            TEXT NOT NULL DEFAULT 'idle',        -- 'idle' | 'processing' | 'error'
+    current_file      TEXT,                                 -- File being processed now
+    started_at        TEXT,                                 -- ISO-8601 timestamp when current job started
+    last_processed    TEXT,                                 -- ISO-8601 timestamp of last completed file
+    queue_length      INTEGER NOT NULL DEFAULT 0,          -- Files waiting to be processed
+    last_error        TEXT,                                 -- Last error message if status='error'
+    updated_at        TEXT NOT NULL                        -- ISO-8601 timestamp of last update
+);
+
+-- Initialize with single row if not exists
+INSERT OR IGNORE INTO pipeline_status (id, status, updated_at) 
+VALUES (1, 'idle', datetime('now'));
 """
 
 
@@ -495,4 +511,91 @@ class Database:
                 (limit, offset),
             ).fetchall()
         return [dict(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # Pipeline status (for dashboard to show processing state)
+    # ------------------------------------------------------------------
+
+    def get_pipeline_status(self) -> dict:
+        """Get current pipeline processing status."""
+        with self._conn() as conn:
+            row = conn.execute(
+                """SELECT status, current_file, started_at, last_processed,
+                          queue_length, last_error, updated_at
+                   FROM pipeline_status WHERE id = 1"""
+            ).fetchone()
+        if row:
+            return {
+                "status": row[0],
+                "current_file": row[1],
+                "started_at": row[2],
+                "last_processed": row[3],
+                "queue_length": row[4],
+                "last_error": row[5],
+                "updated_at": row[6],
+            }
+        return {
+            "status": "idle",
+            "current_file": None,
+            "started_at": None,
+            "last_processed": None,
+            "queue_length": 0,
+            "last_error": None,
+            "updated_at": None,
+        }
+
+    def set_pipeline_status(
+        self,
+        status: str,
+        current_file: str | None = None,
+        queue_length: int = 0,
+        error: str | None = None,
+    ) -> None:
+        """Update pipeline processing status."""
+        now = datetime.now(timezone.utc).isoformat()
+        with self._conn() as conn:
+            if status == "processing":
+                conn.execute(
+                    """UPDATE pipeline_status SET
+                        status = ?,
+                        current_file = ?,
+                        started_at = ?,
+                        queue_length = ?,
+                        last_error = NULL,
+                        updated_at = ?
+                    WHERE id = 1""",
+                    (status, current_file, now, queue_length, now),
+                )
+            elif status == "idle":
+                conn.execute(
+                    """UPDATE pipeline_status SET
+                        status = ?,
+                        current_file = NULL,
+                        last_processed = ?,
+                        queue_length = ?,
+                        last_error = NULL,
+                        updated_at = ?
+                    WHERE id = 1""",
+                    (status, now, queue_length, now),
+                )
+            elif status == "error":
+                conn.execute(
+                    """UPDATE pipeline_status SET
+                        status = ?,
+                        current_file = NULL,
+                        last_error = ?,
+                        queue_length = ?,
+                        updated_at = ?
+                    WHERE id = 1""",
+                    (status, error, queue_length, now),
+                )
+
+    def set_pipeline_queue_length(self, queue_length: int) -> None:
+        """Update just the queue length (called when new files detected)."""
+        now = datetime.now(timezone.utc).isoformat()
+        with self._conn() as conn:
+            conn.execute(
+                "UPDATE pipeline_status SET queue_length = ?, updated_at = ? WHERE id = 1",
+                (queue_length, now),
+            )
 
