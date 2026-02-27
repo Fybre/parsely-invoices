@@ -201,11 +201,19 @@ header {
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background .15s, border-color .15s;
+  transition: background .15s, border-color .15s, transform .1s;
   white-space: nowrap;
 }
 .upload-btn:hover  { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); }
 .upload-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Drop zone states */
+.upload-btn.drag-over {
+  background: rgba(59, 91, 219, 0.25);
+  border-color: var(--accent);
+  border-style: dashed;
+  transform: scale(1.02);
+}
 
 /* ── Toast notifications ─────────────────────────────────────────────────── */
 #toast-container {
@@ -1845,15 +1853,16 @@ kbd {
   <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
   <aside>
     <div class="side-upload">
-      <button class="upload-btn" id="upload-btn" onclick="triggerUpload()" title="Upload an invoice PDF">
+      <button class="upload-btn" id="upload-btn" onclick="triggerUpload()" title="Upload invoice PDFs (click or drop files)"
+        ondragenter="handleDragEnter(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="17 8 12 3 7 8"/>
           <line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
-        <span id="upload-btn-label">Upload Invoice</span>
+        <span id="upload-btn-label">Upload Invoices</span>
       </button>
-      <input type="file" id="upload-input" accept=".pdf" style="display:none" onchange="handleUpload(this)">
+      <input type="file" id="upload-input" accept=".pdf" multiple style="display:none" onchange="handleUpload(this)">
     </div>
     <div class="side-tabs">
       <div class="side-tab"        data-tab="all"          onclick="setTab(null)">All<span class="tab-count" id="tab-count-all">—</span></div>
@@ -4427,40 +4436,186 @@ function setPanel(name) {
 // Upload Invoice
 // ════════════════════════════════════════════════════════════════════════════
 
+// ════════════════════════════════════════════════════════════════════════════
+// Upload / Drag & Drop
+// ════════════════════════════════════════════════════════════════════════════
+
+let dragCounter = 0;  // track nested dragenter/dragleave events
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  // Only allow PDF files - check by type or file extension in the items list
+  const items = e.dataTransfer?.items;
+  if (items && items.length > 0) {
+    const hasPdf = Array.from(items).some(item => {
+      // Check MIME type or kind
+      if (item.type === 'application/pdf') return true;
+      // For files with no type, we can't check extension here (getAsFile() is async)
+      // So we allow all files during drag and filter on drop
+      return item.kind === 'file';
+    });
+    if (!hasPdf) {
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+  }
+  
+  e.dataTransfer.dropEffect = 'copy';
+  const btn = document.getElementById('upload-btn');
+  btn.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  dragCounter--;
+  if (dragCounter <= 0) {
+    const btn = document.getElementById('upload-btn');
+    btn.classList.remove('drag-over');
+    dragCounter = 0;
+  }
+}
+
+// Also handle dragenter to properly track nested elements
+function handleDragEnter(e) {
+  dragCounter++;
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  dragCounter = 0;
+  const btn = document.getElementById('upload-btn');
+  btn.classList.remove('drag-over');
+  
+  const files = e.dataTransfer?.files;
+  if (!files || files.length === 0) return;
+  
+  // Filter to PDF files only
+  const pdfFiles = Array.from(files).filter(f => 
+    f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+  );
+  
+  if (pdfFiles.length === 0) {
+    showToast('Please drop PDF files only', 'error');
+    return;
+  }
+  
+  // Handle dropped files
+  if (pdfFiles.length === 1) {
+    // Single file - use same upload logic but with better error handling
+    uploadSingleFile(pdfFiles[0]);
+  } else {
+    // Multiple files
+    uploadMultipleFiles(pdfFiles);
+  }
+}
+
+async function uploadSingleFile(file) {
+  const btn = document.getElementById('upload-btn');
+  const label = document.getElementById('upload-btn-label');
+  
+  btn.disabled = true;
+  label.textContent = 'Uploading…';
+  
+  try {
+    const data = await uploadFileDirect(file);
+    showToast(`"${data.filename}" uploaded — the pipeline will process it shortly`, 'success');
+    
+    // Refresh the list so the invoice appears once the pipeline picks it up
+    setTimeout(() => poll(), 3000);
+  } catch (e) {
+    console.error('Single file upload failed:', e);
+    showToast(`Upload failed: ${e.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    label.textContent = 'Upload Invoices';
+  }
+}
+
+async function uploadFileDirect(file) {
+  console.log('Uploading file:', file.name, 'type:', file.type, 'size:', file.size);
+  const fd = new FormData();
+  fd.append('file', file, file.name);
+  
+  const resp = await fetch('/api/upload', { method: 'POST', body: fd });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.detail || `HTTP ${resp.status}`);
+  return data;
+}
+
+async function uploadMultipleFiles(files) {
+  const btn = document.getElementById('upload-btn');
+  const label = document.getElementById('upload-btn-label');
+  
+  btn.disabled = true;
+  label.textContent = `Uploading ${files.length} files…`;
+  
+  let successCount = 0;
+  let failCount = 0;
+  
+  for (const file of files) {
+    try {
+      await uploadFileDirect(file);
+      successCount++;
+    } catch (err) {
+      console.error('Upload failed:', err);
+      failCount++;
+    }
+  }
+  
+  btn.disabled = false;
+  label.textContent = 'Upload Invoices';
+  
+  if (successCount > 0 && failCount === 0) {
+    showToast(`Uploaded ${successCount} invoice${successCount > 1 ? 's' : ''}`, 'success');
+  } else if (successCount > 0 && failCount > 0) {
+    showToast(`Uploaded ${successCount}, failed ${failCount}`, 'info');
+  } else {
+    showToast(`Failed to upload ${failCount} file${failCount > 1 ? 's' : ''}`, 'error');
+  }
+  
+  // Refresh the list
+  setTimeout(() => {
+    api.list(S.activeTab).then(invoices => {
+      S.invoices = invoices;
+      filterList();
+      renderStats();
+    });
+  }, 500);
+}
+
 function triggerUpload() {
   document.getElementById('upload-input').click();
 }
 
 async function handleUpload(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  const btn   = document.getElementById('upload-btn');
-  const label = document.getElementById('upload-btn-label');
-
-  btn.disabled  = true;
-  label.textContent = 'Uploading…';
-
-  try {
-    const fd = new FormData();
-    fd.append('file', file);
-
-    const resp = await fetch('/api/upload', { method: 'POST', body: fd });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.detail || `HTTP ${resp.status}`);
-
-    showToast(`✓ "${data.filename}" uploaded — the pipeline will process it shortly`, 'success');
-
-    // Refresh the list so the invoice appears once the pipeline picks it up
-    setTimeout(() => poll(), 3000);
-
-  } catch (e) {
-    showToast(`Upload failed: ${e.message}`, 'error');
-  } finally {
-    btn.disabled        = false;
-    label.textContent   = 'Upload Invoice';
-    input.value         = '';   // allow re-selecting the same file
+  const files = Array.from(input.files || []);
+  if (files.length === 0) return;
+  
+  // Filter to PDF files only
+  const pdfFiles = files.filter(f => 
+    f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+  );
+  
+  if (pdfFiles.length === 0) {
+    showToast('Please select PDF files only', 'error');
+    input.value = '';
+    return;
   }
+  
+  // Handle single or multiple files
+  if (pdfFiles.length === 1) {
+    await uploadSingleFile(pdfFiles[0]);
+  } else {
+    await uploadMultipleFiles(pdfFiles);
+  }
+  
+  input.value = '';  // allow re-selecting the same files
 }
 
 // ════════════════════════════════════════════════════════════════════════════
