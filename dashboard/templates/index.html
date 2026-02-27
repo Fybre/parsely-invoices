@@ -4691,10 +4691,12 @@ function showShortcutsHelp() {
 async function loadBuildInfo() {
   try {
     const settings = await api.get('/api/admin/settings');
-    if (settings?.build?.commit) {
+    const commit = settings?.build?.commit;
+    // Only update if we got a real commit hash (not 'unknown' or empty)
+    if (commit && commit !== 'unknown' && commit.length >= 7) {
       const buildTag = document.querySelector('.build-tag');
       if (buildTag) {
-        buildTag.textContent = 'build ' + settings.build.commit;
+        buildTag.textContent = 'build ' + commit;
       }
     }
   } catch (e) {
