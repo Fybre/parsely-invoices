@@ -65,6 +65,7 @@ logging.basicConfig(
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from jinja2 import BaseLoader, Environment, FileSystemLoader
 from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -882,6 +883,9 @@ def get_db() -> Database:
 # ---------------------------------------------------------------------------
 app = FastAPI(title="Invoice Pipeline Dashboard", docs_url=None, redoc_url=None)
 app.add_middleware(AuthMiddleware)
+
+# Mount static files (PWA icons, manifest)
+app.mount("/static", StaticFiles(directory=str(DASHBOARD_DIR / "static")), name="static")
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────

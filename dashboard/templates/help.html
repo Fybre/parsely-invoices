@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <title>Parsely Help Center</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- PWA manifest and icons -->
+<link rel="manifest" href="/static/manifest.json">
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+<meta name="theme-color" content="#16a34a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+
 <style>
 :root {
   --bg: #f5f7fa; --card: #ffffff; --text: #1a1f36; --muted: #4a5568;
@@ -144,14 +153,9 @@ dd { margin-left: 0; margin-top: 4px; color: var(--muted); }
 
 <header class="header">
   <a href="/" class="logo">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-      <polyline points="14 2 14 8 20 8"></polyline>
-      <line x1="16" y1="13" x2="8" y2="13"></line>
-      <line x1="16" y1="17" x2="8" y2="17"></line>
-    </svg>
-        Parsely Help Center <span class="badge">v1.0</span>
-      </a>
+    <img src="/static/icon-192.png" alt="Parsely" width="24" height="24" style="border-radius: 4px;">
+    Parsely Help Center <span class="badge">v1.0</span>
+  </a>
       <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
         <button class="btn-theme" onclick="toggleTheme()" title="Toggle dark mode">
           <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
