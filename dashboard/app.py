@@ -2063,6 +2063,154 @@ def admin():
     )
 
 
+@app.get("/settings")
+def settings_page():
+    """Field configuration settings page."""
+    html_path = DASHBOARD_DIR / "templates" / "settings.html"
+    if not html_path.exists():
+        raise HTTPException(status_code=500, detail="Settings template not found")
+    return HTMLResponse(
+        content=html_path.read_text(encoding="utf-8"),
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma":        "no-cache",
+            "Expires":       "0",
+        },
+    )
+
+
+@app.get("/api/field-config-admin")
+def field_config_admin():
+    """
+    Return full field configuration for admin settings.
+    Includes standard and custom fields with all properties.
+    """
+    fc = get_field_config()
+    
+    # Standard fields - convert to list for easier editing
+    standard_fields = []
+    for name, config in fc._standard_fields.items():
+        standard_fields.append({
+            "name": name,
+            "mandatory": config.mandatory,
+            "hidden": config.hidden,
+        })
+    
+    # Custom fields - include all properties
+    custom_fields = []
+    for name, config in fc._custom_fields.items():
+        field_def = {
+            "name": name,
+            "label": name,
+            "mandatory": config.mandatory,
+            "hidden": config.hidden,
+        }
+        # Get additional properties from original config
+        custom_config = _load_custom_fields_raw()
+        for cf in custom_config.get("fields", []):
+            if cf.get("name") == name:
+                field_def["label"] = cf.get("label", name)
+                field_def["regex"] = cf.get("regex")
+                field_def["llm_hint"] = cf.get("llm_hint")
+                field_def["table_keys"] = cf.get("table_keys", [])
+                break
+        custom_fields.append(field_def)
+    
+    return {
+        "standard_fields": sorted(standard_fields, key=lambda x: x["name"]),
+        "custom_fields": custom_fields,
+    }
+
+
+def _load_custom_fields_raw() -> dict:
+    """Load raw custom fields config without processing."""
+    config_file = CONFIG_DIR / "custom_fields.json"
+    if not config_file.exists():
+        return {"fields": []}
+    try:
+        with open(config_file, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {"fields": []}
+
+
+@app.post("/api/field-config-admin/standard")
+def save_standard_field_config(request: Request, body: dict):
+    """Save standard field configuration."""
+    fields = body.get("fields", [])
+    
+    # Validate
+    for field in fields:
+        if "name" not in field:
+            raise HTTPException(400, "Field name is required")
+    
+    # Save to file
+    config_file = CONFIG_DIR / "standard_fields.json"
+    try:
+        with open(config_file, "w", encoding="utf-8") as f:
+            json.dump({
+                "_README": "Configuration for standard invoice fields. Each field can have: mandatory (bool, default false), hidden (bool, default false).",
+                "fields": fields
+            }, f, indent=2)
+        
+        # Reload config
+        reload_field_config()
+        
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to save configuration: {e}")
+
+
+@app.post("/api/field-config-admin/custom")
+def save_custom_field_config(request: Request, body: dict):
+    """Save custom field configuration."""
+    fields = body.get("fields", [])
+    
+    # Validate
+    for field in fields:
+        if "name" not in field:
+            raise HTTPException(400, "Field name is required")
+        if not re.match(r'^[a-z_][a-z0-9_]*$', field["name"]):
+            raise HTTPException(400, f"Invalid field name: {field['name']}")
+    
+    # Get existing custom config to preserve other settings
+    existing = _load_custom_fields_raw()
+    
+    # Build new config
+    new_fields = []
+    for field in fields:
+        cf = {
+            "name": field["name"],
+            "label": field.get("label", field["name"]),
+            "mandatory": field.get("mandatory", False),
+            "hidden": field.get("hidden", False),
+        }
+        # Preserve optional properties
+        if field.get("regex"):
+            cf["regex"] = field["regex"]
+        if field.get("llm_hint"):
+            cf["llm_hint"] = field["llm_hint"]
+        if field.get("table_keys"):
+            cf["table_keys"] = field["table_keys"]
+        new_fields.append(cf)
+    
+    # Save to file
+    config_file = CONFIG_DIR / "custom_fields.json"
+    try:
+        with open(config_file, "w", encoding="utf-8") as f:
+            json.dump({
+                "section_title": existing.get("section_title", "Additional Fields"),
+                "fields": new_fields
+            }, f, indent=2)
+        
+        # Reload config
+        reload_field_config()
+        
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to save configuration: {e}")
+
+
 @app.get("/help")
 def help_page():
     html_path = DASHBOARD_DIR / "templates" / "help.html"
