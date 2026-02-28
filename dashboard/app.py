@@ -2063,22 +2063,6 @@ def admin():
     )
 
 
-@app.get("/settings")
-def settings_page():
-    """Field configuration settings page."""
-    html_path = DASHBOARD_DIR / "templates" / "settings.html"
-    if not html_path.exists():
-        raise HTTPException(status_code=500, detail="Settings template not found")
-    return HTMLResponse(
-        content=html_path.read_text(encoding="utf-8"),
-        headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-            "Pragma":        "no-cache",
-            "Expires":       "0",
-        },
-    )
-
-
 @app.get("/api/field-config-admin")
 def field_config_admin():
     """

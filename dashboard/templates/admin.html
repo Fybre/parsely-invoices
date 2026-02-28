@@ -835,13 +835,6 @@ main {
     </svg>
     Back to Dashboard
   </a>
-  <a href="/settings" class="back-link" style="margin-left:0">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    </svg>
-    Field Settings
-  </a>
   <form id="logout-form" method="post" action="/logout" style="display:none;margin:0">
     <button type="submit" class="back-link" style="border:none;cursor:pointer;font-family:inherit;gap:6px" title="Sign out">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -909,6 +902,16 @@ main {
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
       Settings
+    </div>
+    <div class="side-tab" data-tab="field_config" onclick="setTab('field_config')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+      Field Config
     </div>
     <div class="side-tab" data-tab="audit" onclick="setTab('audit')">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1064,6 +1067,9 @@ async function setTab(tab) {
   } else if (tab === 'settings') {
     renderSettingsPanel();
     await loadSettings();
+  } else if (tab === 'field_config') {
+    renderFieldConfigPanel();
+    await loadFieldConfig();
   } else if (tab === 'audit') {
     renderAuditPanel();
     await loadAuditLog();
@@ -2070,6 +2076,229 @@ async function testEmailIngest() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = orig;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Field Configuration Panel
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderFieldConfigPanel() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    <div class="content-header">
+      <div class="content-title">Field Configuration</div>
+      <div style="color:var(--muted);font-size:12px">Configure mandatory and hidden fields for invoice processing</div>
+    </div>
+    <div class="table-wrap">
+      <div id="field-config-panel">
+        <div class="spinner"><div class="spin-ring"></div>Loading field configuration...</div>
+      </div>
+    </div>
+  `;
+}
+
+let fieldConfigState = {
+  standardFields: [],
+  customFields: []
+};
+
+async function loadFieldConfig() {
+  try {
+    const data = await api.get('/api/field-config-admin');
+    fieldConfigState.standardFields = data.standard_fields || [];
+    fieldConfigState.customFields = data.custom_fields || [];
+    renderFieldConfigContent();
+  } catch (e) {
+    document.getElementById('field-config-panel').innerHTML = `
+      <div class="db-card"><h3>Error</h3><p>Failed to load field configuration: ${esc(e.message)}</p></div>`;
+  }
+}
+
+function renderFieldConfigContent() {
+  const panel = document.getElementById('field-config-panel');
+  
+  // Standard Fields Table
+  const standardRows = fieldConfigState.standardFields.map((field, index) => `
+    <tr data-index="${index}">
+      <td><code>${esc(field.name)}</code></td>
+      <td style="text-align:center">
+        <input type="checkbox" ${field.mandatory ? 'checked' : ''} 
+               onchange="updateStandardField(${index}, 'mandatory', this.checked)">
+      </td>
+      <td style="text-align:center">
+        <input type="checkbox" ${field.hidden ? 'checked' : ''} 
+               onchange="updateStandardField(${index}, 'hidden', this.checked)">
+      </td>
+    </tr>
+  `).join('');
+  
+  // Custom Fields Table
+  const customRows = fieldConfigState.customFields.map((field, index) => `
+    <tr data-index="${index}">
+      <td><code>${esc(field.name)}</code></td>
+      <td><input type="text" value="${esc(field.label || '')}" 
+                 onchange="updateCustomField(${index}, 'label', this.value)"
+                 style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:4px"></td>
+      <td style="text-align:center">
+        <input type="checkbox" ${field.mandatory ? 'checked' : ''} 
+               onchange="updateCustomField(${index}, 'mandatory', this.checked)">
+      </td>
+      <td style="text-align:center">
+        <input type="checkbox" ${field.hidden ? 'checked' : ''} 
+               onchange="updateCustomField(${index}, 'hidden', this.checked)">
+      </td>
+      <td style="text-align:center">
+        <button class="btn-icon delete" onclick="deleteCustomField(${index})" title="Delete">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+  
+  panel.innerHTML = `
+    <!-- Standard Fields -->
+    <div class="db-card" style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0">Standard Fields</h3>
+        <button class="btn btn-primary" onclick="saveStandardFieldConfig()">Save Standard Fields</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Field Name</th>
+            <th style="text-align:center;width:120px">Mandatory</th>
+            <th style="text-align:center;width:100px">Hidden</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${standardRows || '<tr><td colspan="3" style="text-align:center;color:var(--muted)">No standard fields configured</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Custom Fields -->
+    <div class="db-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0">Custom Fields</h3>
+        <button class="btn btn-primary" onclick="saveCustomFieldConfig()">Save Custom Fields</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Field Name</th>
+            <th style="width:200px">Label</th>
+            <th style="text-align:center;width:120px">Mandatory</th>
+            <th style="text-align:center;width:100px">Hidden</th>
+            <th style="text-align:center;width:60px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${customRows || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No custom fields defined</td></tr>'}
+        </tbody>
+      </table>
+      
+      <!-- Add Custom Field Form -->
+      <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
+        <h4 style="margin:0 0 12px 0;font-size:13px">Add New Custom Field</h4>
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <div style="flex:1;min-width:150px">
+            <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px">Field Name (snake_case)</label>
+            <input type="text" id="new-field-name" placeholder="e.g., cost_center" 
+                   style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px">
+          </div>
+          <div style="flex:1;min-width:150px">
+            <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px">Display Label</label>
+            <input type="text" id="new-field-label" placeholder="e.g., Cost Center"
+                   style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px">
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding-bottom:8px">
+            <input type="checkbox" id="new-field-mandatory">
+            <span style="font-size:12px">Mandatory</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding-bottom:8px">
+            <input type="checkbox" id="new-field-hidden">
+            <span style="font-size:12px">Hidden</span>
+          </label>
+          <button class="btn btn-secondary" onclick="addCustomField()">Add Field</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function updateStandardField(index, prop, value) {
+  fieldConfigState.standardFields[index][prop] = value;
+}
+
+function updateCustomField(index, prop, value) {
+  fieldConfigState.customFields[index][prop] = value;
+}
+
+function deleteCustomField(index) {
+  if (!confirm(`Delete custom field "${fieldConfigState.customFields[index].name}"?`)) return;
+  fieldConfigState.customFields.splice(index, 1);
+  renderFieldConfigContent();
+  toast('Field deleted. Click Save to persist.', 'success');
+}
+
+function addCustomField() {
+  const nameInput = document.getElementById('new-field-name');
+  const labelInput = document.getElementById('new-field-label');
+  const mandatoryInput = document.getElementById('new-field-mandatory');
+  const hiddenInput = document.getElementById('new-field-hidden');
+  
+  const name = nameInput.value.trim();
+  const label = labelInput.value.trim();
+  
+  if (!name) {
+    toast('Field name is required', 'error');
+    return;
+  }
+  
+  if (!/^[a-z_][a-z0-9_]*$/.test(name)) {
+    toast('Field name must be snake_case (letters, numbers, underscores)', 'error');
+    return;
+  }
+  
+  if (fieldConfigState.customFields.some(f => f.name === name)) {
+    toast('A field with this name already exists', 'error');
+    return;
+  }
+  
+  fieldConfigState.customFields.push({
+    name: name,
+    label: label || name,
+    mandatory: mandatoryInput.checked,
+    hidden: hiddenInput.checked
+  });
+  
+  nameInput.value = '';
+  labelInput.value = '';
+  mandatoryInput.checked = false;
+  hiddenInput.checked = false;
+  
+  renderFieldConfigContent();
+  toast('Field added. Click Save to persist.', 'success');
+}
+
+async function saveStandardFieldConfig() {
+  try {
+    await api.post('/api/field-config-admin/standard', { fields: fieldConfigState.standardFields });
+    toast('Standard fields saved successfully', 'success');
+  } catch (e) {
+    toast('Failed to save: ' + e.message, 'error');
+  }
+}
+
+async function saveCustomFieldConfig() {
+  try {
+    await api.post('/api/field-config-admin/custom', { fields: fieldConfigState.customFields });
+    toast('Custom fields saved successfully', 'success');
+  } catch (e) {
+    toast('Failed to save: ' + e.message, 'error');
   }
 }
 
