@@ -156,6 +156,13 @@ header {
   opacity: 0.7;
   flex-shrink: 0;
 }
+
+/* Mandatory field indicator */
+.mandatory-indicator {
+  color: var(--err);
+  font-weight: 700;
+  margin-left: 2px;
+}
 .stat-chip.review  { color: var(--warn);     background: var(--warn-bg);     border-color: #fde68a; }
 .stat-chip.ready   { color: var(--ok);       background: var(--ok-bg);       border-color: #bbf7d0; }
 .stat-chip.exported{ color: var(--exported); background: var(--exported-bg); border-color: #c4b5fd; }
@@ -2112,6 +2119,7 @@ const S = {
   sortOrder:        localStorage.getItem('invoice-sort-order') || 'desc', // 'desc' = newest first, 'asc' = oldest first
   dateFilter:       localStorage.getItem('invoice-date-filter') || 'all', // 'today', 'last7', 'last30', 'this_year', 'all'
   collapsedCards:   JSON.parse(localStorage.getItem('invoice-collapsed-cards') || '{}'), // Map of cardId -> true (collapsed)
+  fieldConfig:      {},    // Field configuration from /api/field-config
   lastUpdated:      null,
   pollErrors:       0,
   stats:            {},
@@ -2132,6 +2140,7 @@ const api = {
   patch:  (url, body)   => fetch(url, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.detail || r.status); }); return r.json(); }),
   del:    url           => fetch(url, { method: 'DELETE' }).then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.detail || r.status); }); return r.json(); }),
 
+  fieldConfig: () => api.get('/api/field-config'),
   stats:   (dateFilter, tzOffset) => {
     const params = new URLSearchParams();
     if (dateFilter && dateFilter !== 'all') params.append('date_filter', dateFilter);
@@ -2160,6 +2169,86 @@ const api = {
   saveCorrections: (stem, corr)  => api.patch(`/api/invoices/${encodeURIComponent(stem)}/corrections`, { corrections: corr }),
   auditLog:        stem           => api.get(`/api/invoices/${encodeURIComponent(stem)}/audit`),
 };
+
+// ════════════════════════════════════════════════════════════════════════════
+// Field Config
+// ════════════════════════════════════════════════════════════════════════════
+async function loadFieldConfig() {
+  try {
+    const config = await api.fieldConfig();
+    S.fieldConfig = config.fields || {};
+    console.log('Field config loaded:', Object.keys(S.fieldConfig).length, 'fields');
+  } catch (e) {
+    console.error('Failed to load field config:', e);
+    S.fieldConfig = {};
+  }
+}
+
+function isFieldMandatory(fieldName) {
+  const config = S.fieldConfig[fieldName];
+  return config && config.mandatory === true;
+}
+
+function isFieldHidden(fieldName) {
+  const config = S.fieldConfig[fieldName];
+  return config && config.hidden === true;
+}
+
+function mandatoryIndicatorHtml(fieldName) {
+  return isFieldMandatory(fieldName) ? '<span class="mandatory-indicator" title="Mandatory field">*</span>' : '';
+}
+
+function checkMandatoryFields() {
+  """Check if all mandatory fields have values. Returns array of missing field names."""
+  if (!S.currentResult) return [];
+  
+  const { inv, corr } = mergeCorrections(S.currentResult);
+  const missing = [];
+  
+  // Get all mandatory field names from config
+  const mandatoryFields = Object.keys(S.fieldConfig).filter(name => S.fieldConfig[name].mandatory);
+  
+  for (const fieldName of mandatoryFields) {
+    // Skip hidden fields - they should be validated server-side or have defaults
+    if (isFieldHidden(fieldName)) continue;
+    
+    // Get value using dot notation
+    const value = getFieldValueByPath(inv, corr, fieldName);
+    
+    // Check if value is empty
+    if (value === null || value === undefined || (typeof value === 'string' && !value.trim())) {
+      // Use the label from the config if available, otherwise the field name
+      missing.push(fieldName);
+    }
+  }
+  
+  return missing;
+}
+
+function getFieldValueByPath(inv, corr, fieldPath) {
+  """Get field value from invoice or corrections using dot notation (e.g., 'supplier.name')."""
+  // First check corrections
+  if (corr && corr[fieldPath]) {
+    return corr[fieldPath];
+  }
+  
+  // Handle nested paths
+  if (fieldPath.includes('.')) {
+    const parts = fieldPath.split('.');
+    let obj = inv;
+    for (const part of parts) {
+      if (obj === null || obj === undefined) return null;
+      obj = obj[part];
+    }
+    return obj;
+  }
+  
+  // Top-level field
+  return inv[fieldPath];
+}
+
+// Load field config on startup
+loadFieldConfig();
 
 // ════════════════════════════════════════════════════════════════════════════
 // Polling
@@ -3590,14 +3679,14 @@ function renderData(result) {
       </div>
       ${cardBodyWrapper('invoice-details', `
       <div class="kv-grid">
-        ${kv('Invoice Number', inv.invoice_number, !!corr.invoice_number)}
-        ${kv('Invoice Date',   inv.invoice_date,   !!corr.invoice_date)}
-        ${kv('Due Date',       inv.due_date,        !!corr.due_date)}
-        ${kv('PO Number',      inv.po_number,       !!corr.po_number)}
-        ${kv('Currency',       inv.currency,        !!corr.currency)}
-        ${kv('Subtotal',       inv.subtotal   != null ? fmtMoney(inv.currency, inv.subtotal)   : null, !!corr.subtotal)}
-        ${kv('Tax',            inv.tax_amount != null ? fmtMoney(inv.currency, inv.tax_amount) : null, !!corr.tax_amount)}
-        ${kvBig('Total',       totalDisplay, !!corr.total)}
+        ${isFieldHidden('invoice_number') ? '' : kv('Invoice Number', inv.invoice_number, !!corr.invoice_number, 'invoice_number')}
+        ${isFieldHidden('invoice_date') ? '' : kv('Invoice Date',   inv.invoice_date,   !!corr.invoice_date, 'invoice_date')}
+        ${isFieldHidden('due_date') ? '' : kv('Due Date',       inv.due_date,        !!corr.due_date, 'due_date')}
+        ${isFieldHidden('po_number') ? '' : kv('PO Number',      inv.po_number,       !!corr.po_number, 'po_number')}
+        ${isFieldHidden('currency') ? '' : kv('Currency',       inv.currency,        !!corr.currency, 'currency')}
+        ${isFieldHidden('subtotal') ? '' : kv('Subtotal',       inv.subtotal   != null ? fmtMoney(inv.currency, inv.subtotal)   : null, !!corr.subtotal, 'subtotal')}
+        ${isFieldHidden('tax_amount') ? '' : kv('Tax',            inv.tax_amount != null ? fmtMoney(inv.currency, inv.tax_amount) : null, !!corr.tax_amount, 'tax_amount')}
+        ${isFieldHidden('total') ? '' : kvBig('Total',       totalDisplay, !!corr.total, 'total')}
       </div>
       `)}
     </div>
@@ -3617,14 +3706,14 @@ function renderData(result) {
       </div>
       ${cardBodyWrapper('supplier', `
       <div class="kv-grid">
-        ${kv('Extracted Name', sup.name,  !!corr.supplier_name)}
-        ${kv('ABN / Tax ID',   sup.abn,   !!corr.supplier_abn)}
-        ${kv('Email',          sup.email, !!corr.supplier_email)}
-        ${kv('Phone',          sup.phone, !!corr.supplier_phone)}
+        ${isFieldHidden('supplier.name') ? '' : kv('Extracted Name', sup.name,  !!corr.supplier_name, 'supplier.name')}
+        ${isFieldHidden('supplier.abn') ? '' : kv('ABN / Tax ID',   sup.abn,   !!corr.supplier_abn, 'supplier.abn')}
+        ${isFieldHidden('supplier.email') ? '' : kv('Email',          sup.email, !!corr.supplier_email, 'supplier.email')}
+        ${isFieldHidden('supplier.phone') ? '' : kv('Phone',          sup.phone, !!corr.supplier_phone, 'supplier.phone')}
         ${kv('Supplier ID',    corr.corrected_supplier_id || (ms && ms.supplier_id) || '—', !!corr.corrected_supplier_id)}
         ${ms && !corr.corrected_supplier_id ? kv('Match Detail', formatMatchDetail(ms)) : ''}
         ${corr.corrected_supplier_id && ms ? kvStrike('Original Match', formatMatchDetail(ms)) : ''}
-        ${sup.address ? kvWide('Address', sup.address, !!corr.supplier_address) : ''}
+        ${sup.address && !isFieldHidden('supplier.address') ? kvWide('Address', sup.address, !!corr.supplier_address, 'supplier.address') : ''}
       </div>
       `)}
     </div>
@@ -3642,9 +3731,9 @@ function renderData(result) {
       </div>
       ${cardBodyWrapper('bill-to', `
       <div class="kv-grid">
-        ${kv('Name',  bill.name)}
-        ${kv('Email', bill.email)}
-        ${bill.address ? kvWide('Address', bill.address) : ''}
+        ${isFieldHidden('bill_to.name') ? '' : kv('Name',  bill.name, false, 'bill_to.name')}
+        ${isFieldHidden('bill_to.email') ? '' : kv('Email', bill.email, false, 'bill_to.email')}
+        ${bill.address && !isFieldHidden('bill_to.address') ? kvWide('Address', bill.address, false, 'bill_to.address') : ''}
       </div>
       `)}
     </div>` : ''}
@@ -3748,6 +3837,13 @@ function actionBarHtml(result) {
 // Workflow actions
 // ════════════════════════════════════════════════════════════════════════════
 async function exportInvoice(stem) {
+  // Check mandatory fields before export
+  const missingMandatory = checkMandatoryFields();
+  if (missingMandatory.length > 0) {
+    showToast(`Cannot export: Missing mandatory fields (${missingMandatory.join(', ')})`, 'error', 5000);
+    return;
+  }
+
   const btn = document.querySelector('.btn-export');
   if (btn) { btn.disabled = true; btn.textContent = 'Exporting…'; }
   const prevIndex = S.filtered.findIndex(inv => inv.stem === stem);
@@ -4121,24 +4217,27 @@ function discCard(disc) {
 // ════════════════════════════════════════════════════════════════════════════
 // Template helpers
 // ════════════════════════════════════════════════════════════════════════════
-function kv(label, value, corrected=false) {
+function kv(label, value, corrected=false, fieldName=null) {
   const tag = corrected ? `<span class="corrected-tag">edited</span>` : '';
+  const mandatoryIndicator = fieldName ? mandatoryIndicatorHtml(fieldName) : '';
   const display = value != null && value !== ''
     ? `<div class="kv-value">${esc(String(value))}${tag}</div>`
     : `<div class="kv-value missing">—${tag}</div>`;
-  return `<div class="kv-item"><div class="kv-label">${esc(label)}</div>${display}</div>`;
+  return `<div class="kv-item" ${fieldName ? `data-field="${fieldName}"` : ''}><div class="kv-label">${esc(label)}${mandatoryIndicator}</div>${display}</div>`;
 }
-function kvBig(label, value, corrected=false) {
+function kvBig(label, value, corrected=false, fieldName=null) {
   const tag = corrected ? `<span class="corrected-tag">edited</span>` : '';
+  const mandatoryIndicator = fieldName ? mandatoryIndicatorHtml(fieldName) : '';
   const display = value != null && value !== ''
     ? `<div class="kv-value large">${esc(String(value))}${tag}</div>`
     : `<div class="kv-value missing">—${tag}</div>`;
-  return `<div class="kv-item"><div class="kv-label">${esc(label)}</div>${display}</div>`;
+  return `<div class="kv-item" ${fieldName ? `data-field="${fieldName}"` : ''}><div class="kv-label">${esc(label)}${mandatoryIndicator}</div>${display}</div>`;
 }
-function kvWide(label, value, corrected=false) {
+function kvWide(label, value, corrected=false, fieldName=null) {
   const tag = corrected ? `<span class="corrected-tag">edited</span>` : '';
-  return `<div class="kv-item" style="grid-column:1/-1;border-right:none">
-    <div class="kv-label">${esc(label)}</div>
+  const mandatoryIndicator = fieldName ? mandatoryIndicatorHtml(fieldName) : '';
+  return `<div class="kv-item" style="grid-column:1/-1;border-right:none" ${fieldName ? `data-field="${fieldName}"` : ''}>
+    <div class="kv-label">${esc(label)}${mandatoryIndicator}</div>
     <div class="kv-value">${esc(String(value ?? ''))}${tag}</div>
   </div>`;
 }

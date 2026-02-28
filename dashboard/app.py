@@ -82,6 +82,7 @@ from config import Config  # noqa: E402
 from pipeline.webhook_export import WebhookExportService  # noqa: E402
 from pipeline.email_ingest import EmailIngestService  # noqa: E402
 from pipeline.csv_manager import csv_manager  # noqa: E402
+from pipeline.field_config import get_field_config  # noqa: E402
 
 # Import dashboard services
 from dashboard.models import (
@@ -846,6 +847,17 @@ def _get_actor(request: Request) -> str:
     return "anonymous"
 
 
+def _get_field_value_from_data(data: dict, field_path: str):
+    """Get a field value from nested dict using dot notation (e.g., 'supplier.name')."""
+    parts = field_path.split(".")
+    value = data
+    for part in parts:
+        if not isinstance(value, dict):
+            return None
+        value = value.get(part)
+    return value
+
+
 
 
 
@@ -905,6 +917,36 @@ def auth_me(request: Request):
     token = request.cookies.get(_AUTH_SESSION_COOKIE)
     user = _verify_session_token(token) if token else None
     return {"auth_mode": AUTH_MODE, "user": user, "config": _config}
+
+
+@app.get("/api/field-config")
+def field_config():
+    """Return field configuration for mandatory and hidden fields."""
+    fc = get_field_config()
+    
+    # Get all field configs
+    all_fields = {}
+    
+    # Standard fields
+    for name in fc._standard_fields:
+        config = fc.get_field(name)
+        all_fields[name] = {
+            "mandatory": config.mandatory,
+            "hidden": config.hidden,
+        }
+    
+    # Custom fields
+    for name in fc._custom_fields:
+        config = fc.get_field(name)
+        all_fields[name] = {
+            "mandatory": config.mandatory,
+            "hidden": config.hidden,
+        }
+    
+    return {
+        "fields": all_fields,
+        "mandatory_fields": fc.get_all_mandatory_fields(),
+    }
 
 
 @app.get("/api/health")
@@ -1068,6 +1110,22 @@ def export_invoice(stem: str, request: Request):
 
     # Apply corrections to get the final data
     final_data = apply_corrections(extracted, corrections)
+
+    # Check mandatory fields before export
+    fc = get_field_config()
+    missing_mandatory = []
+    for field_name in fc.get_all_mandatory_fields():
+        if fc.is_hidden(field_name):
+            continue  # Skip hidden fields
+        value = _get_field_value_from_data(final_data, field_name)
+        if value is None or (isinstance(value, str) and not value.strip()):
+            missing_mandatory.append(field_name)
+    
+    if missing_mandatory:
+        raise HTTPException(
+            400, 
+            f"Cannot export: Missing mandatory fields: {', '.join(missing_mandatory)}"
+        )
 
     # Build normalized objects for easy downstream consumption
     normalized_supplier = build_normalized_supplier(final_data, corrections)

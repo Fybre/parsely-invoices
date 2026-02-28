@@ -7,6 +7,7 @@ Checks:
   PO:          PO not found, supplier mismatch, total exceeded, line mismatches
   Supplier:    not matched, ABN mismatch vs PO
   Data quality: missing required fields, negative/zero amounts
+  Mandatory:   fields marked as mandatory in config must have values
 """
 import logging
 from datetime import date, datetime, timedelta
@@ -15,6 +16,7 @@ from typing import Optional
 from models.invoice import ExtractedInvoice
 from models.purchase_order import PurchaseOrder
 from models.result import Discrepancy, MatchedPO, MatchedSupplier
+from pipeline.field_config import get_field_config
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +58,50 @@ class InvoiceValidator:
     ) -> list[Discrepancy]:
         """Run all checks and return combined discrepancies list."""
         issues: list[Discrepancy] = []
+        issues.extend(self._check_mandatory_fields(invoice))
         issues.extend(self._check_data_quality(invoice))
         issues.extend(self._check_arithmetic(invoice))
         issues.extend(self._check_dates(invoice))
         issues.extend(self._check_supplier(invoice, matched_supplier))
         issues.extend(self._check_po(invoice, matched_po, po_record))
         return issues
+
+    # ------------------------------------------------------------------
+    # Mandatory field checks
+    # ------------------------------------------------------------------
+
+    def _check_mandatory_fields(self, inv: ExtractedInvoice) -> list[Discrepancy]:
+        """Check that all mandatory fields have values."""
+        issues = []
+        field_config = get_field_config()
+        mandatory_fields = field_config.get_all_mandatory_fields()
+
+        for field_name in mandatory_fields:
+            value = self._get_field_value(inv, field_name)
+            if value is None or (isinstance(value, str) and not value.strip()):
+                issues.append(Discrepancy(
+                    type="mandatory_field_missing",
+                    severity="error",
+                    description=f"Mandatory field '{field_name}' is missing or empty",
+                    field=field_name,
+                ))
+
+        return issues
+
+    def _get_field_value(self, inv: ExtractedInvoice, field_name: str):
+        """Get the value of a field by name (supports dot notation for nested fields)."""
+        if "." in field_name:
+            # Handle nested fields like "supplier.name", "bill_to.address"
+            parts = field_name.split(".")
+            obj = inv
+            for part in parts:
+                if obj is None:
+                    return None
+                obj = getattr(obj, part, None)
+            return obj
+        else:
+            # Top-level field
+            return getattr(inv, field_name, None)
 
     # ------------------------------------------------------------------
     # Data quality checks
