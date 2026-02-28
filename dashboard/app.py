@@ -920,8 +920,11 @@ def health():
 
 
 @app.get("/api/stats")
-def stats():
-    return get_db().get_stats()
+def stats(
+    date_filter: str = Query(default="all", pattern="^(today|last7|last30|this_year|all)$"),
+    tz_offset: int = Query(default=0),
+):
+    return get_db().get_stats(date_filter=date_filter, tz_offset=tz_offset)
 
 
 @app.get("/api/pipeline/status")
@@ -936,12 +939,18 @@ def list_invoices(
     search: Optional[str] = Query(default=None),
     limit: int = Query(default=500, le=2000),
     offset: int = Query(default=0, ge=0),
+    sort: str = Query(default="desc", pattern="^(asc|desc)$"),
+    date_filter: str = Query(default="all", pattern="^(today|last7|last30|this_year|all)$"),
+    tz_offset: int = Query(default=0, description="Timezone offset in minutes from UTC (positive for east of UTC)"),
 ):
     return get_db().list_invoices(
         status=status or None,
         search=search or None,
         limit=limit,
         offset=offset,
+        sort=sort,
+        date_filter=date_filter,
+        tz_offset=tz_offset,
     )
 
 

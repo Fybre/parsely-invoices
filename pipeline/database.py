@@ -423,9 +423,12 @@ class Database:
         search: Optional[str] = None,
         limit: int = 500,
         offset: int = 0,
+        sort: str = "desc",
+        date_filter: str = "all",
+        tz_offset: int = 0,
     ) -> list[dict]:
         """
-        Return invoice summaries (no extracted_data blob) ordered newest-first.
+        Return invoice summaries (no extracted_data blob) ordered by processed_at.
 
         Args:
             status:  Filter by status value, or None for all.
@@ -433,6 +436,9 @@ class Database:
                      supplier_name, or matched_supplier.
             limit:   Max rows to return.
             offset:  Pagination offset.
+            sort:    Sort order for processed_at: "desc" (newest first) or "asc" (oldest first).
+            date_filter: Date range filter: "today", "last7", "last30", "this_year", or "all".
+            tz_offset: Timezone offset in minutes from UTC (positive for east of UTC).
         """
         clauses: list[str] = []
         params: list = []
@@ -447,8 +453,16 @@ class Database:
             like = f"%{search}%"
             params.extend([like, like, like])
 
+        # Date filter on processed_at
+        date_clause = self._get_date_filter_clause(date_filter, tz_offset)
+        if date_clause:
+            clauses.append(date_clause)
+
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         params.extend([limit, offset])
+
+        # Validate sort order to prevent SQL injection
+        order_by = "processed_at DESC" if sort.lower() == "desc" else "processed_at ASC"
 
         with self._conn() as conn:
             rows = conn.execute(
@@ -463,7 +477,7 @@ class Database:
                     exported_at, notes
                 FROM invoices
                 {where}
-                ORDER BY processed_at DESC
+                ORDER BY {order_by}
                 LIMIT ? OFFSET ?
                 """,
                 params,
@@ -471,11 +485,52 @@ class Database:
 
         return [dict(r) for r in rows]
 
-    def get_stats(self) -> dict:
-        """Return aggregate counts by status plus totals."""
+    def _get_date_filter_clause(self, date_filter: str, tz_offset: int = 0) -> Optional[str]:
+        """Return SQL clause for date filter, or None if 'all'."""
+        from datetime import datetime, timedelta, timezone
+
+        # Get current time in UTC, then adjust for user's timezone offset
+        # tz_offset is in minutes (positive for east of UTC, negative for west)
+        now_utc = datetime.now(timezone.utc)
+        now_local = now_utc - timedelta(minutes=tz_offset)
+
+        if date_filter == "today":
+            # From start of today in user's local timezone
+            today_start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Convert back to UTC for comparison with stored timestamps
+            today_start_utc = today_start_local + timedelta(minutes=tz_offset)
+            return f"processed_at >= '{today_start_utc.isoformat()}'"
+        elif date_filter == "last7":
+            days_7_ago = now_utc - timedelta(days=7)
+            return f"processed_at >= '{days_7_ago.isoformat()}'"
+        elif date_filter == "last30":
+            days_30_ago = now_utc - timedelta(days=30)
+            return f"processed_at >= '{days_30_ago.isoformat()}'"
+        elif date_filter == "this_year":
+            # Year start in user's local timezone
+            year_start_local = now_local.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            year_start_utc = year_start_local + timedelta(minutes=tz_offset)
+            return f"processed_at >= '{year_start_utc.isoformat()}'"
+        else:
+            # "all" or unknown - no filter
+            return None
+
+    def get_stats(self, date_filter: str = "all", tz_offset: int = 0) -> dict:
+        """
+        Return aggregate counts by status plus totals, optionally filtered by date.
+        Returns a dict with filtered counts and 'total_unfiltered' for comparison.
+        """
+        clauses: list[str] = []
+        date_clause = self._get_date_filter_clause(date_filter, tz_offset)
+        if date_clause:
+            clauses.append(date_clause)
+        
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+
         with self._conn() as conn:
+            # Get filtered stats
             row = conn.execute(
-                """
+                f"""
                 SELECT
                     COUNT(*)  AS total,
                     SUM(CASE WHEN status = 'needs_review' THEN 1 ELSE 0 END) AS needs_review,
@@ -485,9 +540,16 @@ class Database:
                     SUM(warning_count) AS total_warnings,
                     MAX(processed_at)  AS last_processed
                 FROM invoices
+                {where}
                 """
             ).fetchone()
-        return dict(row) if row else {}
+            
+            # Get absolute total for comparison
+            total_unfiltered = conn.execute("SELECT COUNT(*) FROM invoices").fetchone()[0]
+            
+        res = dict(row) if row else {}
+        res["total_unfiltered"] = total_unfiltered
+        return res
 
     def get_audit_log(self, stem: str) -> list[dict]:
         """Return all audit entries for one invoice, oldest first."""
