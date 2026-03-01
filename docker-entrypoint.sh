@@ -42,7 +42,7 @@ PGID="${PGID:-1000}"
 if [ "$(id -u)" = "0" ]; then
     echo "[entrypoint] Running as root — fixing volume ownership (${PUID}:${PGID})"
 
-    # Ensure all mounted directories exist before chowning
+    # Ensure all mounted directories exist
     mkdir -p \
         /app/data \
         /app/config \
@@ -51,8 +51,14 @@ if [ "$(id -u)" = "0" ]; then
         /app/backups \
         /app/.cache/docling
 
+    # Bootstrap config files first (as root, so it can write anywhere).
+    # Must run before chown so that any files it creates are caught by the
+    # ownership fix below rather than being left root-owned.
+    python3 /app/bootstrap.py
+
     # Transfer ownership of every mounted path to the app user.
-    # Runs on every startup so files created by previous root runs are corrected.
+    # Runs on every startup so all files — including those just created by
+    # bootstrap — are owned by PUID:PGID before the app process starts.
     chown -R "${PUID}:${PGID}" \
         /app/data \
         /app/config \
@@ -60,9 +66,6 @@ if [ "$(id -u)" = "0" ]; then
         /app/output \
         /app/backups \
         /app/.cache/docling
-
-    # Bootstrap config files as root (can write anywhere; dirs are chowned above)
-    python3 /app/bootstrap.py
 
     echo "[entrypoint] Dropping to UID=${PUID} GID=${PGID}"
 fi
