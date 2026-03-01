@@ -11,7 +11,7 @@ Each field can have:
 """
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -24,6 +24,8 @@ class FieldConfig:
     name: str
     mandatory: bool = False
     hidden: bool = False
+    source: str = "llm"
+    source_config: dict = field(default_factory=dict)
 
 
 class FieldConfigManager:
@@ -65,6 +67,8 @@ class FieldConfigManager:
                     name=name,
                     mandatory=field_def.get("mandatory", False),
                     hidden=field_def.get("hidden", False),
+                    source=field_def.get("source", "llm"),
+                    source_config=field_def.get("source_config", {}),
                 )
             return fields
         except Exception as e:
@@ -90,6 +94,8 @@ class FieldConfigManager:
                     name=name,
                     mandatory=field_def.get("mandatory", False),
                     hidden=field_def.get("hidden", False),
+                    source=field_def.get("source", "llm"),
+                    source_config=field_def.get("source_config", {}),
                 )
             return fields
         except Exception as e:

@@ -4,8 +4,10 @@
     {
       "name": "strata_reference",
       "label": "Strata Reference",
+      "source": "llm",
+      "source_config": {},
       "mandatory": false,
-      "hidden": true,
+      "hidden": false,
       "regex": "(?:strata\\s+(?:plan|ref(?:erence)?|no\\.?)[:\\s#]*)(SP\\s*\\d+|\\d{4,6})",
       "llm_hint": "A strata plan or lot reference, often labeled 'Strata Plan', 'SP' followed by digits, 'Strata Reference', or 'Lot' \u2014 common on strata levies and body corporate invoices",
       "table_keys": [
@@ -19,7 +21,9 @@
     {
       "name": "bsb",
       "label": "BSB",
-      "mandatory": true,
+      "source": "llm",
+      "source_config": {},
+      "mandatory": false,
       "hidden": false,
       "regex": "(?:bsb[:\\s#]*)(\\d{3}[-\\s]\\d{3})",
       "llm_hint": "Bank BSB number, typically in the format XXX-XXX, found in payment or bank details sections",
@@ -28,6 +32,18 @@
         "bsb number",
         "bsb no"
       ]
+    },
+    {
+      "name": "project",
+      "label": "Project",
+      "source": "lookup",
+      "source_config": {
+        "csv_file": "projects.csv",
+        "value_column": "id",
+        "display_column": "project_name"
+      },
+      "mandatory": false,
+      "hidden": false
     }
   ]
 }

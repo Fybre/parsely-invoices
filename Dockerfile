@@ -52,6 +52,7 @@ WORKDIR /app
 COPY config.py               ./
 COPY main.py                 ./
 COPY bootstrap.py            ./
+COPY VERSION                 ./
 COPY docker-entrypoint.sh    ./
 COPY models/                 ./models/
 COPY pipeline/               ./pipeline/

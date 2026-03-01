@@ -55,6 +55,7 @@ class InvoiceValidator:
         matched_po: Optional[MatchedPO],
         matched_supplier: Optional[MatchedSupplier],
         po_record: Optional[PurchaseOrder] = None,
+        internal_company_manager = None,
     ) -> list[Discrepancy]:
         """Run all checks and return combined discrepancies list."""
         issues: list[Discrepancy] = []
@@ -64,6 +65,19 @@ class InvoiceValidator:
         issues.extend(self._check_dates(invoice))
         issues.extend(self._check_supplier(invoice, matched_supplier))
         issues.extend(self._check_po(invoice, matched_po, po_record))
+
+        # Check for Supplier/Buyer Inversion (Anchoring)
+        if internal_company_manager and invoice.supplier:
+            abn = invoice.supplier.abn or invoice.supplier.acn
+            if abn and internal_company_manager.is_internal_abn(abn):
+                issues.append(Discrepancy(
+                    type="supplier_is_internal_entity",
+                    severity="error",
+                    description=f"Supplier identified as internal company (ABN: {abn}). "
+                                "Possible Supplier/Buyer inversion.",
+                    field="supplier.name",
+                ))
+
         return issues
 
     # ------------------------------------------------------------------

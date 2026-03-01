@@ -22,8 +22,9 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).parent
 
 # Default data locations (relative to project root)
-DEFAULT_SUPPLIERS_CSV  = PROJECT_ROOT / "data" / "suppliers.csv"
-DEFAULT_PO_CSV         = PROJECT_ROOT / "data" / "purchase_orders.csv"
+DEFAULT_SUPPLIERS_CSV            = PROJECT_ROOT / "data" / "suppliers.csv"
+DEFAULT_INTERNAL_COMPANIES_JSON = PROJECT_ROOT / "config" / "internal_companies.json"
+DEFAULT_PO_CSV                   = PROJECT_ROOT / "data" / "purchase_orders.csv"
 DEFAULT_PO_LINES_CSV   = PROJECT_ROOT / "data" / "purchase_order_lines.csv"
 DEFAULT_OUTPUT_DIR     = PROJECT_ROOT / "output"
 DEFAULT_INVOICES_DIR   = PROJECT_ROOT / "invoices"
@@ -61,8 +62,9 @@ class Config:
     )
 
     # --- Data source paths ---
-    suppliers_csv:  Path = field(default_factory=lambda: DEFAULT_SUPPLIERS_CSV)
-    po_csv:         Path = field(default_factory=lambda: DEFAULT_PO_CSV)
+    suppliers_csv:           Path = field(default_factory=lambda: DEFAULT_SUPPLIERS_CSV)
+    internal_companies_json: Path = field(default_factory=lambda: DEFAULT_INTERNAL_COMPANIES_JSON)
+    po_csv:                  Path = field(default_factory=lambda: DEFAULT_PO_CSV)
     po_lines_csv:   Path = field(default_factory=lambda: DEFAULT_PO_LINES_CSV)
 
     # --- Output settings ---
@@ -89,6 +91,7 @@ class Config:
 
     # --- Supplier matching ---
     supplier_fuzzy_threshold: int = 75    # Minimum rapidfuzz score (0-100)
+    use_anchoring: bool = True            # Use internal companies to prevent self-id
 
     # --- PO line matching ---
     po_line_fuzzy_threshold: int = 65     # Minimum rapidfuzz score for description
@@ -168,6 +171,7 @@ class Config:
             "max_invoice_age_days":    int,
             "max_future_days":         int,
             "supplier_fuzzy_threshold":  int,
+            "use_anchoring":             bool,
             "po_line_fuzzy_threshold":   int,
             "po_total_tolerance_pct":    float,
             "webhook_export_enabled":        bool,

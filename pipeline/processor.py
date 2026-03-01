@@ -29,14 +29,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from config import Config
+from config import Config, PROJECT_ROOT
 from models.result import InvoiceProcessingResult
 from .database import Database
 from .custom_field_extractor import CustomFieldExtractor, load_custom_fields
 from .extractor import DoclingExtractor, PlainTextExtractor, TableLineItemExtractor
 from .llm_parser import LLMParser
 from .supplier_matcher import SupplierMatcher
+from .internal_company_manager import InternalCompanyManager
 from .po_matcher import POMatcher
+from .field_config import reload_field_config
 from .validator import InvoiceValidator
 from .backup import BackupService
 from .email_ingest import EmailIngestService
@@ -102,6 +104,7 @@ class InvoiceProcessor:
             self.config.suppliers_csv,
             fuzzy_threshold=self.config.supplier_fuzzy_threshold
         )
+        self.internal_company_manager = InternalCompanyManager(self.config.internal_companies_json)
         self.po_matcher = POMatcher(
             self.config.po_csv,
             self.config.po_lines_csv,
@@ -161,11 +164,36 @@ class InvoiceProcessor:
 
         # Step 3: LLM extraction (metadata, or full if no pre-extracted items)
         logger.info("Step 3/5: LLM extraction (model=%s)", self.config.llm_model)
+        
+        buyer_info = None
+        if self.config.use_anchoring:
+            buyer_info = self.internal_company_manager.get_all()
+            
         invoice = self.llm.parse(
             extraction,
             pre_extracted_line_items=pre_extracted_items,
             custom_fields=self._custom_fields,
+            buyer_info=buyer_info,
         )
+
+        # (NEW) Second-pass correction if the LLM self-identified as supplier
+        if self.config.use_anchoring and invoice.supplier:
+            abn = invoice.supplier.abn or invoice.supplier.acn
+            if abn and self.internal_company_manager.is_internal_abn(abn):
+                logger.info("Self-identification detected for %s. Triggering second-pass correction...", invoice.supplier.name)
+                
+                correction_hint = f"In the previous attempt, you identified '{invoice.supplier.name}' (ABN: {abn}) as the supplier. " \
+                                  f"This is INCORRECT. '{invoice.supplier.name}' is the BUYER (the customer). " \
+                                  f"Please re-examine the document and identify the ACTUAL supplier who is sending the invoice."
+                
+                # Re-run LLM with correction hint
+                invoice = self.llm.parse(
+                    extraction,
+                    pre_extracted_line_items=pre_extracted_items,
+                    custom_fields=self._custom_fields,
+                    buyer_info=buyer_info,
+                    correction_hint=correction_hint
+                )
 
         # Merge custom field results: regex/table override LLM (more deterministic)
         if self._custom_fields:
@@ -192,8 +220,10 @@ class InvoiceProcessor:
         if matched_po and matched_po.po_number:
             po_record = self.po_matcher.get_po(matched_po.po_number)
 
+        internal_manager = self.internal_company_manager if self.config.use_anchoring else None
         discrepancies = self.validator.validate(
-            invoice, matched_po, matched_supplier, po_record
+            invoice, matched_po, matched_supplier, po_record,
+            internal_company_manager=internal_manager
         )
 
         elapsed = round(time.monotonic() - start, 3)
@@ -364,8 +394,15 @@ class InvoiceProcessor:
     # ------------------------------------------------------------------
 
     def _current_csv_mtimes(self) -> dict[str, float]:
-        """Return a mtime snapshot for all three CSV data files."""
-        paths = [self.config.suppliers_csv, self.config.po_csv, self.config.po_lines_csv]
+        """Return a mtime snapshot for all data/config files."""
+        paths = [
+            self.config.suppliers_csv, 
+            self.config.po_csv, 
+            self.config.po_lines_csv,
+            self.config.internal_companies_json,
+            PROJECT_ROOT / "config" / "standard_fields.json",
+            PROJECT_ROOT / "config" / "custom_fields.json"
+        ]
         return {str(p): p.stat().st_mtime for p in paths if p.exists()}
 
     def _reload_matchers_if_changed(self) -> None:
@@ -374,9 +411,24 @@ class InvoiceProcessor:
         if current == self._csv_mtimes:
             return
         changed = [p for p in current if current[p] != self._csv_mtimes.get(p)]
-        logger.info("CSV file(s) changed, reloading matchers: %s", changed)
+        logger.info("CSV/JSON file(s) changed, reloading matchers: %s", changed)
         self.supplier_matcher = SupplierMatcher(self.config.suppliers_csv)
+        self.internal_company_manager = InternalCompanyManager(self.config.internal_companies_json)
         self.po_matcher = POMatcher(self.config.po_csv, self.config.po_lines_csv)
+        
+        # Reload field config and custom fields
+        reload_field_config()
+        self._custom_fields_title, self._custom_fields = load_custom_fields()
+        self._custom_field_extractor = CustomFieldExtractor(self._custom_fields)
+        
+        # Re-init validator to ensure it uses the fresh field config
+        self.validator = InvoiceValidator(
+            max_days_past=self.config.max_invoice_age_days,
+            max_days_future=self.config.max_future_days,
+            arithmetic_tolerance=self.config.arithmetic_tolerance,
+            po_total_tolerance_pct=self.config.po_total_tolerance_pct,
+        )
+        
         self._csv_mtimes = current
 
     def _run_periodic_backup(self) -> None:

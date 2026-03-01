@@ -1463,6 +1463,21 @@ kbd {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(59,91,219,.12);
 }
+.custom-field-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.custom-field-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
 .btn-edit {
   background: #f1f5f9;
   color: var(--text);
@@ -1983,7 +1998,7 @@ kbd {
   </button>
   <div class="app-title">
     <img src="/static/icon-192.png" alt="Parsely" width="22" height="22" style="border-radius: 4px;">
-    Parsely <span class="build-tag">build 2026-02-25-i</span>
+    Parsely <span class="build-tag">build dev</span>
   </div>
   <button class="btn-theme" id="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
     <!-- Sun icon (shown in dark mode) -->
@@ -2033,7 +2048,7 @@ kbd {
     <span class="status-text" id="status-text">Connecting…</span>
   </div>
   <button onclick="showShortcutsHelp()" title="Keyboard shortcuts (?)" style="text-decoration:none;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;font-family:inherit">⌨️ ?</button>
-  <a href="/admin" style="text-decoration:none;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">Admin</a>
+  <a href="/admin" id="admin-link" style="text-decoration:none;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;display:none">Admin</a>
   <form id="logout-form" method="post" action="/logout" style="display:none;margin:0">
     <button type="submit" id="logout-btn" title="Sign out" style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:4px 8px;border-radius:12px;border:1px solid var(--border);color:var(--muted);background:var(--bg);cursor:pointer;text-transform:uppercase;letter-spacing:.5px;font-family:inherit;white-space:nowrap">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -2200,6 +2215,7 @@ const api = {
   del:    url           => fetch(url, { method: 'DELETE' }).then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.detail || r.status); }); return r.json(); }),
 
   fieldConfig: () => api.get('/api/field-config'),
+  authMe:      () => api.get('/api/auth/me'),
   stats:   (dateFilter, tzOffset) => {
     const params = new URLSearchParams();
     if (dateFilter && dateFilter !== 'all') params.append('date_filter', dateFilter);
@@ -4423,40 +4439,39 @@ function notesCard(result) {
 function customFieldsCard(inv) {
   const cf = inv.custom_fields || {};
   const title = inv.custom_fields_title || 'Custom Fields';
-  
-  // Get all custom fields that have values
-  const entries = Object.entries(cf).filter(([, v]) => v != null && String(v).trim() !== '');
-  
-  // Find mandatory custom fields from config that should always be shown
-  const mandatoryCustomFields = Object.keys(S.fieldConfig).filter(name => {
-    const config = S.fieldConfig[name];
-    // Only include custom fields (not standard ones) that are mandatory and not hidden
-    return config && config.mandatory && !config.hidden && !FIELD_LABELS[name];
-  });
-  
-  // Add mandatory fields that are missing from extracted data
-  const entriesMap = new Map(entries);
-  for (const fieldName of mandatoryCustomFields) {
-    if (!entriesMap.has(fieldName)) {
-      entries.push([fieldName, null]); // Add with null value to show empty field
-    }
-  }
-  
-  // If no entries and no mandatory fields to show, don't render the card
-  if (!entries.length) return '';
 
-  const items = entries.map(([k, v]) => {
-    // Use config label if available, otherwise convert snake_case to Title Case
+  // Get all custom fields that have values OR are mandatory OR are non-LLM sources
+  const alwaysShowFields = Object.keys(S.fieldConfig).filter(name => {
+    const config = S.fieldConfig[name];
+    // Don't show standard fields or hidden fields
+    if (!config || config.hidden || FIELD_LABELS[name]) return false;
+    // Show if mandatory OR if it's a manual source (text/lookup)
+    return config.mandatory || config.source === 'text' || config.source === 'lookup';
+  });
+
+  const allRelevantKeys = Array.from(new Set([...Object.keys(cf), ...alwaysShowFields]));
+
+  const items = allRelevantKeys.map(k => {
     const config = S.fieldConfig[k];
+    if (config && config.hidden) return null;
+
+    const v = cf[k];
     const label = (config && config.title) || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const isMandatory = config && config.mandatory;
     const value = v != null && String(v).trim() !== '' ? String(v) : '—';
     const missingClass = isMandatory && (v == null || String(v).trim() === '') ? ' missing' : '';
-    return `<div class="kv-item" data-field="${k}">
+
+    // If it's a lookup, we want to show it clearly. 
+    // We'll tag it with data-lookup-val so we can resolve names later if needed.
+    const lookupAttr = (config && config.source === 'lookup') ? `data-lookup-key="${esc(k)}" data-val="${esc(v || '')}"` : '';
+
+    return `<div class="kv-item" data-field="${k}" ${lookupAttr}>
       <div class="kv-label">${esc(label)}${isMandatory ? mandatoryIndicatorHtml(k) : ''}</div>
       <div class="kv-value${missingClass}">${esc(value)}</div>
     </div>`;
-  }).join('');
+  }).filter(Boolean).join('');
+
+  if (!items) return '';
 
   const cardId = 'custom-fields';
   return `<div class="card" data-card-id="${cardId}">
@@ -4472,7 +4487,6 @@ function customFieldsCard(inv) {
     ${cardBodyWrapper(cardId, `<div class="kv-grid">${items}</div>`)}
   </div>`;
 }
-
 // ════════════════════════════════════════════════════════════════════════════
 // Card renderers (unchanged)
 // ════════════════════════════════════════════════════════════════════════════
@@ -4967,16 +4981,27 @@ async function saveEdit(stem) {
 
   // Custom fields — save entire dict if any value changed
   const rawCF = rawInv.custom_fields || {};
-  const cfKeys = Object.keys(rawCF);
-  if (cfKeys.length) {
+  
+  // Get all custom fields from config that are NOT hidden
+  const allCFKeys = Object.keys(S.fieldConfig).filter(k => {
+    const config = S.fieldConfig[k];
+    return config && !config.hidden && !FIELD_LABELS[k];
+  });
+
+  if (allCFKeys.length) {
     let cfChanged = false;
     const newCF = {};
-    cfKeys.forEach(k => {
+    allCFKeys.forEach(k => {
       const el = document.getElementById(`edit-cf-${k}`);
       const newVal = el ? el.value.trim() : String(rawCF[k] ?? '').trim();
       newCF[k] = newVal;
-      if (newVal !== String(rawCF[k] ?? '').trim()) cfChanged = true;
+      
+      const oldVal = String(rawCF[k] ?? '').trim();
+      if (newVal !== oldVal) cfChanged = true;
     });
+    
+    // Always include the dictionary if we have fields defined,
+    // or only if changed? Let's follow the existing logic: save if any changed.
     if (cfChanged) corr.custom_fields = newCF;
   }
 
@@ -5217,36 +5242,45 @@ function renderEditData(result) {
 
 function customFieldsEditCard(inv) {
   const cf = inv.custom_fields || {};
-  const entries = Object.entries(cf).filter(([k]) => {
-    // Filter out hidden custom fields
+
+  // Get all custom fields that are NOT hidden
+  const allRelevantKeys = Object.keys(S.fieldConfig).filter(k => {
     const config = S.fieldConfig[k];
-    return !config || !config.hidden;
+    return config && !config.hidden && !FIELD_LABELS[k];
   });
-  
-  // Find mandatory custom fields from config that should always be shown
-  const mandatoryCustomFields = Object.keys(S.fieldConfig).filter(name => {
-    const config = S.fieldConfig[name];
-    // Only include custom fields (not standard ones) that are mandatory and not hidden
-    return config && config.mandatory && !config.hidden && !FIELD_LABELS[name];
-  });
-  
-  // Add mandatory fields that are missing from extracted data
-  const entriesMap = new Map(entries);
-  for (const fieldName of mandatoryCustomFields) {
-    if (!entriesMap.has(fieldName)) {
-      entries.push([fieldName, '']); // Add with empty value for editing
-    }
-  }
-  
-  if (!entries.length) return '';
+
+  if (!allRelevantKeys.length) return '';
   const title = inv.custom_fields_title || 'Custom Fields';
-  const items = entries.map(([k, v]) => {
+
+  const items = allRelevantKeys.map(k => {
+    const v = cf[k];
     const config = S.fieldConfig[k];
     const label = (config && config.title) || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const isMandatory = config && config.mandatory;
     const labelWithIndicator = isMandatory ? `${label} *` : label;
+
+    // Handle different sources
+    if (config && config.source === 'lookup' && config.source_config?.csv_file) {
+      const csvFile = config.source_config.csv_file;
+      const displayCol = config.source_config.display_column || 'name';
+      const valueCol = config.source_config.value_column || 'id';
+
+      // We render a select that will be populated by loadLookupData
+      return `<div class="kv-item">
+        <div class="kv-label">${esc(labelWithIndicator)}</div>
+        <select id="edit-cf-${esc(k)}" class="custom-field-select" data-lookup="${esc(csvFile)}" data-display="${esc(displayCol)}" data-value="${esc(valueCol)}" data-current="${esc(String(v ?? ''))}">
+          <option value="">Loading...</option>
+        </select>
+      </div>`;
+    }
+
+    // Default to standard input
     return kvE(labelWithIndicator, `edit-cf-${esc(k)}`, v);
   }).join('');
+
+  // Kick off lookup data loading after DOM update
+  setTimeout(loadAllLookupData, 0);
+
   return `<div class="card">
     <div class="card-header">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -5259,7 +5293,30 @@ function customFieldsEditCard(inv) {
     <div class="kv-grid">${items}</div>
   </div>`;
 }
+async function loadAllLookupData() {
+  const selects = document.querySelectorAll('select[data-lookup]');
+  for (const sel of selects) {
+    const csvFile = sel.dataset.lookup;
+    const displayCol = sel.dataset.display;
+    const valueCol = sel.dataset.value;
+    const currentVal = sel.dataset.current;
 
+    try {
+      const rows = await api.get(`/api/lookup/${csvFile}`);
+      let html = `<option value="">-- Select ${sel.previousElementSibling.textContent.replace('*','').trim()} --</option>`;
+      rows.forEach(row => {
+        const val = row[valueCol] || '';
+        const disp = row[displayCol] || val;
+        const selected = val === currentVal ? 'selected' : '';
+        html += `<option value="${esc(val)}" ${selected}>${esc(disp)}</option>`;
+      });
+      sel.innerHTML = html;
+    } catch (e) {
+      sel.innerHTML = `<option value="">Error loading data</option>`;
+      console.error(`Failed to load lookup data for ${csvFile}:`, e);
+    }
+  }
+}
 // Edit-mode kv helpers (input fields instead of read-only values)
 function kvE(label, id, value, readOnly=false) {
   const roAttr = readOnly ? 'readonly style="background:var(--bg);color:var(--muted)"' : '';
@@ -5781,17 +5838,38 @@ function showShortcutsHelp() {
 // Boot
 // ════════════════════════════════════════════════════════════════════════════
 
+// Check current user role and show/hide admin link
+async function loadAuth() {
+  try {
+    const auth = await api.authMe();
+    const adminLink = document.getElementById('admin-link');
+    if (!adminLink) return;
+
+    if (auth.auth_mode === 'disabled') {
+      adminLink.style.display = 'inline-block';
+    } else if (auth.user && auth.user.role === 'admin') {
+      adminLink.style.display = 'inline-block';
+    } else {
+      adminLink.style.display = 'none';
+    }
+  } catch (e) {
+    console.debug('Could not load auth info:', e.message);
+  }
+}
+
 // Fetch build commit from API and update header
 async function loadBuildInfo() {
   try {
     const settings = await api.get('/api/admin/settings');
     const commit = settings?.build?.commit;
     // Only update if we got a real commit hash (not 'unknown' or empty)
-    if (commit && commit !== 'unknown' && commit.length >= 7) {
+    if (commit && commit !== 'unknown') {
       const buildTag = document.querySelector('.build-tag');
       if (buildTag) {
         buildTag.textContent = 'build ' + commit;
       }
+    } else {
+      console.debug('Build info returned "unknown"');
     }
   } catch (e) {
     // Silently fail - keep hardcoded build tag
@@ -5799,6 +5877,7 @@ async function loadBuildInfo() {
   }
 }
 
+loadAuth();
 loadBuildInfo();
 poll();
 setInterval(poll, 6000);

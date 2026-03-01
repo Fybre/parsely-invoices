@@ -1,14 +1,34 @@
 {
-  "_comment": "Add your custom field definitions to the 'fields' list below.",
   "section_title": "Additional Fields",
   "fields": [
     {
-      "name": "example_field",
-      "label": "Example Field",
-      "regex": "(?:example[:\s#]*)(\d+)",
-      "table_keys": ["example ref"],
-      "llm_hint": "An example field showing how to use regex and hints",
-      "enabled": false
+      "name": "strata_reference",
+      "label": "Strata Reference",
+      "source": "llm",
+      "mandatory": false,
+      "hidden": false,
+      "regex": "(?:strata\\s*ref[:\\s]*|sp\\s*)(\\d{4,6})",
+      "llm_hint": "Strata plan or reference number, often starting with 'SP'",
+      "table_keys": ["strata ref", "strata plan"]
+    },
+    {
+      "name": "department_code",
+      "label": "Department",
+      "source": "text",
+      "mandatory": false,
+      "hidden": false
+    },
+    {
+      "name": "project_id",
+      "label": "Project",
+      "source": "lookup",
+      "mandatory": true,
+      "hidden": false,
+      "source_config": {
+        "csv_file": "projects.csv",
+        "display_column": "project_name",
+        "value_column": "id"
+      }
     }
   ]
 }

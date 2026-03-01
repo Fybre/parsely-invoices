@@ -32,9 +32,13 @@ logger = logging.getLogger(__name__)
 class CustomField:
     name: str                         # key in the output JSON  (e.g. "strata_reference")
     label: str                        # human-readable label    (e.g. "Strata Reference")
-    regex: Optional[str] = None       # Python regex with ONE capture group
-    table_keys: list[str] = field(default_factory=list)  # lowercase column synonyms
-    llm_hint: Optional[str] = None    # description for the LLM prompt
+    source: str = "llm"               # "llm" (auto), "text" (manual), or "lookup" (dropdown)
+    source_config: dict = field(default_factory=dict) # Config for lookup (csv_file, etc.)
+    mandatory: bool = False           # Required before export
+    hidden: bool = False              # Hide from UI
+    regex: Optional[str] = None       # Python regex with ONE capture group (source="llm" only)
+    table_keys: list[str] = field(default_factory=list)  # column synonyms (source="llm" only)
+    llm_hint: Optional[str] = None    # description for the LLM prompt (source="llm" only)
 
     # Compiled regex (populated lazily)
     _re: Optional[re.Pattern] = field(default=None, repr=False, compare=False)
@@ -103,6 +107,10 @@ def load_custom_fields(config_dir: Optional[Path] = None) -> tuple[str, list[Cus
             cf = CustomField(
                 name=str(entry["name"]),
                 label=str(entry["label"]),
+                source=str(entry.get("source", "llm")),
+                source_config=entry.get("source_config", {}),
+                mandatory=bool(entry.get("mandatory", False)),
+                hidden=bool(entry.get("hidden", False)),
                 regex=entry.get("regex") or None,
                 table_keys=[str(k).lower() for k in entry.get("table_keys", [])],
                 llm_hint=entry.get("llm_hint") or None,

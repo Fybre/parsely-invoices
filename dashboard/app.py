@@ -204,6 +204,15 @@ _SETTINGS_SCHEMA: list[dict] = [
         "step":        1,
     },
     {
+        "key":         "use_anchoring",
+        "group":       "Pipeline Thresholds",
+        "type":        "bool",
+        "ui_type":     "bool",
+        "label":       "Prevent Self-Identification (Anchoring)",
+        "description": "Use 'Internal Companies' list to help the LLM distinguish between Supplier and Buyer.",
+        "default":     True,
+    },
+    {
         "key":         "webhook_export_enabled",
         "group":       "Webhook Export",
         "type":        "bool",
@@ -435,7 +444,15 @@ def _get_env_snapshot() -> list[dict]:
 
 def _get_build_commit() -> str:
     """Determine the current build commit hash from multiple sources."""
-    # 1. Explicit env var (set in CI/CD or docker-compose)
+    # 1. Static VERSION file in project root (standard build stamp)
+    version_file = _PIPELINE_DIR / "VERSION"
+    if version_file.exists():
+        try:
+            return version_file.read_text().strip()[:12]
+        except Exception:
+            pass
+
+    # 2. Explicit env var (set in CI/CD or docker-compose)
     if (v := os.getenv("BUILD_COMMIT", "").strip()):
         return v[:8]
     # 2. Git CLI
@@ -874,9 +891,10 @@ CONFIG_DIR    = Path(os.getenv("CONFIG_DIR",   str(_PIPELINE_DIR / "config")))
 DASHBOARD_DIR = Path(__file__).parent
 
 # Data files
-SUPPLIERS_CSV = DATA_DIR / "suppliers.csv"
-PO_CSV        = DATA_DIR / "purchase_orders.csv"
-PO_LINES_CSV  = DATA_DIR / "purchase_order_lines.csv"
+SUPPLIERS_CSV           = DATA_DIR / "suppliers.csv"
+INTERNAL_COMPANIES_JSON = CONFIG_DIR / "internal_companies.json"
+PO_CSV                  = DATA_DIR / "purchase_orders.csv"
+PO_LINES_CSV            = DATA_DIR / "purchase_order_lines.csv"
 
 # ---------------------------------------------------------------------------
 # Database (lazy — opened on first request so startup doesn't fail if DB
@@ -943,12 +961,41 @@ def field_config():
         all_fields[name] = {
             "mandatory": config.mandatory,
             "hidden": config.hidden,
+            "source": getattr(config, "source", "llm"),
+            "source_config": getattr(config, "source_config", {}),
         }
     
     return {
         "fields": all_fields,
         "mandatory_fields": fc.get_all_mandatory_fields(),
     }
+
+
+@app.get("/api/lookup/{csv_name}")
+def lookup_csv(csv_name: str):
+    """Return the contents of a CSV file from the data directory for lookups."""
+    # Security: prevent directory traversal
+    if ".." in csv_name or "/" in csv_name:
+        raise HTTPException(400, "Invalid CSV filename")
+    
+    if not csv_name.endswith(".csv"):
+        csv_name += ".csv"
+        
+    path = DATA_DIR / csv_name
+    if not path.exists():
+        raise HTTPException(404, f"Lookup file not found: {csv_name}")
+        
+    rows = []
+    try:
+        with open(path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                rows.append(row)
+    except Exception as e:
+        logger.error("Failed to read lookup CSV %s: %s", csv_name, e)
+        raise HTTPException(500, f"Error reading lookup file: {str(e)}")
+        
+    return rows
 
 
 @app.get("/api/health")
@@ -1095,13 +1142,16 @@ def export_invoice(stem: str, request: Request):
         raise HTTPException(404, "Source PDF not found — cannot export")
 
     # Build export payload: full extracted data with corrections applied
-    extracted: dict = {}
+    extracted_full: dict = {}
     try:
         parsed = json.loads(rec.get("extracted_data") or "{}")
         if isinstance(parsed, dict):
-            extracted = parsed
+            extracted_full = parsed
     except Exception:
         pass
+
+    # The actual invoice data is nested under 'extracted_invoice' in the result blob
+    invoice_data = extracted_full.get("extracted_invoice", {})
 
     corrections = {}
     if rec.get("corrections"):
@@ -1110,8 +1160,11 @@ def export_invoice(stem: str, request: Request):
         except Exception:
             pass
 
-    # Apply corrections to get the final data
-    final_data = apply_corrections(extracted, corrections)
+    # Apply corrections to the full result object (it knows how to handle nested extraction)
+    final_result = apply_corrections(extracted_full, corrections)
+    
+    # Get the authoritative invoice data for validation
+    final_invoice_data = final_result.get("extracted_invoice", {})
 
     # Check mandatory fields before export
     fc = get_field_config()
@@ -1119,7 +1172,8 @@ def export_invoice(stem: str, request: Request):
     for field_name in fc.get_all_mandatory_fields():
         if fc.is_hidden(field_name):
             continue  # Skip hidden fields
-        value = _get_field_value_from_data(final_data, field_name)
+        # Check in the invoice data dictionary
+        value = _get_field_value_from_data(final_invoice_data, field_name)
         if value is None or (isinstance(value, str) and not value.strip()):
             missing_mandatory.append(field_name)
     
@@ -1130,8 +1184,8 @@ def export_invoice(stem: str, request: Request):
         )
 
     # Build normalized objects for easy downstream consumption
-    normalized_supplier = build_normalized_supplier(final_data, corrections)
-    normalized_line_items = build_normalized_line_items(final_data)
+    normalized_supplier = build_normalized_supplier(final_result, corrections)
+    normalized_line_items = build_normalized_line_items(final_result)
 
     export_payload = {
         "stem":                stem,
@@ -1142,7 +1196,7 @@ def export_invoice(stem: str, request: Request):
         "operator_notes":      rec.get("notes"),
         "supplier":            normalized_supplier,
         "line_items":          normalized_line_items,
-        **final_data,
+        **final_invoice_data,
     }
 
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -1466,11 +1520,38 @@ def _get_webhook_export_templates() -> list[str]:
     ])
 
 
+def _get_json_metadata(path: Path) -> dict:
+    """Get metadata for a JSON config file (size, mtime, and object count)."""
+    if not path.exists():
+        return {"exists": False}
+    
+    stat = path.stat()
+    rows = 0
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, list):
+                rows = len(data)
+            elif isinstance(data, dict):
+                rows = len(data.keys())
+    except Exception:
+        pass
+
+    return {
+        "exists": True,
+        "size": stat.st_size,
+        "mtime": stat.st_mtime,
+        "mtime_iso": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+        "rows": rows,
+    }
+
+
 @app.get("/api/admin/status")
 def get_admin_status():
-    """Get status of CSV files - modification times, row counts, etc."""
+    """Get status of data files - modification times, row counts, etc."""
     return {
         "suppliers": csv_manager.get_metadata(SUPPLIERS_CSV),
+        "internal_companies": _get_json_metadata(INTERNAL_COMPANIES_JSON),
         "purchase_orders": csv_manager.get_metadata(PO_CSV),
         "purchase_order_lines": csv_manager.get_metadata(PO_LINES_CSV),
     }
@@ -1491,6 +1572,7 @@ def reload_csv_files():
         "status": "ok",
         "files": {
             "suppliers": csv_manager.get_metadata(SUPPLIERS_CSV),
+            "internal_companies": _get_json_metadata(INTERNAL_COMPANIES_JSON),
             "purchase_orders": csv_manager.get_metadata(PO_CSV),
             "purchase_order_lines": csv_manager.get_metadata(PO_LINES_CSV),
         }
@@ -1849,6 +1931,22 @@ def create_supplier(body: SupplierCreate):
 
 @app.get("/api/admin/{tab}")
 def get_admin_data(tab: str):
+    if tab == "internal_companies":
+        path = INTERNAL_COMPANIES_JSON
+        headers = ["id", "name", "abn", "acn", "email", "phone", "address", "aliases"]
+        rows = []
+        if path.exists():
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    rows = json.load(f)
+                    # Aliases should be displayed as pipe-separated string in the table
+                    for r in rows:
+                        if isinstance(r.get("aliases"), list):
+                            r["aliases"] = "|".join(r["aliases"])
+            except Exception as e:
+                logger.error("Failed to load internal_companies.json: %s", e)
+        return {"headers": headers, "rows": rows}
+
     path = {
         "suppliers": SUPPLIERS_CSV,
         "purchase_orders": PO_CSV,
@@ -1883,6 +1981,21 @@ def get_admin_data(tab: str):
 
 @app.post("/api/admin/{tab}")
 def update_admin_data(tab: str, body: AdminDataUpdate):
+    if tab == "internal_companies":
+        path = INTERNAL_COMPANIES_JSON
+        path.parent.mkdir(parents=True, exist_ok=True)
+        # Convert aliases back to list before saving
+        rows_to_save = []
+        for r in body.rows:
+            new_row = dict(r)
+            if "aliases" in new_row and isinstance(new_row["aliases"], str):
+                new_row["aliases"] = [a.strip() for a in new_row["aliases"].split("|") if a.strip()]
+            rows_to_save.append(new_row)
+            
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(rows_to_save, f, indent=2)
+        return {"status": "ok"}
+
     path = {
         "suppliers": SUPPLIERS_CSV,
         "purchase_orders": PO_CSV,
@@ -1903,7 +2016,25 @@ def update_admin_data(tab: str, body: AdminDataUpdate):
 
 @app.post("/api/admin/{tab}/upload")
 async def upload_admin_csv(tab: str, file: UploadFile = File(...)):
-    """Upload and overwrite a CSV data file."""
+    """Upload and overwrite a data file."""
+    if tab == "internal_companies":
+        path = INTERNAL_COMPANIES_JSON
+        contents = await file.read()
+        # Parse CSV and convert to JSON format
+        f = io.StringIO(contents.decode("utf-8"))
+        reader = csv.DictReader(f)
+        rows = []
+        for row in reader:
+            if "aliases" in row and row["aliases"]:
+                row["aliases"] = [a.strip() for a in row["aliases"].split("|") if a.strip()]
+            else:
+                row["aliases"] = []
+            rows.append(row)
+        
+        with open(path, "w", encoding="utf-8") as f_out:
+            json.dump(rows, f_out, indent=2)
+        return {"status": "ok", "filename": file.filename}
+
     path = {
         "suppliers": SUPPLIERS_CSV,
         "purchase_orders": PO_CSV,
@@ -2090,16 +2221,21 @@ def field_config_admin():
             "label": name,
             "mandatory": config.mandatory,
             "hidden": config.hidden,
+            "source": getattr(config, "source", "llm"),
+            "source_config": getattr(config, "source_config", {}),
         }
-        # Get additional properties from original config
-        custom_config = _load_custom_fields_raw()
-        for cf in custom_config.get("fields", []):
-            if cf.get("name") == name:
-                field_def["label"] = cf.get("label", name)
-                field_def["regex"] = cf.get("regex")
-                field_def["llm_hint"] = cf.get("llm_hint")
-                field_def["table_keys"] = cf.get("table_keys", [])
-                break
+        # Get extraction properties for LLM source
+        if field_def["source"] == "llm":
+            # Find in raw config to get regex/hint/keys
+            raw_config = _load_custom_fields_raw()
+            for cf in raw_config.get("fields", []):
+                if cf.get("name") == name:
+                    field_def["label"] = cf.get("label", name)
+                    field_def["regex"] = cf.get("regex")
+                    field_def["llm_hint"] = cf.get("llm_hint")
+                    field_def["table_keys"] = cf.get("table_keys", [])
+                    break
+        
         custom_fields.append(field_def)
     
     return {
@@ -2168,16 +2304,20 @@ def save_custom_field_config(request: Request, body: dict):
         cf = {
             "name": field["name"],
             "label": field.get("label", field["name"]),
+            "source": field.get("source", "llm"),
+            "source_config": field.get("source_config", {}),
             "mandatory": field.get("mandatory", False),
             "hidden": field.get("hidden", False),
         }
-        # Preserve optional properties
-        if field.get("regex"):
-            cf["regex"] = field["regex"]
-        if field.get("llm_hint"):
-            cf["llm_hint"] = field["llm_hint"]
-        if field.get("table_keys"):
-            cf["table_keys"] = field["table_keys"]
+        # Preserve extraction properties for LLM source
+        if cf["source"] == "llm":
+            if field.get("regex"):
+                cf["regex"] = field["regex"]
+            if field.get("llm_hint"):
+                cf["llm_hint"] = field["llm_hint"]
+            if field.get("table_keys"):
+                cf["table_keys"] = field["table_keys"]
+        
         new_fields.append(cf)
     
     # Save to file

@@ -21,7 +21,7 @@ def ensure_config_files():
         return
 
     # 1. Essential JSON data files
-    json_files = ["column_keys.json", "custom_fields.json", "users.json"]
+    json_files = ["column_keys.json", "custom_fields.json", "users.json", "internal_companies.json"]
     
     for filename in json_files:
         src = DEFAULTS_DIR / filename
@@ -47,6 +47,13 @@ def ensure_config_files():
         if not dst_template.exists():
             print(f"[Bootstrap] Restoring missing template: {src_template.name}")
             shutil.copy2(src_template, dst_template)
+
+    # 3. Data files (e.g. projects.csv lookup)
+    data_dir = PROJECT_ROOT / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    if not (data_dir / "projects.csv").exists() and (DEFAULTS_DIR / "projects.csv").exists():
+        print(f"[Bootstrap] Restoring missing data file: projects.csv")
+        shutil.copy2(DEFAULTS_DIR / "projects.csv", data_dir / "projects.csv")
 
 if __name__ == "__main__":
     ensure_config_files()

@@ -1,0 +1,12 @@
+[
+  {
+    "id": "MYCORP",
+    "name": "My Own Company",
+    "abn": "12345678901",
+    "acn": null,
+    "email": "accounts@mycorp.com.au",
+    "phone": "02 9999 8888",
+    "address": "123 Business St Sydney NSW 2000",
+    "aliases": ["MyCorp Pty Ltd"]
+  }
+]

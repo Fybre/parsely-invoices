@@ -34,6 +34,8 @@ logger = logging.getLogger(__name__)
 # Used when Docling could NOT parse line items directly
 _PROMPT_FULL = """You are an invoice data extraction system. The invoice below has been converted to Markdown from a PDF, preserving table structure. Extract all structured data and return it as valid JSON.
 
+{buyer_anchoring}
+
 IMPORTANT RULES:
 - Return ONLY the JSON object -- no markdown, no explanation, no code fences
 - All monetary amounts must be plain numbers (no currency symbols, no commas)
@@ -99,6 +101,8 @@ Invoice (Markdown):
 # Used when Docling already extracted line items -- LLM skips that field
 _PROMPT_METADATA_ONLY = """You are an invoice data extraction system. The invoice below has been converted to Markdown. The line items have already been extracted directly from the document tables, so you do NOT need to extract them -- set "line_items" to [].
 
+{buyer_anchoring}
+
 Focus on extracting the header/summary fields: invoice number, dates, supplier details, bill-to, PO number, subtotals, tax, grand total, payment terms, bank details, and notes.
 
 IMPORTANT RULES:
@@ -159,12 +163,9 @@ Invoice (Markdown):
 def _custom_fields_prompt_addition(fields: list[CustomField]) -> tuple[str, str]:
     """
     Build the two prompt snippets needed to ask the LLM for custom fields.
-
-    Returns (instructions_block, schema_block):
-      - instructions_block: bullet list of field hints to insert into the prompt
-      - schema_block: JSON schema lines to add inside the return object
+    Only includes fields where source is "llm".
     """
-    hints = [f for f in fields if f.llm_hint]
+    hints = [f for f in fields if f.source == "llm" and f.llm_hint]
     if not hints:
         return "", ""
 
@@ -240,6 +241,8 @@ class LLMParser:
         extraction: ExtractionResult,
         pre_extracted_line_items: Optional[list[dict]] = None,
         custom_fields: Optional[list[CustomField]] = None,
+        buyer_info: Optional[list] = None,
+        correction_hint: Optional[str] = None,
     ) -> ExtractedInvoice:
         """
         Parse an ExtractionResult into a validated ExtractedInvoice.
@@ -249,6 +252,12 @@ class LLMParser:
 
         If custom_fields is provided, hints for fields with llm_hint are
         appended to the prompt so the LLM can attempt to extract them.
+
+        If buyer_info is provided, it's used as an "anchor" to help the LLM
+        distinguish between Supplier and Bill To (buyer).
+        
+        If correction_hint is provided, it's appended to the prompt to force
+        the LLM to re-evaluate a specific mistake from a previous attempt.
 
         Raises ValueError if the model returns unparseable JSON after retries.
         """
@@ -266,29 +275,29 @@ class LLMParser:
         else:
             base_prompt = _PROMPT_FULL
 
-        # Inject custom field snippets into the template before resolving the
-        # invoice_markdown placeholder.  We deliberately avoid str.format() because
-        # invoice content can contain bare { } characters which cause KeyError /
-        # ValueError.  Instead: unescape {{ }} → { }, inject the custom snippets,
-        # then substitute {invoice_markdown} with a plain str.replace().
-        if cf_instructions:
-            # Insert instructions just before "Return a JSON object"
-            base_prompt = base_prompt.replace(
-                "Return a JSON object with exactly this structure:",
-                cf_instructions + "Return a JSON object with exactly this structure:"
-            )
-            # Insert schema fields just before the final closing }} of the JSON block
-            base_prompt = base_prompt.replace(
-                '"notes": "string or null"\n}}',
-                f'"notes": "string or null"{cf_schema}\n}}'
-            )
+        # Build anchoring message
+        anchoring_msg = ""
+        if buyer_info:
+            anchoring_msg = "STRICT IDENTIFICATION RULE:\n" \
+                            "The following entities are the BUYER (our company). " \
+                            "If you see them on the invoice, they belong in 'bill_to', NEVER in 'supplier'.\n" \
+                            "The 'supplier' is the OTHER entity on the document (the one sending the invoice).\n"
+            for b in buyer_info:
+                name = getattr(b, 'name', '')
+                abn = getattr(b, 'abn', '')
+                anchoring_msg += f"- BUYER NAME: {name} (ABN: {abn})\n"
 
-        # Unescape {{ / }} left over from the original str.format()-style template,
-        # then substitute the invoice markdown with a safe plain replace.
+        # Apply correction hint if this is a second-pass attempt
+        if correction_hint:
+            base_prompt += f"\n\nCRITICAL CORRECTION: {correction_hint}\n"
+
+        # Unescape {{ / }} left over from the original template,
+        # then substitute placeholders.
         prompt = (
             base_prompt
             .replace("{{", "{")
             .replace("}}", "}")
+            .replace("{buyer_anchoring}", anchoring_msg)
             .replace("{invoice_markdown}", extraction.markdown)
         )
 
