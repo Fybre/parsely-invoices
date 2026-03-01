@@ -67,12 +67,16 @@ class ExtractionResult:
                      Empty when using the plain-text fallback.
     page_count:      Number of pages in the source document.
     extractor_name:  Which extractor produced this result.
+    elements:        List of text elements with coordinates [x0, y0, x1, y1] 
+                     and page numbers.
     """
     markdown: str
     raw_text: str
     tables: list[list[dict]] = field(default_factory=list)
     page_count: int = 0
     extractor_name: str = "unknown"
+    page_dimensions: dict[int, dict] = field(default_factory=dict)
+    """Map of page_no to {'width': w, 'height': h}"""
 
 
 # ---------------------------------------------------------------------------
@@ -157,6 +161,7 @@ class DoclingExtractor:
 
         # Structured tables from Docling
         tables: list[list[dict]] = []
+        
         for i, table in enumerate(doc.tables):
             try:
                 # Pass doc= to avoid deprecation warning and ensure correct header detection
@@ -187,8 +192,16 @@ class DoclingExtractor:
                 len(plumber_tables), pdf_path.name,
             )
             tables.extend(plumber_tables)
-
+        
         page_count = len(doc.pages) if hasattr(doc, "pages") else 0
+        page_dimensions = {}
+        if hasattr(doc, "pages"):
+            for page_no, page in doc.pages.items():
+                page_dimensions[page_no] = {
+                    "width": page.size.width if hasattr(page, "size") else 0,
+                    "height": page.size.height if hasattr(page, "size") else 0,
+                }
+
         logger.info(
             "Extracted %d tables total (%d docling, %d pdfplumber), %d pages from %s",
             len(tables), len(tables) - len(plumber_tables),
@@ -201,6 +214,7 @@ class DoclingExtractor:
             tables=tables,
             page_count=page_count,
             extractor_name="docling",
+            page_dimensions=page_dimensions,
         )
 
     @staticmethod
@@ -245,6 +259,7 @@ class DoclingExtractor:
             logger.debug("pdfplumber table extraction failed for %s: %s", pdf_path.name, e)
 
         return results
+    
 
 
 # ---------------------------------------------------------------------------

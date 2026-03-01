@@ -105,6 +105,19 @@ class InvoiceProcessingResult(BaseModel):
     # --- Validation ---
     discrepancies: List[Discrepancy] = Field(default_factory=list)
 
+    # --- UI/Highlighting ---
+    # Map of field names to their physical coordinates on the page(s).
+    # Format: { "field_name": { "page": 1, "bbox": [x0, y0, x1, y1] } }
+    field_coordinates: dict = Field(default_factory=dict)
+
+    # Map of page_no to {'width': w, 'height': h}
+    page_dimensions: dict = Field(default_factory=dict)
+    
+    # Table cell coordinates for line item highlighting.
+    # Format: { "table_row_0_description": { "page": 1, "bbox": [...] }, ... }
+    # Populated when line items are extracted directly from table cells.
+    table_cell_coordinates: dict = Field(default_factory=dict)
+
     # --- Summary ---
     requires_review: bool = False
     review_reasons: List[str] = Field(default_factory=list)

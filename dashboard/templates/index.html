@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Parsely</title>
 
 <!-- PWA manifest and icons -->
@@ -1901,6 +1904,28 @@ kbd {
   margin-bottom: 0;
 }
 
+/* Highlight box on PDF */
+.pdf-highlight {
+  position: absolute;
+  background: rgba(22, 163, 74, 0.75); /* Parsley green - high opacity */
+  border: 4px solid #16a34a;
+  border-radius: 4px;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 0 16px 6px rgba(22, 163, 74, 0.6);
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.2s ease;
+}
+
+/* Direct span-level highlighting — more reliable than overlay divs because
+   the span IS already precisely positioned by PDF.js on the page. */
+.textLayer span.parsely-hl {
+  background: rgba(22, 163, 74, 0.85);
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.9);
+  padding: 10px;
+  margin: -10px;
+}
+
 </style>
 <!-- PDF.js -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
@@ -2198,8 +2223,103 @@ function mandatoryIndicatorHtml(fieldName) {
   return isFieldMandatory(fieldName) ? '<span class="mandatory-indicator" title="Mandatory field">*</span>' : '';
 }
 
+// Low-level: clear existing highlights and apply a pre-computed set of matches.
+// Uses direct span styling (background colour on the actual PDF.js text layer spans)
+// rather than overlay divs, so positioning is always exact.
+function _renderMatchHighlights(matches) {
+  // Clear all existing span highlights and legacy div highlights.
+  document.querySelectorAll('.textLayer span.parsely-hl')
+    .forEach(s => s.classList.remove('parsely-hl'));
+  document.querySelectorAll('.pdf-highlight').forEach(el => el.remove());
+
+  if (matches.length === 0) return;
+
+  matches.forEach(({ spans, pageDiv }) => {
+    if (!spans || spans.length === 0) return;
+    const hlLayer = pageDiv ? pageDiv.querySelector('.highlight-layer') : null;
+    spans.forEach(span => {
+      span.classList.add('parsely-hl');
+
+      // Zero-width span fallback: PDF.js sometimes compresses a span to near-zero
+      // visual width (scaleX ≈ 0) for glyphs outside the font's expected metrics.
+      // In that case the CSS background is invisible, so draw an overlay div in
+      // the highlight layer instead, using the span's viewport position (which
+      // getBoundingClientRect gives correctly even when width ≈ 0).
+      const rect = span.getBoundingClientRect();
+      if (rect.width < 2 && rect.height > 2 && hlLayer) {
+        const pageRect = pageDiv.getBoundingClientRect();
+        const relLeft = rect.left - pageRect.left - 10;
+        const relTop  = rect.top  - pageRect.top - 10;
+        const estW = Math.max((span.textContent || '').trim().length * rect.height * 0.55, 8) + 20;
+        const fb = document.createElement('div');
+        fb.className = 'pdf-highlight';
+        fb.style.cssText = `position:absolute;pointer-events:none;` +
+          `left:${relLeft}px;top:${relTop}px;` +
+          `width:${estW}px;height:${rect.height + 20}px;`;
+        hlLayer.appendChild(fb);
+      }
+    });
+  });
+
+}
+
+// Highlight the PDF by searching the text layer for a value string.
+// This is the primary entry point called from inline event handlers via data-hv attribute.
+function showHighlightValue(valueStr) {
+  if (!valueStr) return;
+  const v = String(valueStr).trim();
+  if (!v) return;
+
+  // Check if the PDF text layer is ready
+  const allSpans = document.querySelectorAll('.textLayer span');
+  if (allSpans.length === 0) return;
+
+  const matches = findTextLayerMatches(v);
+  console.log('[parsely] search:', JSON.stringify(v), '→', matches.length, 'match(es)',
+    matches.map(m => (m.spans||[]).map(s => {
+      const r = s.getBoundingClientRect();
+      return `${JSON.stringify(s.textContent)} [${Math.round(r.width)}×${Math.round(r.height)}]`;
+    })));
+  _renderMatchHighlights(matches);
+}
+
+// Highlight a line item cell value, using the row description as an anchor
+// to pick the correct occurrence when the value is not unique (e.g. qty "100" in every row).
+function showLineItemCell(descStr, cellStr) {
+  if (!cellStr) return;
+  const v = String(cellStr).trim();
+  if (!v) return;
+
+  const allSpans = document.querySelectorAll('.textLayer span');
+  if (allSpans.length === 0) return;
+
+  const allMatches = findTextLayerMatches(v);
+  console.debug('[parsely] lineItem', JSON.stringify(v), 'desc:', JSON.stringify(descStr), '→', allMatches.length, 'match(es)');
+
+  if (allMatches.length <= 1 || !descStr) {
+    _renderMatchHighlights(allMatches);
+    return;
+  }
+
+  // Multiple matches — find the description span to anchor the row's Y position,
+  // then pick the cell match with the closest Y centre.
+  const desc = String(descStr).trim();
+  const descMatches = desc ? findTextLayerMatches(desc) : [];
+  if (descMatches.length === 0) {
+    _renderMatchHighlights(allMatches);
+    return;
+  }
+  const anchorY = (descMatches[0].rect.top + descMatches[0].rect.bottom) / 2;
+  const best = allMatches.reduce((prev, curr) => {
+    const py = (prev.rect.top + prev.rect.bottom) / 2;
+    const cy = (curr.rect.top + curr.rect.bottom) / 2;
+    return Math.abs(cy - anchorY) < Math.abs(py - anchorY) ? curr : prev;
+  });
+  _renderMatchHighlights([best]);
+}
+
+// Check if all mandatory fields have values. Returns array of missing field names.
 function checkMandatoryFields() {
-  """Check if all mandatory fields have values. Returns array of missing field names."""
   if (!S.currentResult) return [];
   
   const { inv, corr } = mergeCorrections(S.currentResult);
@@ -2225,8 +2345,8 @@ function checkMandatoryFields() {
   return missing;
 }
 
+// Get field value from invoice or corrections using dot notation (e.g., 'supplier.name').
 function getFieldValueByPath(inv, corr, fieldPath) {
-  """Get field value from invoice or corrections using dot notation (e.g., 'supplier.name')."""
   // First check corrections
   if (corr && corr[fieldPath]) {
     return corr[fieldPath];
@@ -2519,7 +2639,7 @@ function sideItemHtml(inv) {
   const status   = inv.status || 'needs_review';
   const label    = inv.invoice_number ?? inv.stem ?? '(unknown)';
   const supplier = inv.matched_supplier ?? inv.supplier_name ?? '—';
-  const total    = inv.total != null ? `${inv.currency || ''} ${fmt(inv.total)}`.trim() : '';
+  const total    = inv.total != null ? fmt(inv.total) : '';
   const date     = inv.invoice_date ?? '';
 
   return `<div class="side-item" data-stem="${esc(inv.stem)}" onclick="selectInvoice('${esc(inv.stem)}')">
@@ -2750,6 +2870,21 @@ async function renderPages(expectedStem) {
     `;
     pageDiv.appendChild(textLayerDiv);
 
+    // Highlight layer - for visual feedback
+    const highlightLayerDiv = document.createElement('div');
+    highlightLayerDiv.className = 'highlight-layer';
+    highlightLayerDiv.dataset.page = i;
+    highlightLayerDiv.style.cssText = `
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: ${viewport.width}px;
+      height: ${viewport.height}px;
+      z-index: 3;
+      pointer-events: none;
+    `;
+    pageDiv.appendChild(highlightLayerDiv);
+
     // Render PDF page to canvas
     const renderContext = { canvasContext: canvas.getContext('2d'), viewport };
     const renderTask = page.render(renderContext);
@@ -2863,6 +2998,176 @@ async function fitToWidth() {
   // Scroll to top
   container.scrollTop = 0;
   container.scrollLeft = 0;
+}
+
+/**
+ * Resolve a dot-path field name to its value in the current result.
+ * Handles: "invoice_number", "supplier.name", "line_items[0].description",
+ *          "custom_fields.somekey"
+ */
+function getFieldValue(fieldPath) {
+  if (!S.currentResult?.extracted_invoice) return null;
+  const inv = S.currentResult.extracted_invoice;
+
+  // line_items[N].field
+  const liMatch = fieldPath.match(/^line_items\[(\d+)\]\.(\w+)$/);
+  if (liMatch) return inv.line_items?.[+liMatch[1]]?.[liMatch[2]] ?? null;
+
+  // custom_fields.key (key may contain dots)
+  const cfMatch = fieldPath.match(/^custom_fields\.(.+)$/);
+  if (cfMatch) return inv.custom_fields?.[cfMatch[1]] ?? null;
+
+  // supplier.field (or any other single-level nesting)
+  const dotMatch = fieldPath.match(/^(\w+)\.(\w+)$/);
+  if (dotMatch) return inv[dotMatch[1]]?.[dotMatch[2]] ?? null;
+
+  // top-level field
+  return inv[fieldPath] ?? null;
+}
+
+/**
+ * Search the PDF.js text layer for valueStr and return highlight rects.
+ *
+ * NUMERIC / CURRENCY values  (e.g. "AUD 440.00", "$100", "440.00"):
+ *   Compare the extracted number exactly to prevent "$40.00" matching "440.00".
+ *
+ * TEXT values  (names, ABNs, invoice numbers, dates …):
+ *   Concatenate all span texts on each page into one normalised string, search
+ *   for the value, then compute a union rect over whichever spans overlap the
+ *   match.  This correctly handles values split across adjacent PDF.js spans,
+ *   regardless of where the split falls (prefix, suffix, or middle).
+ *   e.g. "ABN: 52 629 414 " + "571" both end up in a single highlight rect.
+ */
+function findTextLayerMatches(valueStr) {
+  const normalize = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normValue = normalize(valueStr);
+  if (normValue.length < 2) return [];
+
+  // Detect pure numeric / currency values.
+  // Matches:  "AUD 440.00"  "$40"  "440.00"  "100"  "1,234.56"
+  // Skips:    "2022-02-15"  "INV-001"  "Acme Solutions"
+  const currencyRe = /^(?:[A-Z]{3}\s+|[\$£€¥])?(\d[\d,]*(?:\.\d{0,4})?)$/;
+  const currencyMatch = valueStr.trim().match(currencyRe);
+  const numericTarget = currencyMatch ? parseFloat(currencyMatch[1].replace(/,/g, '')) : null;
+
+  // ── Numeric path ────────────────────────────────────────────────────────────
+  if (numericTarget !== null) {
+    const results = [];
+    for (const span of document.querySelectorAll('.textLayer span')) {
+      if (!span.textContent) continue;
+      const pageDiv = span.closest('.page-container');
+      if (!pageDiv) continue;
+      const rect = span.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) continue;
+      let matched = false;
+      const m = span.textContent.match(/(\d[\d,]*(?:\.\d{0,4})?)/);
+      if (m) {
+        const n = parseFloat(m[1].replace(/,/g, ''));
+        if (!isNaN(n) && Math.abs(n - numericTarget) < 0.005) matched = true;
+      }
+      if (!matched) matched = normalize(span.textContent).includes(normValue);
+      if (matched) results.push({ span, spans: [span], pageDiv, rect, pageRect: pageDiv.getBoundingClientRect() });
+    }
+    return results;
+  }
+
+  // ── Text path: page-level concatenation search ──────────────────────────────
+  // Group spans by page in DOM order.
+  const pages = new Map();
+  for (const span of document.querySelectorAll('.textLayer span')) {
+    const pageDiv = span.closest('.page-container');
+    if (!pageDiv) continue;
+    if (!pages.has(pageDiv)) pages.set(pageDiv, []);
+    pages.get(pageDiv).push(span);
+  }
+
+  const results = [];
+
+  for (const [pageDiv, spans] of pages) {
+    const pageRect = pageDiv.getBoundingClientRect();
+
+    // Build a normalised string for the whole page and record each span's
+    // character range within it.
+    let concat = '';
+    const offsets = [];   // { span, start, end }
+    for (const span of spans) {
+      const norm = normalize(span.textContent || '');
+      offsets.push({ span, start: concat.length, end: concat.length + norm.length });
+      concat += norm;
+    }
+
+    // Find every occurrence of normValue in the page text.
+    let pos = 0;
+    while (pos <= concat.length - normValue.length) {
+      const idx = concat.indexOf(normValue, pos);
+      if (idx === -1) break;
+      const matchEnd = idx + normValue.length;
+
+      // Collect all spans overlapping this match and compute a union rect.
+      const matchSpans = [];
+      let uLeft = Infinity, uTop = Infinity, uRight = -Infinity, uBottom = -Infinity;
+      for (const { span, start, end } of offsets) {
+        if (end <= idx || start >= matchEnd) continue;
+        matchSpans.push(span);   // always collect — used for direct span styling
+        const rect = span.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) continue;
+        uLeft   = Math.min(uLeft,   rect.left);
+        uTop    = Math.min(uTop,    rect.top);
+        uRight  = Math.max(uRight,  rect.right);
+        uBottom = Math.max(uBottom, rect.bottom);
+      }
+
+      if (matchSpans.length > 0) {
+        const unionRect = uLeft < Infinity
+          ? { left: uLeft, top: uTop, right: uRight, bottom: uBottom, width: uRight - uLeft, height: uBottom - uTop }
+          : matchSpans[0].getBoundingClientRect();
+        results.push({ span: matchSpans[0], spans: matchSpans, pageDiv, pageRect, rect: unionRect });
+      }
+
+      pos = idx + 1;
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Highlight a field in the PDF viewer by searching the PDF.js text layer for
+ * the field's extracted value.  All matching spans are highlighted — if the
+ * same value appears in multiple places (e.g. a date used as both invoice date
+ * and due date) they are all shown so the user can see every occurrence.
+ *
+ * @param {string} fieldPath - dot-path, e.g. 'invoice_number', 'supplier.name',
+ *                             'line_items[0].description', 'custom_fields.ref'
+ */
+function showHighlight(fieldPath) {
+  const value = getFieldValue(fieldPath);
+  if (value === null || value === undefined) return;
+  showHighlightValue(String(value));
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.textLayer span.parsely-hl')
+    .forEach(s => s.classList.remove('parsely-hl'));
+  document.querySelectorAll('.pdf-highlight').forEach(el => el.remove());
+}
+
+/**
+ * Highlight a line item row.  Tries the named field first, then falls back
+ * through common fields in order of usefulness.
+ */
+function showLineItemHighlight(idx, fieldName) {
+  if (fieldName) {
+    showHighlight(`line_items[${idx}].${fieldName}`);
+    return;
+  }
+  for (const f of ['description', 'sku', 'total', 'quantity', 'unit_price']) {
+    const v = getFieldValue(`line_items[${idx}].${f}`);
+    if (v !== null && v !== undefined && String(v).trim() !== '') {
+      showHighlight(`line_items[${idx}].${f}`);
+      return;
+    }
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -3652,7 +3957,7 @@ function renderData(result) {
     ? `${warns.length} warning${warns.length > 1 ? 's' : ''}`
     : 'All checks passed';
 
-  const totalDisplay = inv.total != null ? `${inv.currency || ''} ${fmt(inv.total)}`.trim() : null;
+  const totalDisplay = inv.total != null ? fmt(inv.total) : null;
 
   document.getElementById('data-panel').innerHTML = `
 
@@ -4078,12 +4383,34 @@ function lineItemsCard(inv, mp, corr={}) {
     const totalCell = lineTotal != null
       ? `${fmt(lineTotal)}${item.total_computed ? '<span title="Calculated from qty × unit price" style="font-size:9px;color:var(--muted);margin-left:3px">calc</span>' : ''}`
       : '—';
-    return `<tr>
-      ${hasSku ? `<td class="sku mono">${esc(item.sku || '')}</td>` : ''}
-      <td>${esc(item.description || '—')}</td>
-      <td class="mono">${item.quantity   != null ? item.quantity   : '—'}</td>
-      <td class="mono">${item.unit_price != null ? fmt(item.unit_price) : '—'}</td>
-      <td class="mono">${totalCell}</td>
+    // Build per-cell highlight attrs.
+    // Non-description cells pass the row description so showLineItemCell can disambiguate
+    // repeated values (e.g. qty "100" appearing in every row).
+    // Description cells use showHighlightValue directly — they ARE the row anchor.
+    const liHandlers = (v, desc) => {
+      const sv = v != null ? String(v).trim() : '';
+      if (!sv) return '';
+      const e = sv.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+      if (desc != null) {
+        const ed = String(desc != null ? desc : '').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+        return `data-hv="${e}" data-desc="${ed}" onmouseenter="showLineItemCell(this.dataset.desc,this.dataset.hv);event.stopPropagation()" onmouseleave="clearHighlights()" style="cursor:pointer"`;
+      }
+      return `data-hv="${e}" onmouseenter="showHighlightValue(this.dataset.hv);event.stopPropagation()" onmouseleave="clearHighlights()" style="cursor:pointer"`;
+    };
+    const rowBestVal = [item.description, item.sku, lineTotal, item.quantity, item.unit_price]
+      .map(v => v != null ? String(v).trim() : '').find(s => s) || '';
+    const rowEscVal = rowBestVal.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    const skuCell = hasSku ? `<td class="sku mono" ${liHandlers(item.sku, item.description)}>${esc(item.sku || '')}</td>` : '';
+    const descCell = `<td ${liHandlers(item.description)}>${esc(item.description || '—')}</td>`;
+    const qtyCell = `<td class="mono" ${liHandlers(item.quantity, item.description)}>${item.quantity != null ? item.quantity : '—'}</td>`;
+    const priceCell = `<td class="mono" ${liHandlers(item.unit_price, item.description)}>${item.unit_price != null ? fmt(item.unit_price) : '—'}</td>`;
+    const totalCellHtml = `<td class="mono" ${liHandlers(lineTotal, item.description)}>${totalCell}</td>`;
+    return `<tr data-hv="${rowEscVal}" onmouseenter="showHighlightValue(this.dataset.hv)" onmouseleave="clearHighlights()" style="cursor:pointer">
+      ${skuCell}
+      ${descCell}
+      ${qtyCell}
+      ${priceCell}
+      ${totalCellHtml}
       ${hasMatch ? `<td class="match-${matchStatus}">${matchText}</td>` : ''}
     </tr>`;
   }).join('');
@@ -4217,13 +4544,22 @@ function discCard(disc) {
 // ════════════════════════════════════════════════════════════════════════════
 // Template helpers
 // ════════════════════════════════════════════════════════════════════════════
+// Build hover/click event attrs from a display value string.
+// Uses data-hv to pass the value so the handler needs no S.currentResult lookup.
+function _kvHandlers(value) {
+  const sv = value != null ? String(value).trim() : '';
+  if (!sv) return '';
+  const escaped = sv.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+  return `data-hv="${escaped}" onmouseenter="showHighlightValue(this.dataset.hv)" onmouseleave="clearHighlights()" style="cursor:pointer"`;
+}
 function kv(label, value, corrected=false, fieldName=null) {
   const tag = corrected ? `<span class="corrected-tag">edited</span>` : '';
   const mandatoryIndicator = fieldName ? mandatoryIndicatorHtml(fieldName) : '';
   const display = value != null && value !== ''
     ? `<div class="kv-value">${esc(String(value))}${tag}</div>`
     : `<div class="kv-value missing">—${tag}</div>`;
-  return `<div class="kv-item" ${fieldName ? `data-field="${fieldName}"` : ''}><div class="kv-label">${esc(label)}${mandatoryIndicator}</div>${display}</div>`;
+  const handlers = fieldName ? _kvHandlers(value) : '';
+  return `<div class="kv-item" ${fieldName ? `data-field="${fieldName}"` : ''} ${handlers}><div class="kv-label">${esc(label)}${mandatoryIndicator}</div>${display}</div>`;
 }
 function kvBig(label, value, corrected=false, fieldName=null) {
   const tag = corrected ? `<span class="corrected-tag">edited</span>` : '';
@@ -4231,12 +4567,14 @@ function kvBig(label, value, corrected=false, fieldName=null) {
   const display = value != null && value !== ''
     ? `<div class="kv-value large">${esc(String(value))}${tag}</div>`
     : `<div class="kv-value missing">—${tag}</div>`;
-  return `<div class="kv-item" ${fieldName ? `data-field="${fieldName}"` : ''}><div class="kv-label">${esc(label)}${mandatoryIndicator}</div>${display}</div>`;
+  const handlers = fieldName ? _kvHandlers(value) : '';
+  return `<div class="kv-item" ${fieldName ? `data-field="${fieldName}"` : ''} ${handlers}><div class="kv-label">${esc(label)}${mandatoryIndicator}</div>${display}</div>`;
 }
 function kvWide(label, value, corrected=false, fieldName=null) {
   const tag = corrected ? `<span class="corrected-tag">edited</span>` : '';
   const mandatoryIndicator = fieldName ? mandatoryIndicatorHtml(fieldName) : '';
-  return `<div class="kv-item" style="grid-column:1/-1;border-right:none" ${fieldName ? `data-field="${fieldName}"` : ''}>
+  const handlers = fieldName ? _kvHandlers(value) : '';
+  return `<div class="kv-item" style="grid-column:1/-1;border-right:none" ${fieldName ? `data-field="${fieldName}"` : ''} ${handlers}>
     <div class="kv-label">${esc(label)}${mandatoryIndicator}</div>
     <div class="kv-value">${esc(String(value ?? ''))}${tag}</div>
   </div>`;
@@ -4286,7 +4624,7 @@ function fmt(n) {
 }
 function fmtMoney(currency, n) {
   if (n == null) return null;
-  return `${currency || ''} ${fmt(n)}`.trim();
+  return fmt(n);
 }
 function fmtDate(iso) {
   if (!iso) return '';

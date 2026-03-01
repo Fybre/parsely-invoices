@@ -22,6 +22,7 @@ Two top-level modes are exposed:
 """
 import json
 import logging
+import re
 import signal
 import time
 from datetime import datetime, timezone
@@ -475,3 +476,4 @@ class InvoiceProcessor:
         }
 
         return status
+
