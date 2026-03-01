@@ -908,9 +908,11 @@ app.mount("/static", StaticFiles(directory=str(DASHBOARD_DIR / "static")), name=
 @app.get("/api/auth/me")
 def auth_me(request: Request):
     """Return current session user, or null if not logged in / auth disabled."""
+    settings = _load_pipeline_settings()
     _config = {
         "allow_create_supplier": ALLOW_CREATE_SUPPLIER,
         "supplier_code_prefix":  SUPPLIER_CODE_PREFIX,
+        "arithmetic_tolerance":  settings.get("arithmetic_tolerance", 0.05),
     }
     if AUTH_MODE == "disabled":
         return {"auth_mode": "disabled", "user": None, "config": _config}

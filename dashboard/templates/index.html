@@ -4527,8 +4527,9 @@ function lineItemsCard(inv, mp, corr={}) {
       }
     }
     const lineTotal = item.total ?? item.line_total;  // 'total' is canonical; 'line_total' is legacy
+    const calcTolerance = S.config?.arithmetic_tolerance ?? 0.05;
     const isComputed = item.total_computed || (lineTotal != null && item.quantity != null && item.unit_price != null && 
-                       Math.abs(lineTotal - Math.round(item.quantity * item.unit_price * 100) / 100) < 0.01);
+                       Math.abs(lineTotal - Math.round(item.quantity * item.unit_price * 100) / 100) <= calcTolerance);
     const totalCell = lineTotal != null
       ? `<span style="color:${isComputed ? 'var(--accent)' : 'inherit'}">${fmt(lineTotal)}</span>${isComputed ? '<span title="Calculated from qty × unit price" style="font-size:9px;color:var(--accent);margin-left:3px">calc</span>' : ''}`
       : '—';
@@ -4570,9 +4571,10 @@ function lineItemsCard(inv, mp, corr={}) {
     return sum + (total != null ? total : 0);
   }, 0);
   
-  // Check if line items sum matches subtotal or total (with 1 cent tolerance)
+  // Check if line items sum matches subtotal or total (using configured tolerance)
+  const tolerance = S.config?.arithmetic_tolerance ?? 0.05;
   const expectedTotal = inv.subtotal ?? inv.total;
-  const hasMismatch = expectedTotal != null && Math.abs(lineItemsSum - expectedTotal) > 0.01;
+  const hasMismatch = expectedTotal != null && Math.abs(lineItemsSum - expectedTotal) > tolerance;
   const mismatchWarning = hasMismatch ? `
     <tr class="mismatch-row">
       ${hasSku ? '<td></td>' : ''}
@@ -5066,9 +5068,10 @@ function editLineItemRowsHtml() {
   if (!S.editLineItems.length) {
     return `<tr><td colspan="6" style="padding:12px;text-align:center;color:var(--muted);font-style:italic">No line items — click "+ Add Line Item" to add one.</td></tr>`;
   }
+  const editTolerance = S.config?.arithmetic_tolerance ?? 0.05;
   return S.editLineItems.map((item, idx) => {
     const isComputed = item.total_computed || (item.line_total != null && item.quantity != null && item.unit_price != null &&
-                       Math.abs(item.line_total - Math.round(item.quantity * item.unit_price * 100) / 100) < 0.01);
+                       Math.abs(item.line_total - Math.round(item.quantity * item.unit_price * 100) / 100) <= editTolerance);
     const totalStyle = isComputed ? 'width:80px;color:var(--accent)' : 'width:80px';
     return `<tr>
     <td><input class="edit-input eli-sku"  value="${esc(item.sku||'')}"  placeholder="SKU" style="min-width:70px"></td>
