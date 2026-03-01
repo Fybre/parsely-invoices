@@ -4520,8 +4520,10 @@ function lineItemsCard(inv, mp, corr={}) {
       }
     }
     const lineTotal = item.total ?? item.line_total;  // 'total' is canonical; 'line_total' is legacy
+    const isComputed = item.total_computed || (lineTotal != null && item.quantity != null && item.unit_price != null && 
+                       Math.abs(lineTotal - Math.round(item.quantity * item.unit_price * 100) / 100) < 0.01);
     const totalCell = lineTotal != null
-      ? `${fmt(lineTotal)}${item.total_computed ? '<span title="Calculated from qty × unit price" style="font-size:9px;color:var(--muted);margin-left:3px">calc</span>' : ''}`
+      ? `<span style="color:${isComputed ? 'var(--accent)' : 'inherit'}">${fmt(lineTotal)}</span>${isComputed ? '<span title="Calculated from qty × unit price" style="font-size:9px;color:var(--accent);margin-left:3px">calc</span>' : ''}`
       : '—';
     // Build per-cell highlight attrs.
     // Non-description cells pass the row description so showLineItemCell can disambiguate
@@ -4555,13 +4557,18 @@ function lineItemsCard(inv, mp, corr={}) {
     </tr>`;
   }).join('');
 
-  const totalRow = inv.total != null ? `
+  // Calculate sum of line item totals for the footer
+  const lineItemsSum = items.reduce((sum, item) => {
+    const total = item.total ?? item.line_total;
+    return sum + (total != null ? total : 0);
+  }, 0);
+  const totalRow = `
     <tr class="total-row">
       ${hasSku ? '<td></td>' : ''}
       <td colspan="3" style="text-align:right;padding-right:12px">Total</td>
-      <td class="mono">${fmt(inv.total)}</td>
+      <td class="mono">${fmt(lineItemsSum)}</td>
       ${hasMatch ? '<td></td>' : ''}
-    </tr>` : '';
+    </tr>`;
 
   return `<div class="card scroll-card line-items-card" data-card-id="${cardId}">
     <div class="card-header">
@@ -4981,14 +4988,24 @@ function syncEditLineItemsFromDOM() {
     const totStr      = get('eli-tot');
     const qty  = qtyStr  !== '' ? parseFloat(qtyStr.replace(/,/g, ''))  : null;
     const up   = upStr   !== '' ? parseFloat(upStr.replace(/,/g, ''))   : null;
-    const tot  = totStr  !== '' ? parseFloat(totStr.replace(/,/g, ''))  : null;
+    let tot    = totStr  !== '' ? parseFloat(totStr.replace(/,/g, ''))  : null;
+
+    // Auto-calculate total if qty and unit_price are present but total is empty
+    let totalComputed = false;
+    if (tot == null && qty != null && !isNaN(qty) && up != null && !isNaN(up)) {
+      tot = Math.round(qty * up * 100) / 100;
+      totalComputed = true;
+    }
 
     const item = { line_number: idx + 1 };
     if (description) item.description = description;
     if (sku)         item.sku         = sku;
     if (qty  != null && !isNaN(qty)) item.quantity   = qty;
     if (up   != null && !isNaN(up))  item.unit_price = up;
-    if (tot  != null && !isNaN(tot)) item.line_total = tot;
+    if (tot  != null && !isNaN(tot)) {
+      item.line_total = tot;
+      if (totalComputed) item.total_computed = true;
+    }
 
     // Only keep rows that have at least a description or a total
     if (description || (tot != null && !isNaN(tot))) items.push(item);
@@ -5028,14 +5045,19 @@ function editLineItemRowsHtml() {
   if (!S.editLineItems.length) {
     return `<tr><td colspan="6" style="padding:12px;text-align:center;color:var(--muted);font-style:italic">No line items — click "+ Add Line Item" to add one.</td></tr>`;
   }
-  return S.editLineItems.map((item, idx) => `<tr>
+  return S.editLineItems.map((item, idx) => {
+    const isComputed = item.total_computed || (item.line_total != null && item.quantity != null && item.unit_price != null &&
+                       Math.abs(item.line_total - Math.round(item.quantity * item.unit_price * 100) / 100) < 0.01);
+    const totalStyle = isComputed ? 'width:80px;color:var(--accent)' : 'width:80px';
+    return `<tr>
     <td><input class="edit-input eli-sku"  value="${esc(item.sku||'')}"  placeholder="SKU" style="min-width:70px"></td>
     <td><input class="edit-input eli-desc" value="${esc(item.description||'')}" placeholder="Description" style="min-width:160px"></td>
     <td><input class="edit-input eli-qty"  value="${item.quantity   != null ? item.quantity   : ''}" placeholder="0"    style="width:60px"></td>
     <td><input class="edit-input eli-up"   value="${item.unit_price != null ? item.unit_price : ''}" placeholder="0.00" style="width:80px"></td>
-    <td><input class="edit-input eli-tot"  value="${item.line_total != null ? item.line_total : ''}" placeholder="0.00" style="width:80px"></td>
+    <td><input class="edit-input eli-tot"  value="${item.line_total != null ? item.line_total : ''}" placeholder="0.00" style="${totalStyle}"></td>
     <td><button class="btn-row-del" onclick="removeLineItem(${idx})" title="Remove row">×</button></td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
 
 // ════════════════════════════════════════════════════════════════════════════

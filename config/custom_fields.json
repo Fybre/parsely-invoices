@@ -5,7 +5,7 @@
       "name": "strata_reference",
       "label": "Strata Reference",
       "mandatory": false,
-      "hidden": false,
+      "hidden": true,
       "regex": "(?:strata\\s+(?:plan|ref(?:erence)?|no\\.?)[:\\s#]*)(SP\\s*\\d+|\\d{4,6})",
       "llm_hint": "A strata plan or lot reference, often labeled 'Strata Plan', 'SP' followed by digits, 'Strata Reference', or 'Lot' \u2014 common on strata levies and body corporate invoices",
       "table_keys": [
