@@ -1,0 +1,31 @@
+{
+  "_README": "Configuration for standard invoice fields. Each field can have: mandatory (bool, default false), hidden (bool, default false).",
+  "fields": [
+    {"name": "bank_details",      "mandatory": false, "hidden": false},
+    {"name": "bill_to.address",   "mandatory": false, "hidden": false},
+    {"name": "bill_to.contact",   "mandatory": false, "hidden": true},
+    {"name": "bill_to.email",     "mandatory": false, "hidden": false},
+    {"name": "bill_to.name",      "mandatory": false, "hidden": false},
+    {"name": "currency",          "mandatory": false, "hidden": false},
+    {"name": "due_date",          "mandatory": false, "hidden": false},
+    {"name": "invoice_date",      "mandatory": true,  "hidden": false},
+    {"name": "invoice_number",    "mandatory": true,  "hidden": false},
+    {"name": "notes",             "mandatory": false, "hidden": false},
+    {"name": "other_charges",     "mandatory": false, "hidden": false},
+    {"name": "payment_terms",     "mandatory": false, "hidden": false},
+    {"name": "po_number",         "mandatory": false, "hidden": false},
+    {"name": "reference",         "mandatory": false, "hidden": false},
+    {"name": "shipping",          "mandatory": false, "hidden": false},
+    {"name": "subtotal",          "mandatory": false, "hidden": false},
+    {"name": "supplier.abn",      "mandatory": false, "hidden": false},
+    {"name": "supplier.acn",      "mandatory": false, "hidden": false},
+    {"name": "supplier.address",  "mandatory": false, "hidden": false},
+    {"name": "supplier.email",    "mandatory": false, "hidden": false},
+    {"name": "supplier.name",     "mandatory": true,  "hidden": false},
+    {"name": "supplier.phone",    "mandatory": false, "hidden": false},
+    {"name": "supplier.website",  "mandatory": false, "hidden": true},
+    {"name": "tax_amount",        "mandatory": false, "hidden": false},
+    {"name": "tax_rate",          "mandatory": false, "hidden": false},
+    {"name": "total",             "mandatory": true,  "hidden": false}
+  ]
+}

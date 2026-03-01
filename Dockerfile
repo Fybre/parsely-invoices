@@ -36,11 +36,13 @@ ENV BUILD_COMMIT=${BUILD_COMMIT}
 #   libglib2.0-0    — GLib (OpenCV dependency)
 #   libgomp1        — OpenMP (PyTorch parallelism)
 #   poppler-utils   — pdf2image / pdfinfo (optional but useful)
+#   gosu            — privilege drop in entrypoint (root → PUID:PGID)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgl1 \
         libglib2.0-0 \
         libgomp1 \
         poppler-utils \
+        gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed Python packages from builder stage
@@ -59,7 +61,11 @@ COPY pipeline/               ./pipeline/
 COPY dashboard/              ./dashboard/
 COPY defaults/               ./defaults/
 
-RUN chmod +x /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh && \
+    # Ensure all source files are world-readable regardless of host umask.
+    # COPY preserves host permissions, so files created with a restrictive umask
+    # (e.g. 027) would be unreadable by the non-root user the app runs as.
+    chmod -R a+rX /app
 
 # Ensure model cache directories are writable by any user (for non-root execution)
 # RapidOCR, Transformers, and Docling download models on first use
@@ -68,6 +74,10 @@ RUN mkdir -p /tmp/rapidocr /tmp/transformers /tmp/docling /tmp/torch /tmp/home &
     # Make package model directories writable too
     mkdir -p /usr/local/lib/python3.12/site-packages/rapidocr/models && \
     chmod -R 777 /usr/local/lib/python3.12/site-packages/rapidocr/models 2>/dev/null || true
+
+# Pre-create the docling model cache dir under /app so it can be persisted via
+# a named volume and remains accessible to any UID (the entrypoint chowns it).
+RUN mkdir -p /app/.cache/docling && chmod 777 /app/.cache/docling
 
 # Ensure /app is on the Python path so relative imports (from models, from config) work
 ENV PYTHONPATH=/app
@@ -79,16 +89,16 @@ ENV RAPIDOCR_HOME=/tmp/rapidocr
 ENV TRANSFORMERS_CACHE=/tmp/transformers
 ENV HF_HOME=/tmp/transformers
 ENV TORCHINDUCTOR_CACHE_DIR=/tmp/torch
-ENV DOCLING_CACHE_DIR=/tmp/docling
+ENV DOCLING_CACHE_DIR=/app/.cache/docling
 
 # ---------------------------------------------------------------------------
 # Volume mount points
-#   /app/data       — suppliers.csv, purchase_orders.csv, purchase_order_lines.csv
-#   /app/invoices   — input PDF invoices (read-only recommended)
-#   /app/output     — JSON results written here
-#   /root/.cache/docling — Docling ML models (~1 GB, persisted via named volume)
+#   /app/data            — suppliers.csv, purchase_orders.csv, etc.
+#   /app/invoices        — input PDF invoices
+#   /app/output          — pipeline.db, JSON/XML exports
+#   /app/.cache/docling  — Docling ML models (~1 GB, persisted via named volume)
 # ---------------------------------------------------------------------------
-VOLUME ["/app/data", "/app/invoices", "/app/output", "/root/.cache/docling"]
+VOLUME ["/app/data", "/app/invoices", "/app/output", "/app/.cache/docling"]
 
 # ---------------------------------------------------------------------------
 # Entrypoint: routes to watch or batch mode based on WATCH_MODE env var.
