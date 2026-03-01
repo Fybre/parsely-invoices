@@ -1953,6 +1953,13 @@ kbd {
 <script>
   // Initialize PDF.js worker
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  
+  // Tab switching function (defined here for early global availability)
+  // Full implementation in main script; this stub prevents errors during early clicks
+  window.setTab = window.setTab || function(tab) {
+    // Will be overridden by main script
+    console.log('[setTab] Called early with tab:', tab);
+  };
 </script>
 </head>
 <body>
@@ -2414,7 +2421,16 @@ function highlightMissingFields(fieldNames) {
   
   // Add highlight class to missing field elements
   fieldNames.forEach(fieldName => {
-    const fieldEl = document.querySelector(`.kv-item[data-field="${fieldName}"]`);
+    // Try standard field selector first, then custom field prefix
+    let fieldEl = document.querySelector(`.kv-item[data-field="${fieldName}"]`);
+    if (!fieldEl) {
+      // Try with custom_fields prefix for custom fields
+      fieldEl = document.querySelector(`.kv-item[data-field="custom_fields.${fieldName}"]`);
+    }
+    // For custom fields without prefix (stored directly in data-field)
+    if (!fieldEl && !FIELD_LABELS[fieldName]) {
+      fieldEl = document.querySelector(`.kv-item[data-field="${fieldName}"]`);
+    }
     if (fieldEl) {
       fieldEl.classList.add('missing-field');
       // Scroll first missing field into view
@@ -2566,6 +2582,7 @@ function setTab(tab) {
 
   poll();
 }
+window.setTab = setTab;  // Ensure global availability for inline onclick handlers
 
 // ════════════════════════════════════════════════════════════════════════════
 // Stats bar
@@ -4399,15 +4416,38 @@ function notesCard(result) {
 function customFieldsCard(inv) {
   const cf = inv.custom_fields || {};
   const title = inv.custom_fields_title || 'Custom Fields';
+  
+  // Get all custom fields that have values
   const entries = Object.entries(cf).filter(([, v]) => v != null && String(v).trim() !== '');
+  
+  // Find mandatory custom fields from config that should always be shown
+  const mandatoryCustomFields = Object.keys(S.fieldConfig).filter(name => {
+    const config = S.fieldConfig[name];
+    // Only include custom fields (not standard ones) that are mandatory and not hidden
+    return config && config.mandatory && !config.hidden && !FIELD_LABELS[name];
+  });
+  
+  // Add mandatory fields that are missing from extracted data
+  const entriesMap = new Map(entries);
+  for (const fieldName of mandatoryCustomFields) {
+    if (!entriesMap.has(fieldName)) {
+      entries.push([fieldName, null]); // Add with null value to show empty field
+    }
+  }
+  
+  // If no entries and no mandatory fields to show, don't render the card
   if (!entries.length) return '';
 
   const items = entries.map(([k, v]) => {
-    // Convert snake_case key to Title Case as a fallback label
-    const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    return `<div class="kv-item">
-      <div class="kv-label">${esc(label)}</div>
-      <div class="kv-value">${esc(String(v))}</div>
+    // Use config label if available, otherwise convert snake_case to Title Case
+    const config = S.fieldConfig[k];
+    const label = (config && config.title) || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const isMandatory = config && config.mandatory;
+    const value = v != null && String(v).trim() !== '' ? String(v) : '—';
+    const missingClass = isMandatory && (v == null || String(v).trim() === '') ? ' missing' : '';
+    return `<div class="kv-item" data-field="${k}">
+      <div class="kv-label">${esc(label)}${isMandatory ? mandatoryIndicatorHtml(k) : ''}</div>
+      <div class="kv-value${missingClass}">${esc(value)}</div>
     </div>`;
   }).join('');
 
@@ -5132,11 +5172,30 @@ function renderEditData(result) {
 function customFieldsEditCard(inv) {
   const cf = inv.custom_fields || {};
   const entries = Object.entries(cf);
+  
+  // Find mandatory custom fields from config that should always be shown
+  const mandatoryCustomFields = Object.keys(S.fieldConfig).filter(name => {
+    const config = S.fieldConfig[name];
+    // Only include custom fields (not standard ones) that are mandatory and not hidden
+    return config && config.mandatory && !config.hidden && !FIELD_LABELS[name];
+  });
+  
+  // Add mandatory fields that are missing from extracted data
+  const entriesMap = new Map(entries);
+  for (const fieldName of mandatoryCustomFields) {
+    if (!entriesMap.has(fieldName)) {
+      entries.push([fieldName, '']); // Add with empty value for editing
+    }
+  }
+  
   if (!entries.length) return '';
   const title = inv.custom_fields_title || 'Custom Fields';
   const items = entries.map(([k, v]) => {
-    const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    return kvE(label, `edit-cf-${esc(k)}`, v);
+    const config = S.fieldConfig[k];
+    const label = (config && config.title) || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const isMandatory = config && config.mandatory;
+    const labelWithIndicator = isMandatory ? `${label} *` : label;
+    return kvE(labelWithIndicator, `edit-cf-${esc(k)}`, v);
   }).join('');
   return `<div class="card">
     <div class="card-header">
@@ -5526,7 +5585,7 @@ initTheme();
 // Keyboard shortcuts
 // ════════════════════════════════════════════════════════════════════════════
 
-document.addEventListener('keydown', e => {
+document.addEventListener('keydown', async e => {
   // Ignore if in an input/textarea (except for / and ? which work anywhere)
   const target = e.target;
   const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;

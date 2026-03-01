@@ -82,7 +82,7 @@ from config import Config  # noqa: E402
 from pipeline.webhook_export import WebhookExportService  # noqa: E402
 from pipeline.email_ingest import EmailIngestService  # noqa: E402
 from pipeline.csv_manager import csv_manager  # noqa: E402
-from pipeline.field_config import get_field_config  # noqa: E402
+from pipeline.field_config import get_field_config, reload_field_config  # noqa: E402
 
 # Import dashboard services
 from dashboard.models import (
