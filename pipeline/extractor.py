@@ -75,8 +75,8 @@ class ExtractionResult:
     tables: list[list[dict]] = field(default_factory=list)
     page_count: int = 0
     extractor_name: str = "unknown"
+    elements: list[dict] = field(default_factory=list)
     page_dimensions: dict[int, dict] = field(default_factory=dict)
-    """Map of page_no to {'width': w, 'height': h}"""
 
 
 # ---------------------------------------------------------------------------
@@ -208,12 +208,59 @@ class DoclingExtractor:
             len(plumber_tables), page_count, pdf_path.name,
         )
 
+        # 4. Store elements with coordinates for highlighting
+        elements = []
+        
+        # Capture regular text elements
+        for item, _ in doc.iterate_items():
+            if hasattr(item, 'label') and item.label == 'table_cell':
+                continue
+                
+            text = getattr(item, "text", "")
+            if not text: continue
+            prov = getattr(item, "prov", [])
+            for p in prov:
+                if not hasattr(p, "bbox") or not p.bbox: continue
+                elements.append({
+                    "text": text,
+                    "page": p.page_no,
+                    "bbox": [p.bbox.l, p.bbox.t, p.bbox.r, p.bbox.b],
+                    "origin": str(getattr(p.bbox, "coord_origin", "unknown")),
+                    "type": "text"
+                })
+
+        # Capture structured table cells
+        for i, table in enumerate(doc.tables):
+            for cell in getattr(table.data, "table_cells", []):
+                text = cell.text
+                if not text: continue
+                bbox_obj = getattr(cell, "bbox", None)
+                if not bbox_obj: continue
+                
+                page_no = 1
+                if hasattr(cell, "prov") and cell.prov:
+                    page_no = cell.prov[0].page_no
+                elif hasattr(table, "prov") and table.prov:
+                    page_no = table.prov[0].page_no
+
+                elements.append({
+                    "text": text,
+                    "page": page_no,
+                    "bbox": [bbox_obj.l, bbox_obj.t, bbox_obj.r, bbox_obj.b],
+                    "origin": str(getattr(bbox_obj, "coord_origin", "unknown")),
+                    "type": "table_cell",
+                    "table_index": i,
+                    "row_index": getattr(cell, "start_row_offset_idx", 0),
+                    "col_index": getattr(cell, "start_col_offset_idx", 0)
+                })
+
         return ExtractionResult(
             markdown=markdown,
             raw_text="",
             tables=tables,
             page_count=page_count,
             extractor_name="docling",
+            elements=elements,
             page_dimensions=page_dimensions,
         )
 

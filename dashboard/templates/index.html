@@ -1929,13 +1929,30 @@ kbd {
 /* Highlight box on PDF */
 .pdf-highlight {
   position: absolute;
-  background: rgba(22, 163, 74, 0.75); /* Parsley green - high opacity */
-  border: 4px solid #16a34a;
-  border-radius: 4px;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 0 16px 6px rgba(22, 163, 74, 0.6);
+  background: rgba(22, 163, 74, 0.15); /* More transparent Parsley green */
+  border: 1.5px solid rgba(22, 163, 74, 0.5);
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(22, 163, 74, 0.2);
   pointer-events: none;
-  z-index: 10;
-  transition: opacity 0.2s ease;
+  z-index: 100; /* Ensure it's ALWAYS on top of textLayer */
+  transition: all 0.2s ease;
+  mix-blend-mode: multiply; /* Better visual integration */
+}
+.pdf-highlight.active {
+  background: rgba(22, 163, 74, 0.2); /* Same green as mouse-over but slightly denser */
+  border-color: rgba(22, 163, 74, 0.7);
+  box-shadow: 0 0 8px rgba(22, 163, 74, 0.3);
+}
+
+/* Flash animation for new highlights - updated to Green */
+@keyframes highlight-flash {
+  0%   { background: rgba(22, 163, 74, 0.5); border-color: #16a34a; box-shadow: 0 0 12px rgba(22, 163, 74, 0.5); }
+  50%  { background: rgba(22, 163, 74, 0.05); border-color: transparent; box-shadow: none; }
+  100% { background: rgba(22, 163, 74, 0.2); border-color: rgba(22, 163, 74, 0.7); }
+}
+
+.pdf-highlight.flashing {
+  animation: highlight-flash 0.4s ease-in-out 3;
 }
 
 /* Direct span-level highlighting — more reliable than overlay divs because
@@ -3007,7 +3024,7 @@ async function renderPages(expectedStem) {
       top: 0;
       width: ${viewport.width}px;
       height: ${viewport.height}px;
-      z-index: 3;
+      z-index: 10;
       pointer-events: none;
     `;
     pageDiv.appendChild(highlightLayerDiv);
@@ -3259,18 +3276,119 @@ function findTextLayerMatches(valueStr) {
 }
 
 /**
- * Highlight a field in the PDF viewer by searching the PDF.js text layer for
- * the field's extracted value.  All matching spans are highlighted — if the
- * same value appears in multiple places (e.g. a date used as both invoice date
- * and due date) they are all shown so the user can see every occurrence.
- *
- * @param {string} fieldPath - dot-path, e.g. 'invoice_number', 'supplier.name',
- *                             'line_items[0].description', 'custom_fields.ref'
+ * Highlights a field in the PDF viewer using pre-calculated coordinates.
+ * 
+ * @param {string} fieldPath - dot-notated path to the field (e.g. 'invoice_number')
+ * @param {boolean} persist - if true, highlight remains until another is shown
  */
-function showHighlight(fieldPath) {
-  const value = getFieldValue(fieldPath);
-  if (value === null || value === undefined) return;
-  showHighlightValue(String(value));
+function showHighlight(fieldPath, persist = false) {
+  if (!S.currentResult || !S.currentResult.field_coordinates) return;
+  const boxes = S.currentResult.field_coordinates[fieldPath];
+  if (!boxes || !Array.isArray(boxes)) return;
+
+  const container = document.getElementById('viewer-container');
+  if (!container) return;
+
+  // Clear existing temporary highlights
+  if (!persist) {
+    document.querySelectorAll('.pdf-highlight:not(.persistent)').forEach(el => el.remove());
+  } else {
+    document.querySelectorAll('.pdf-highlight').forEach(el => el.remove());
+  }
+
+  const pages = document.querySelectorAll('.page-container');
+  let firstHighlightEl = null;
+
+  boxes.forEach(coords => {
+    const { page: pageNum, bbox, origin } = coords; // bbox is [l, t, r, b]
+    const pages = document.querySelectorAll('.page-container');
+    const pageDiv = pages[pageNum - 1];
+    if (!pageDiv) return;
+
+    const highlightLayer = pageDiv.querySelector('.highlight-layer') || pageDiv;
+    const highlight = document.createElement('div');
+    highlight.className = 'pdf-highlight' + (persist ? ' persistent active flashing' : '');
+    
+    // 1. Robust coordinate normalization
+    let [l_raw, t_raw, r_raw, b_raw] = bbox;
+    const isBottomUp = origin && (origin.toUpperCase().includes('BOTTOM'));
+    
+    let top, bottom, left, right;
+    const pageDim = S.currentResult.page_dimensions && S.currentResult.page_dimensions[pageNum];
+    const h_page = (pageDim && pageDim.height) || 842;
+
+    if (isBottomUp) {
+      // PDF origin: 0 is bottom. t is higher than b.
+      // We convert to CSS origin: 0 is top.
+      top = h_page - Math.max(t_raw, b_raw);
+      bottom = h_page - Math.min(t_raw, b_raw);
+    } else {
+      // Screen origin: 0 is top.
+      top = Math.min(t_raw, b_raw);
+      bottom = Math.max(t_raw, b_raw);
+    }
+    
+    left = Math.min(l_raw, r_raw);
+    right = Math.max(l_raw, r_raw);
+
+    // 2. Alignment Correction: 
+    // If it's a non-table 'text' element and appears "underneath", 
+    // we shift it up slightly and ensure it has enough height to cover the text.
+    let h_box = bottom - top;
+    let y_box = top;
+
+    if (!coords.type || coords.type === 'text') {
+      // Heuristic: shift text boxes up by 15% of their height to center over cap-height
+      // and ensure a minimum standard height for small fragments.
+      const adjustment = h_box * 0.15;
+      y_box -= adjustment;
+      // Ensure the highlight is beefy enough to be visible over the text
+      if (h_box < 10) h_box += 2; 
+    }
+
+    // 3. Enlarge for testing (5px all around)
+    const padding = 5;
+    const x = (left * PDF.zoom) - padding;
+    const y = (y_box * PDF.zoom) - padding;
+    const w = ((right - left) * PDF.zoom) + (padding * 2);
+    const h = (h_box * PDF.zoom) + (padding * 2);
+
+    highlight.style.left = `${x}px`;
+    highlight.style.top = `${y}px`;
+    highlight.style.width = `${w}px`;
+    highlight.style.height = `${h}px`;
+
+    highlightLayer.appendChild(highlight);
+    if (!firstHighlightEl) firstHighlightEl = highlight;
+
+    // Remove flashing class after animation completes
+    if (persist) {
+      setTimeout(() => highlight.classList.remove('flashing'), 1200);
+    } else {
+      // Temporary highlights fade out
+      setTimeout(() => {
+        highlight.style.opacity = '0';
+        setTimeout(() => highlight.remove(), 200);
+      }, 2000);
+    }
+  });
+
+  // Auto-scroll to first highlight
+  if (persist && firstHighlightEl) {
+    const containerRect = container.getBoundingClientRect();
+    const highlightRect = firstHighlightEl.getBoundingClientRect();
+    
+    const isVisible = (
+      highlightRect.top >= containerRect.top &&
+      highlightRect.bottom <= containerRect.bottom &&
+      highlightRect.left >= containerRect.left &&
+      highlightRect.right <= containerRect.right
+    );
+    
+    if (!isVisible) {
+      firstHighlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
 }
 
 function clearHighlights() {
@@ -3280,18 +3398,16 @@ function clearHighlights() {
 }
 
 /**
- * Highlight a line item row.  Tries the named field first, then falls back
- * through common fields in order of usefulness.
+ * Tries to highlight any available field for a line item row.
  */
-function showLineItemHighlight(idx, fieldName) {
-  if (fieldName) {
-    showHighlight(`line_items[${idx}].${fieldName}`);
-    return;
-  }
-  for (const f of ['description', 'sku', 'total', 'quantity', 'unit_price']) {
-    const v = getFieldValue(`line_items[${idx}].${f}`);
-    if (v !== null && v !== undefined && String(v).trim() !== '') {
-      showHighlight(`line_items[${idx}].${f}`);
+function showLineItemHighlight(idx, persist = false) {
+  if (!S.currentResult || !S.currentResult.field_coordinates) return;
+  // Preference order for row-level click
+  const fields = ['description', 'sku', 'total', 'quantity', 'unit_price'];
+  for (const f of fields) {
+    const path = `line_items[${idx}].${f}`;
+    if (S.currentResult.field_coordinates[path]) {
+      showHighlight(path, persist);
       return;
     }
   }
@@ -4547,34 +4663,13 @@ function lineItemsCard(inv, mp, corr={}) {
     const totalCell = lineTotal != null
       ? `<span style="color:${isComputed ? 'var(--accent)' : 'inherit'}">${fmt(lineTotal)}</span>${isComputed ? '<span title="Calculated from qty × unit price" style="font-size:9px;color:var(--accent);margin-left:3px">calc</span>' : ''}`
       : '—';
-    // Build per-cell highlight attrs.
-    // Non-description cells pass the row description so showLineItemCell can disambiguate
-    // repeated values (e.g. qty "100" appearing in every row).
-    // Description cells use showHighlightValue directly — they ARE the row anchor.
-    const liHandlers = (v, desc) => {
-      const sv = v != null ? String(v).trim() : '';
-      if (!sv) return '';
-      const e = sv.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-      if (desc != null) {
-        const ed = String(desc != null ? desc : '').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-        return `data-hv="${e}" data-desc="${ed}" onmouseenter="showLineItemCell(this.dataset.desc,this.dataset.hv);event.stopPropagation()" onmouseleave="clearHighlights()" style="cursor:pointer"`;
-      }
-      return `data-hv="${e}" onmouseenter="showHighlightValue(this.dataset.hv);event.stopPropagation()" onmouseleave="clearHighlights()" style="cursor:pointer"`;
-    };
-    const rowBestVal = [item.description, item.sku, lineTotal, item.quantity, item.unit_price]
-      .map(v => v != null ? String(v).trim() : '').find(s => s) || '';
-    const rowEscVal = rowBestVal.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    const skuCell = hasSku ? `<td class="sku mono" ${liHandlers(item.sku, item.description)}>${esc(item.sku || '')}</td>` : '';
-    const descCell = `<td ${liHandlers(item.description)}>${esc(item.description || '—')}</td>`;
-    const qtyCell = `<td class="mono" ${liHandlers(item.quantity, item.description)}>${item.quantity != null ? item.quantity : '—'}</td>`;
-    const priceCell = `<td class="mono" ${liHandlers(item.unit_price, item.description)}>${item.unit_price != null ? fmt(item.unit_price) : '—'}</td>`;
-    const totalCellHtml = `<td class="mono" ${liHandlers(lineTotal, item.description)}>${totalCell}</td>`;
-    return `<tr data-hv="${rowEscVal}" onmouseenter="showHighlightValue(this.dataset.hv)" onmouseleave="clearHighlights()" style="cursor:pointer">
-      ${skuCell}
-      ${descCell}
-      ${qtyCell}
-      ${priceCell}
-      ${totalCellHtml}
+
+    return `<tr onmouseenter="showLineItemHighlight(${idx})" onmouseleave="clearHighlights()" onclick="showLineItemHighlight(${idx}, true)" style="cursor:pointer">
+      ${hasSku ? `<td class="sku mono" onmouseenter="showHighlight('line_items[${idx}].sku'); event.stopPropagation()">${esc(item.sku || '')}</td>` : ''}
+      <td onmouseenter="showHighlight('line_items[${idx}].description'); event.stopPropagation()">${esc(item.description || '—')}</td>
+      <td class="mono" onmouseenter="showHighlight('line_items[${idx}].quantity'); event.stopPropagation()">${item.quantity != null ? item.quantity : '—'}</td>
+      <td class="mono" onmouseenter="showHighlight('line_items[${idx}].unit_price'); event.stopPropagation()">${item.unit_price != null ? fmt(item.unit_price) : '—'}</td>
+      <td class="mono" onmouseenter="showHighlight('line_items[${idx}].total'); event.stopPropagation()">${totalCell}</td>
       ${hasMatch ? `<td class="match-${matchStatus}">${matchText}</td>` : ''}
     </tr>`;
   }).join('');
@@ -4728,13 +4823,10 @@ function discCard(disc) {
 // ════════════════════════════════════════════════════════════════════════════
 // Template helpers
 // ════════════════════════════════════════════════════════════════════════════
-// Build hover/click event attrs from a display value string.
-// Uses data-hv to pass the value so the handler needs no S.currentResult lookup.
-function _kvHandlers(value) {
-  const sv = value != null ? String(value).trim() : '';
-  if (!sv) return '';
-  const escaped = sv.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-  return `data-hv="${escaped}" onmouseenter="showHighlightValue(this.dataset.hv)" onmouseleave="clearHighlights()" style="cursor:pointer"`;
+// Build hover/click event attrs from a field path.
+function _kvHandlers(fieldPath) {
+  if (!fieldPath) return '';
+  return `onmouseenter="showHighlight('${fieldPath}')" onmouseleave="clearHighlights()" onclick="showHighlight('${fieldPath}', true)" style="cursor:pointer"`;
 }
 function kv(label, value, corrected=false, fieldName=null) {
   const tag = corrected ? `<span class="corrected-tag">edited</span>` : '';
@@ -4742,7 +4834,7 @@ function kv(label, value, corrected=false, fieldName=null) {
   const display = value != null && value !== ''
     ? `<div class="kv-value">${esc(String(value))}${tag}</div>`
     : `<div class="kv-value missing">—${tag}</div>`;
-  const handlers = fieldName ? _kvHandlers(value) : '';
+  const handlers = fieldName ? _kvHandlers(fieldName) : '';
   return `<div class="kv-item" ${fieldName ? `data-field="${fieldName}"` : ''} ${handlers}><div class="kv-label">${esc(label)}${mandatoryIndicator}</div>${display}</div>`;
 }
 function kvBig(label, value, corrected=false, fieldName=null) {
@@ -4751,13 +4843,13 @@ function kvBig(label, value, corrected=false, fieldName=null) {
   const display = value != null && value !== ''
     ? `<div class="kv-value large">${esc(String(value))}${tag}</div>`
     : `<div class="kv-value missing">—${tag}</div>`;
-  const handlers = fieldName ? _kvHandlers(value) : '';
+  const handlers = fieldName ? _kvHandlers(fieldName) : '';
   return `<div class="kv-item" ${fieldName ? `data-field="${fieldName}"` : ''} ${handlers}><div class="kv-label">${esc(label)}${mandatoryIndicator}</div>${display}</div>`;
 }
 function kvWide(label, value, corrected=false, fieldName=null) {
   const tag = corrected ? `<span class="corrected-tag">edited</span>` : '';
   const mandatoryIndicator = fieldName ? mandatoryIndicatorHtml(fieldName) : '';
-  const handlers = fieldName ? _kvHandlers(value) : '';
+  const handlers = fieldName ? _kvHandlers(fieldName) : '';
   return `<div class="kv-item" style="grid-column:1/-1;border-right:none" ${fieldName ? `data-field="${fieldName}"` : ''} ${handlers}>
     <div class="kv-label">${esc(label)}${mandatoryIndicator}</div>
     <div class="kv-value">${esc(String(value ?? ''))}${tag}</div>
