@@ -4149,9 +4149,9 @@ function renderData(result) {
 
     ${lineItemsCard(inv, mp, corr)}
     ${mp ? poMatchCard(mp) : ''}
+    ${customFieldsCard(inv)}
     ${discCard(disc)}
     ${notesCard(result)}
-    ${customFieldsCard(inv)}
 
     <div class="meta-footer">
       <span>📁 ${esc((result.source_file || '').split('/').pop() || '—')}</span>
@@ -5084,14 +5084,14 @@ function renderEditData(result) {
         Invoice Details
       </div>
       <div class="kv-grid">
-        ${kvE('Invoice Number', 'edit-invoice_number', inv.invoice_number)}
-        ${kvE('Invoice Date',   'edit-invoice_date',   inv.invoice_date)}
-        ${kvE('Due Date',       'edit-due_date',        inv.due_date)}
-        ${kvE('PO Number',      'edit-po_number',       inv.po_number)}
-        ${kvE('Currency',       'edit-currency',        inv.currency)}
-        ${kvE('Subtotal',       'edit-subtotal',        inv.subtotal   != null ? inv.subtotal   : '')}
-        ${kvE('Tax',            'edit-tax_amount',      inv.tax_amount != null ? inv.tax_amount : '')}
-        ${kvE('Total',          'edit-total',           inv.total      != null ? inv.total      : '')}
+        ${isFieldHidden('invoice_number') ? '' : kvE('Invoice Number', 'edit-invoice_number', inv.invoice_number)}
+        ${isFieldHidden('invoice_date')   ? '' : kvE('Invoice Date',   'edit-invoice_date',   inv.invoice_date)}
+        ${isFieldHidden('due_date')       ? '' : kvE('Due Date',       'edit-due_date',        inv.due_date)}
+        ${isFieldHidden('po_number')      ? '' : kvE('PO Number',      'edit-po_number',       inv.po_number)}
+        ${isFieldHidden('currency')       ? '' : kvE('Currency',       'edit-currency',        inv.currency)}
+        ${isFieldHidden('subtotal')       ? '' : kvE('Subtotal',       'edit-subtotal',        inv.subtotal   != null ? inv.subtotal   : '')}
+        ${isFieldHidden('tax_amount')     ? '' : kvE('Tax',            'edit-tax_amount',      inv.tax_amount != null ? inv.tax_amount : '')}
+        ${isFieldHidden('total')          ? '' : kvE('Total',          'edit-total',           inv.total      != null ? inv.total      : '')}
       </div>
     </div>
 
@@ -5121,11 +5121,11 @@ function renderEditData(result) {
       </div>
       <div class="kv-grid">
         ${kvE('Supplier ID',  'edit-supplier_id',      _lookupSupplierId || (ms && ms.supplier_id) || '', true)}
-        ${kvE('Name',         'edit-supplier_name',    sup.name)}
-        ${kvE('ABN / Tax ID', 'edit-supplier_abn',     sup.abn)}
-        ${kvE('Email',        'edit-supplier_email',   sup.email)}
-        ${kvE('Phone',        'edit-supplier_phone',   sup.phone)}
-        ${kvEWide('Address',  'edit-supplier_address', sup.address)}
+        ${isFieldHidden('supplier.name')    ? '' : kvE('Name',         'edit-supplier_name',    sup.name)}
+        ${isFieldHidden('supplier.abn')     ? '' : kvE('ABN / Tax ID', 'edit-supplier_abn',     sup.abn)}
+        ${isFieldHidden('supplier.email')   ? '' : kvE('Email',        'edit-supplier_email',   sup.email)}
+        ${isFieldHidden('supplier.phone')   ? '' : kvE('Phone',        'edit-supplier_phone',   sup.phone)}
+        ${isFieldHidden('supplier.address') ? '' : kvEWide('Address',  'edit-supplier_address', sup.address)}
       </div>
     </div>
 
@@ -5171,7 +5171,11 @@ function renderEditData(result) {
 
 function customFieldsEditCard(inv) {
   const cf = inv.custom_fields || {};
-  const entries = Object.entries(cf);
+  const entries = Object.entries(cf).filter(([k]) => {
+    // Filter out hidden custom fields
+    const config = S.fieldConfig[k];
+    return !config || !config.hidden;
+  });
   
   // Find mandatory custom fields from config that should always be shown
   const mandatoryCustomFields = Object.keys(S.fieldConfig).filter(name => {
