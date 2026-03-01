@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
 <style>
-/* ── Reset & Variables (Consistent with index.html) ─────────────────────── */
+/* ── Reset & Variables ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --hdr-h:     56px;
@@ -58,9 +58,10 @@
   --warn-bg:   rgba(217, 119, 6, 0.2);
   --err-bg:    rgba(220, 38, 38, 0.2);
   --info-bg:   rgba(37, 99, 235, 0.2);
+  --exported-bg: rgba(124, 58, 237, 0.2);
 }
 
-/* ── Layout ────────────────────────────────────────────────────────────── */
+/* ── Layout ─────────────────────────────────────────────────────────────── */
 html, body { height: 100%; }
 body {
   height: 100vh;
@@ -138,7 +139,7 @@ header {
 }
 .back-link:hover { color: var(--text); }
 
-/* ── Main Layout ───────────────────────────────────────────────────────── */
+/* ── Main Layout ─────────────────────────────────────────────────────────── */
 .body-wrap {
   display: flex;
   flex: 1;
@@ -208,34 +209,40 @@ main {
 .page-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
 .page-subtitle { font-size: 15px; color: var(--muted); }
 
-/* ── Help Content Styles ───────────────────────────────────────────────── */
+/* ── Help Content Styles ─────────────────────────────────────────────────── */
 .help-container { display: flex; flex-direction: column; gap: 32px; }
 .help-section { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); }
 .help-section h2 { font-size: 20px; font-weight: 700; margin-bottom: 16px; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 12px; }
 .help-section h3 { font-size: 16px; font-weight: 600; margin: 24px 0 12px; color: var(--text); }
+.help-section h4 { font-size: 14px; font-weight: 700; margin: 16px 0 8px; color: var(--text); }
 .help-section p { margin-bottom: 16px; font-size: 14px; line-height: 1.6; color: var(--text); opacity: 0.9; }
 .help-section ul, .help-section ol { margin-left: 20px; margin-bottom: 16px; font-size: 14px; }
 .help-section li { margin-bottom: 8px; line-height: 1.5; }
+.help-section li ul { margin-top: 6px; }
 
 /* Components */
-.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 24px 0; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 24px 0; }
 .card { background: var(--bg); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
-.card h4 { margin-top: 0; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
+.card h4 { margin-top: 0; margin-bottom: 8px; font-size: 14px; font-weight: 700; color: var(--text); }
 .card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
 
 .tip { padding: 16px; border-radius: var(--radius); border-left: 4px solid var(--accent); background: var(--info-bg); margin: 16px 0; }
 .tip-title { font-weight: 700; color: var(--info); margin-bottom: 6px; font-size: 13px; }
 .tip.warning { border-left-color: var(--warn); background: var(--warn-bg); }
 .tip.warning .tip-title { color: var(--warn); }
+.tip.success { border-left-color: var(--ok); background: var(--ok-bg); }
+.tip.success .tip-title { color: var(--ok); }
 .tip.error { border-left-color: var(--err); background: var(--err-bg); }
 .tip.error .tip-title { color: var(--err); }
 
-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; background: var(--card); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
 th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
 th { background: var(--bg); font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: 11px; }
+td code { font-size: 11px; }
+tr:last-child td { border-bottom: none; }
 
 code { font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 12px; background: var(--bg); padding: 2px 6px; border-radius: 4px; color: var(--accent); }
-pre { background: #1a2035; color: #e2e8f0; padding: 16px; border-radius: var(--radius); overflow-x: auto; font-size: 12px; line-height: 1.5; margin: 16px 0; }
+pre { background: #1a2035; color: #e2e8f0; padding: 16px; border-radius: var(--radius); overflow-x: auto; font-size: 12px; line-height: 1.6; margin: 16px 0; }
 pre code { background: transparent; color: inherit; padding: 0; }
 
 kbd { background: var(--card); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 2px 6px; font-family: inherit; font-size: 11px; font-weight: 700; box-shadow: 0 1px 1px rgba(0,0,0,.1); }
@@ -245,19 +252,45 @@ kbd { background: var(--card); border: 1px solid var(--border); border-bottom-wi
 .status.ready        { background: var(--ok-bg);   color: var(--ok); }
 .status.exported     { background: var(--exported-bg); color: var(--exported); }
 
-.steps { counter-reset: step; }
+.steps { }
 .step { display: flex; gap: 20px; margin-bottom: 24px; }
 .step-number { width: 32px; height: 32px; background: var(--accent); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; font-size: 14px; }
 .step-content { flex: 1; }
 .step-content h4 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
+.step-content p { margin-bottom: 0; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.setting-row { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.setting-row:last-child { border-bottom: none; }
+.setting-name { font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 11px; color: var(--accent); font-weight: 700; min-width: 220px; flex-shrink: 0; padding-top: 2px; }
+.setting-desc { font-size: 13px; color: var(--text); line-height: 1.5; }
+.setting-type { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+.endpoint { margin-bottom: 20px; }
+.endpoint-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.method { font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+.method.get { background: var(--ok-bg); color: var(--ok); }
+.method.post { background: var(--info-bg); color: var(--info); }
+.method.patch { background: var(--warn-bg); color: var(--warn); }
+.method.delete { background: var(--err-bg); color: var(--err); }
+.endpoint-path { font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 13px; font-weight: 600; color: var(--text); }
+.endpoint-desc { font-size: 13px; color: var(--muted); margin-bottom: 0; }
+
+.glossary-term { font-weight: 700; color: var(--text); }
+.glossary-def { color: var(--muted); font-size: 13px; margin-bottom: 16px; line-height: 1.5; padding-left: 16px; border-left: 3px solid var(--border); }
 
 @media (max-width: 1024px) {
-  aside { width: 200px; }
+  aside { width: 220px; }
+  .two-col { grid-template-columns: 1fr; }
+  .setting-name { min-width: 160px; }
 }
 @media (max-width: 768px) {
   .body-wrap { flex-direction: column; }
   aside { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
   main { padding: 20px; }
+  .two-col { grid-template-columns: 1fr; }
+  .setting-row { flex-direction: column; gap: 4px; }
+  .setting-name { min-width: unset; }
 }
 </style>
 </head>
@@ -277,7 +310,7 @@ kbd { background: var(--card); border: 1px solid var(--border); border-bottom-wi
     </div>
     <span class="help-badge">Help Center</span>
   </a>
-  
+
   <div class="header-actions">
     <button class="btn-theme" onclick="toggleTheme()" title="Toggle dark mode">
       <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -305,14 +338,14 @@ kbd { background: var(--card); border: 1px solid var(--border); border-bottom-wi
       <div class="nav-title">Documentation</div>
       <button class="side-tab active" data-tab="getting-started" onclick="setTab('getting-started')">Getting Started</button>
       <button class="side-tab" data-tab="user-guide" onclick="setTab('user-guide')">User Guide</button>
-      <button class="side-tab" data-tab="system-functions" onclick="setTab('system-functions')">System Functions</button>
+      <button class="side-tab" data-tab="admin-guide" onclick="setTab('admin-guide')">Admin Guide</button>
       <button class="side-tab" data-tab="troubleshooting" onclick="setTab('troubleshooting')">Troubleshooting</button>
     </div>
     <div class="nav-group">
       <div class="nav-title">Reference</div>
+      <button class="side-tab" data-tab="keyboard-shortcuts" onclick="setTab('keyboard-shortcuts')">Keyboard Shortcuts</button>
       <button class="side-tab" data-tab="api-reference" onclick="setTab('api-reference')">API Reference</button>
       <button class="side-tab" data-tab="glossary" onclick="setTab('glossary')">Glossary</button>
-      <button class="side-tab" data-tab="keyboard-shortcuts" onclick="setTab('keyboard-shortcuts')">Keyboard Shortcuts</button>
     </div>
   </aside>
 
@@ -329,278 +362,1291 @@ kbd { background: var(--card); border: 1px solid var(--border); border-bottom-wi
 
 <script>
 const sections = {
-  'getting-started': {
-    title: 'Getting Started',
-    subtitle: 'Learn the basics of invoice processing with Parsely',
-    content: `
-      <div class="help-container">
-        <div class="help-section">
-          <h2>What is Parsely?</h2>
-          <p>Parsely is an AI-powered invoice processing pipeline designed to extract structured data from PDF invoices, match them against purchase orders and supplier records, and streamline your accounts payable workflow.</p>
-          
-          <div class="card-grid">
-            <div class="card">
-              <h4>🤖 AI-Powered Extraction</h4>
-              <p>Automatically extracts invoice data, line items, and metadata using advanced language models.</p>
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GETTING STARTED
+══════════════════════════════════════════════════════════════════════════════ */
+'getting-started': {
+  title: 'Getting Started',
+  subtitle: 'Overview of the Parsely invoice processing pipeline',
+  content: `
+    <div class="help-container">
+
+      <div class="help-section">
+        <h2>What is Parsely?</h2>
+        <p>Parsely is an end-to-end AI invoice processing pipeline. It reads PDF invoices, extracts structured data using IBM Docling and a Large Language Model, matches invoices against your supplier master list and purchase orders, and presents a review dashboard where operators verify and approve data before export.</p>
+        <p>The goal is to eliminate manual data entry: the AI does the heavy lifting; your team confirms accuracy.</p>
+
+        <div class="card-grid">
+          <div class="card">
+            <h4>📥 Ingestion</h4>
+            <p>Import invoices via browser upload, watched folder, email inbox polling, or the REST API.</p>
+          </div>
+          <div class="card">
+            <h4>🧠 AI Extraction</h4>
+            <p>IBM Docling identifies page layout and tables. An LLM converts raw text into structured invoice data.</p>
+          </div>
+          <div class="card">
+            <h4>🔗 Matching</h4>
+            <p>Automatic matching against your Supplier Master List and Purchase Order records, with confidence scores.</p>
+          </div>
+          <div class="card">
+            <h4>✅ Review</h4>
+            <p>Side-by-side PDF + data panel lets operators verify extractions, correct errors, and mark invoices ready.</p>
+          </div>
+          <div class="card">
+            <h4>📤 Export</h4>
+            <p>Approved invoices generate JSON/XML files and trigger webhooks to connected systems.</p>
+          </div>
+          <div class="card">
+            <h4>🔒 Audit</h4>
+            <p>Every action (extraction, edit, status change, export) is recorded in a tamper-evident audit trail.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>How Invoices Get In</h2>
+        <p>There are four ways to submit invoices for processing:</p>
+        <ul>
+          <li><strong>Browser Upload:</strong> Click the Upload button in the dashboard sidebar or drag PDF files directly onto the browser window.</li>
+          <li><strong>Watch Folder:</strong> Files copied to the server's <code>inbox/</code> folder are detected automatically within seconds.</li>
+          <li><strong>Email Ingestion:</strong> Configure Parsely to poll an IMAP mailbox. PDF attachments are extracted and queued automatically.</li>
+          <li><strong>REST API:</strong> <code>POST /api/upload</code> for programmatic submission from other systems.</li>
+        </ul>
+        <div class="tip">
+          <div class="tip-title">Duplicate Detection</div>
+          <p>If you upload a file with the same name as an existing invoice, Parsely automatically appends a numeric suffix (e.g., <code>invoice_001.pdf</code> → <code>invoice_001_2.pdf</code>) to avoid overwriting.</p>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>Processing Workflow</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>Document Extraction</h4>
+              <p>IBM Docling analyses the PDF's layout, identifies tables, and extracts text with spatial coordinates. For scanned documents, OCR runs automatically on pages with no embedded text.</p>
             </div>
-            <div class="card">
-              <h4>🎯 Smart Matching</h4>
-              <p>Matches suppliers by ABN, name, email domain, and purchase order numbers.</p>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>LLM Parsing</h4>
+              <p>The extracted text is sent to your configured LLM. The model identifies invoice fields (number, date, totals, tax) and line items, returning a structured JSON payload.</p>
             </div>
-            <div class="card">
-              <h4>🔍 Discrepancy Detection</h4>
-              <p>Identifies arithmetic errors, tax mismatches, and PO line item discrepancies.</p>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>Supplier & PO Matching</h4>
+              <p>Parsely tries to match the extracted supplier against your master list using ABN, email, exact name, and fuzzy name matching. It also looks up referenced PO numbers and matches line items.</p>
             </div>
-            <div class="card">
-              <h4>✅ Review Workflow</h4>
-              <p>Web-based dashboard for reviewing, correcting, and approving invoices.</p>
+          </div>
+          <div class="step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h4>Validation</h4>
+              <p>Arithmetic checks (line totals, subtotal, tax, grand total) are run. Mandatory fields are checked. Discrepancies are categorised and stored alongside the extraction.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">5</div>
+            <div class="step-content">
+              <h4>Operator Review</h4>
+              <p>The invoice appears in the dashboard with status <span class="status needs_review">Needs Review</span>. An operator verifies the data, corrects any errors, and marks it <span class="status ready">Ready</span>.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">6</div>
+            <div class="step-content">
+              <h4>Export</h4>
+              <p>The operator (or bulk export) finalises the invoice. JSON and XML files are written to the export folder, the PDF is moved, webhooks fire, and the record becomes <span class="status exported">Exported</span>.</p>
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="help-section">
-          <h2>Your First Invoice</h2>
-          <div class="steps">
-            <div class="step">
-              <div class="step-number">1</div>
-              <div class="step-content">
-                <h4>Upload or Drop PDF Files</h4>
-                <p>Drag and drop PDF files into the left sidebar "Upload" area or click it to pick files. Files are automatically queued for processing.</p>
-              </div>
-            </div>
-            <div class="step">
-              <div class="step-number">2</div>
-              <div class="step-content">
-                <h4>Wait for Extraction</h4>
-                <p>The system processes each PDF through parsing, table extraction, AI metadata extraction, and validation. This typically takes 10-30 seconds.</p>
-              </div>
-            </div>
-            <div class="step">
-              <div class="step-number">3</div>
-              <div class="step-content">
-                <h4>Review the Results</h4>
-                <p>Click on an invoice in the list to view it. Check that supplier details, line items, totals, and tax amounts are correct.</p>
-              </div>
-            </div>
-            <div class="step">
-              <div class="step-number">4</div>
-              <div class="step-content">
-                <h4>Approve or Flag</h4>
-                <p>If correct, mark as "Ready" (<kbd>S</kbd>). If it needs attention, "Flag" it (<kbd>F</kbd>) with a note.</p>
-              </div>
-            </div>
-            <div class="step">
-              <div class="step-number">5</div>
-              <div class="step-content">
-                <h4>Export</h4>
-                <p>Export approved invoices (<kbd>X</kbd>) to generate JSON/XML data files in the output directory.</p>
-              </div>
-            </div>
+      <div class="help-section">
+        <h2>Invoice Statuses</h2>
+        <table>
+          <thead><tr><th>Status</th><th>Meaning</th><th>Next Actions</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="status needs_review">Needs Review</span></td>
+              <td>Default state after processing. Requires operator attention.</td>
+              <td>Edit, Flag, Reprocess, Delete, Mark Ready</td>
+            </tr>
+            <tr>
+              <td><span class="status ready">Ready</span></td>
+              <td>Reviewed and approved by an operator. Safe to export.</td>
+              <td>Export, Flag (revert to Needs Review)</td>
+            </tr>
+            <tr>
+              <td><span class="status exported">Exported</span></td>
+              <td>Finalised. Output files written. Cannot be deleted.</td>
+              <td>View only</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>Invoices can also carry a <strong>Flag</strong> marker (shown as a flag icon) indicating they need special attention, independent of their primary status.</p>
+      </div>
+
+      <div class="help-section">
+        <h2>First Login</h2>
+        <p>When Parsely starts for the first time with no users configured, it redirects to the <strong>Setup page</strong> at <code>/setup</code>. Enter a username and password for the initial admin account. All subsequent users are managed from <strong>Admin &gt; Users</strong>.</p>
+        <div class="tip warning">
+          <div class="tip-title">Auth Modes</div>
+          <p>Parsely supports three authentication modes set by the <code>AUTH_MODE</code> environment variable: <strong>disabled</strong> (no login required), <strong>admin_only</strong> (admin functions require login), or <strong>full</strong> (all dashboard access requires login). Contact your administrator if you cannot log in.</p>
+        </div>
+      </div>
+
+    </div>
+  `
+},
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   USER GUIDE
+══════════════════════════════════════════════════════════════════════════════ */
+'user-guide': {
+  title: 'User Guide',
+  subtitle: 'Reviewing, editing, and approving invoices',
+  content: `
+    <div class="help-container">
+
+      <div class="help-section">
+        <h2>Dashboard Layout</h2>
+        <p>The dashboard is divided into three main areas:</p>
+        <ul>
+          <li><strong>Sidebar (left):</strong> Invoice list with search, filter, and sort controls.</li>
+          <li><strong>PDF Viewer (centre):</strong> Renders the original document with interactive highlighting.</li>
+          <li><strong>Data Panel (right):</strong> Shows all extracted fields, line items, discrepancies, notes, and audit trail.</li>
+        </ul>
+        <p>The divider between the PDF viewer and data panel can be dragged left or right to resize each area to suit your workflow.</p>
+        <div class="tip">
+          <div class="tip-title">Mobile / Tablet Layout</div>
+          <p>On screens narrower than 900px the sidebar collapses to a slide-out drawer and the PDF/Data views toggle between two full-width tabs. Use the header icons to switch views.</p>
+        </div>
+
+        <h3>Header Statistics Bar</h3>
+        <p>The header displays live counts of invoices by status: <span class="status needs_review">Needs Review</span>, <span class="status ready">Ready</span>, and <span class="status exported">Exported</span>. These numbers reflect your current date filter.</p>
+      </div>
+
+      <div class="help-section">
+        <h2>Sidebar: Finding Invoices</h2>
+
+        <h3>Searching</h3>
+        <p>Press <kbd>/</kbd> anywhere on the page to jump to the search box. Type to filter by invoice number, supplier name, or any text visible in the invoice list. The search is live and updates as you type.</p>
+
+        <h3>Status Filtering</h3>
+        <p>Click the tab buttons at the top of the sidebar to show only invoices in a particular state:</p>
+        <ul>
+          <li><strong>All</strong> — shows everything</li>
+          <li><strong>Needs Review</strong> — invoices awaiting attention</li>
+          <li><strong>Ready</strong> — approved and awaiting export</li>
+          <li><strong>Exported</strong> — completed invoices</li>
+        </ul>
+
+        <h3>Date Filter</h3>
+        <p>Use the date filter dropdown to narrow the list to invoices received within a specific period:</p>
+        <ul>
+          <li>Today</li>
+          <li>Last 7 days</li>
+          <li>Last 30 days</li>
+          <li>This year</li>
+          <li>All time (default)</li>
+        </ul>
+
+        <h3>Sorting</h3>
+        <p>Click the sort button in the sidebar header to toggle between newest-first and oldest-first order.</p>
+
+        <h3>Navigating the List</h3>
+        <p>Click any invoice in the list to open it. You can also use <kbd>↑</kbd> and <kbd>↓</kbd> arrow keys to move through the list without lifting your hands from the keyboard.</p>
+
+        <h3>Uploading Invoices</h3>
+        <p>Click the <strong>Upload</strong> button at the top of the sidebar to add new PDFs. You can also drag and drop one or more PDF files anywhere onto the dashboard window. Parsely will queue them immediately for processing.</p>
+      </div>
+
+      <div class="help-section">
+        <h2>PDF Viewer</h2>
+
+        <h3>Viewing the Document</h3>
+        <p>The PDF is rendered page-by-page into the viewer. Use the toolbar to:</p>
+        <ul>
+          <li>View the current filename</li>
+          <li>Zoom in (<kbd>+</kbd> button) and out (<kbd>-</kbd> button)</li>
+          <li>Reset to fit the page width (fit button)</li>
+        </ul>
+        <p>You can also use <kbd>Ctrl</kbd> + <kbd>Scroll</kbd> to zoom with the mouse wheel, and <kbd>Shift</kbd> + <kbd>Scroll</kbd> to scroll horizontally on wide pages.</p>
+
+        <h3>Interactive Highlighting (Grounding)</h3>
+        <p>Every extracted field is linked back to its source location in the PDF. This "grounding" feature lets you verify any value without hunting through the document manually.</p>
+        <ul>
+          <li><strong>Hover:</strong> Move your mouse over any extracted field or line item cell to see its source highlighted in green on the PDF.</li>
+          <li><strong>Click:</strong> Click a field to create a <em>persistent</em> highlight that stays on screen and auto-scrolls the PDF to that location. Click elsewhere to clear it.</li>
+          <li><strong>Row locking:</strong> Line item cells (Price, Qty, Description) are locked to their specific table row. This prevents the highlight from matching a number in a different row that happens to be the same value.</li>
+        </ul>
+        <div class="tip">
+          <div class="tip-title">No Highlight Visible?</div>
+          <p>Some fields (especially on scanned documents) may not have spatial coordinates. If no highlight appears, the value was inferred by the LLM from context rather than matched to a specific text region.</p>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>Data Panel: Invoice Information</h2>
+
+        <h3>Action Bar</h3>
+        <p>A sticky toolbar at the top of the data panel shows the current status badge and the available action buttons:</p>
+        <ul>
+          <li><strong>Edit</strong> (<kbd>E</kbd>) — enter correction mode</li>
+          <li><strong>Flag</strong> (<kbd>F</kbd>) — mark for attention or revert to Needs Review</li>
+          <li><strong>Export</strong> (<kbd>X</kbd>) — finalise (only enabled when status is Ready)</li>
+          <li><strong>Reprocess</strong> (<kbd>R</kbd>) — re-run AI extraction</li>
+          <li><strong>Delete</strong> (<kbd>Del</kbd>) — permanently remove (not available for Exported)</li>
+        </ul>
+
+        <h3>Extraction Quality Banner</h3>
+        <p>A coloured banner below the action bar summarises extraction quality:</p>
+        <ul>
+          <li><strong>Green:</strong> No issues detected.</li>
+          <li><strong>Yellow:</strong> Minor warnings (e.g., low match confidence, date proximity).</li>
+          <li><strong>Red:</strong> Significant errors (e.g., arithmetic mismatch, mandatory field missing).</li>
+        </ul>
+
+        <h3>Invoice Fields</h3>
+        <p>The key-value grid shows the core extracted fields: Invoice Number, Invoice Date, Due Date, Subtotal, Tax Amount, Tax Rate, and Grand Total. Fields marked with a red asterisk are mandatory and must be present before the invoice can be marked Ready.</p>
+
+        <h3>Supplier Card</h3>
+        <p>Shows the matched supplier with:</p>
+        <ul>
+          <li><strong>Name</strong> and <strong>ABN</strong> from your master list</li>
+          <li><strong>Match confidence</strong> — a percentage indicating how confident the system is in the match</li>
+          <li><strong>Match method</strong> — how the match was found (ABN, email, exact name, fuzzy name)</li>
+        </ul>
+
+        <h3>Line Items Table</h3>
+        <p>Displays each extracted line item with Description, Quantity, Unit Price, and Line Total. If a PO was matched, each line also shows its PO match indicator.</p>
+
+        <h3>Discrepancies Card</h3>
+        <p>Lists all validation issues found, grouped by category:</p>
+        <ul>
+          <li><strong>Arithmetic:</strong> Mismatches between line item totals, subtotals, and grand totals (subject to the configured tolerance).</li>
+          <li><strong>Mandatory Fields:</strong> Required fields that are absent or empty.</li>
+          <li><strong>Supplier Matching:</strong> Unrecognised supplier or low-confidence match.</li>
+          <li><strong>PO Matching:</strong> Referenced PO not found, or line item totals that exceed the PO.</li>
+          <li><strong>Date:</strong> Invoice dates that are too old or too far in the future.</li>
+          <li><strong>Anchoring:</strong> The AI may have confused your own company with the supplier (self-identification error).</li>
+        </ul>
+
+        <h3>Custom Fields</h3>
+        <p>If your administrator has configured custom fields (e.g., Project Code, Department), they appear below the standard fields. Some are extracted by the AI, others are manual dropdowns or text entries for the operator to complete.</p>
+
+        <h3>Notes</h3>
+        <p>The Notes card is a free-text area for internal comments. Press <kbd>N</kbd> to jump to it. Notes are saved automatically as you type and are visible to all operators.</p>
+
+        <h3>Audit Trail</h3>
+        <p>The collapsible audit section shows a timeline of every action taken on this invoice: extraction, status changes, edits, exports, and deletions — with actor username and timestamp. Click the header to expand or collapse it.</p>
+
+        <h3>Document Metadata</h3>
+        <p>The footer of the data panel shows file information: original filename, file size, upload timestamp, and last processed time.</p>
+      </div>
+
+      <div class="help-section">
+        <h2>Editing Invoices</h2>
+
+        <h3>Entering Edit Mode</h3>
+        <p>Click the <strong>Edit</strong> button or press <kbd>E</kbd>. The data panel switches to an editable form. The PDF viewer remains active so you can refer to the original document while making corrections.</p>
+
+        <h3>What You Can Edit</h3>
+        <ul>
+          <li><strong>Invoice fields:</strong> Invoice number, date, due date, subtotal, tax, total — all editable as text inputs.</li>
+          <li><strong>Supplier:</strong> Click the lookup icon next to the supplier field to open the Supplier Lookup modal and pick from your master list. If supplier creation is enabled, you can also create a new supplier on the fly.</li>
+          <li><strong>Line Items:</strong> Edit any cell in the line items table directly. Add new rows with the + button at the bottom. Delete rows with the × button on each row. The system auto-calculates a line's Total if Price and Quantity are both present.</li>
+          <li><strong>Custom Fields:</strong> Fill in any manual or lookup custom fields.</li>
+          <li><strong>Notes:</strong> Notes can be edited at any time, even outside edit mode.</li>
+        </ul>
+
+        <h3>Saving and Cancelling</h3>
+        <p>Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> or click <strong>Save</strong> to commit your changes. Press <kbd>Esc</kbd> or click <strong>Cancel</strong> to discard them.</p>
+        <p>Corrections are stored separately from the original AI extraction. The original is always preserved so you can compare or reprocess if needed.</p>
+
+        <h3>Supplier Lookup</h3>
+        <p>The Supplier Lookup modal lets you search your master list by name, ABN, or email. Type to filter the results live and click a row to select that supplier. The supplier fields in the form update immediately.</p>
+
+        <h3>Creating a New Supplier</h3>
+        <p>If the invoice supplier is not in your master list and supplier creation is enabled by your administrator, a <strong>Create Supplier</strong> button appears in the Supplier Lookup modal. Enter the supplier's name and ABN to create a new record. The new supplier is immediately available in all future matching.</p>
+
+        <div class="tip warning">
+          <div class="tip-title">Reprocess Clears Corrections</div>
+          <p>Using <strong>Reprocess</strong> sends the invoice back through the AI pipeline. All manual corrections you have saved will be permanently discarded and replaced by the new extraction result.</p>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>Approving and Exporting</h2>
+
+        <h3>Mark as Ready</h3>
+        <p>Once you have verified the data, press <kbd>S</kbd> or click the <strong>Mark Ready</strong> button. The status changes to <span class="status ready">Ready</span> and the Export button becomes active.</p>
+
+        <h3>Exporting an Invoice</h3>
+        <p>With an invoice in Ready status, press <kbd>X</kbd> or click <strong>Export</strong>. Parsely will:</p>
+        <ol>
+          <li>Write a JSON file and an XML file to the configured export folder.</li>
+          <li>Move the original PDF to the export sub-folder.</li>
+          <li>Trigger any configured webhooks with the invoice data.</li>
+          <li>Set the status to <span class="status exported">Exported</span>.</li>
+        </ol>
+        <p>A confirmation dialog will appear before the export proceeds.</p>
+
+        <h3>Bulk Export</h3>
+        <p>At the bottom of the sidebar, the <strong>Bulk Export All Ready</strong> button exports every invoice currently in <span class="status ready">Ready</span> status in a single operation. A confirmation dialog shows how many invoices will be affected.</p>
+        <div class="tip warning">
+          <div class="tip-title">Export is Irreversible</div>
+          <p>Once exported, an invoice cannot be deleted or reprocessed from the dashboard. Verify your data carefully before exporting.</p>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>Reprocessing and Deletion</h2>
+
+        <h3>Reprocessing</h3>
+        <p>Press <kbd>R</kbd> or click <strong>Reprocess</strong> to delete the current database record and re-queue the PDF for the AI pipeline. Use this when:</p>
+        <ul>
+          <li>The initial extraction produced obviously wrong results.</li>
+          <li>You have updated the LLM settings or prompts and want a fresh extraction.</li>
+          <li>The supplier or PO master data has changed significantly.</li>
+        </ul>
+        <p>Reprocessing deletes all corrections, notes, and the current extraction. The PDF itself is not deleted.</p>
+
+        <h3>Deleting</h3>
+        <p>Press <kbd>Del</kbd> or click <strong>Delete</strong> to permanently remove an invoice. This deletes both the database record and the original PDF file. <strong>Exported invoices cannot be deleted.</strong> A confirmation dialog is always shown before deletion.</p>
+      </div>
+
+    </div>
+  `
+},
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN GUIDE
+══════════════════════════════════════════════════════════════════════════════ */
+'admin-guide': {
+  title: 'Admin Guide',
+  subtitle: 'System configuration, user management, and master data',
+  content: `
+    <div class="help-container">
+
+      <div class="help-section">
+        <h2>Accessing Admin</h2>
+        <p>Click the <strong>Admin</strong> link in the dashboard header. Admin access requires the <code>admin</code> role. The admin page has five tabs: <strong>Users</strong>, <strong>Settings</strong>, <strong>Fields</strong>, <strong>Data</strong>, and <strong>Audit Log</strong>.</p>
+      </div>
+
+      <div class="help-section">
+        <h2>User Management</h2>
+        <p>All users are managed from the <strong>Users</strong> tab.</p>
+
+        <h3>Roles</h3>
+        <ul>
+          <li><strong>admin</strong> — Full access: invoice review, export, all admin functions (settings, users, data management, audit log).</li>
+          <li><strong>user</strong> — Invoice review and export only. Cannot access Admin settings, data management, or user management.</li>
+        </ul>
+
+        <h3>Creating a User</h3>
+        <ol>
+          <li>Click <strong>New User</strong>.</li>
+          <li>Enter a username and password (minimum 8 characters).</li>
+          <li>Select a role (<code>admin</code> or <code>user</code>).</li>
+          <li>Click <strong>Create</strong>.</li>
+        </ol>
+
+        <h3>Editing a User</h3>
+        <p>Click the edit icon next to a user to change their role or password. You cannot change a username — delete and recreate if needed.</p>
+
+        <h3>Deleting a User</h3>
+        <p>Click the delete icon next to a user. <strong>The system prevents deletion of the last admin</strong> to avoid lockout. You must always have at least one admin account.</p>
+
+        <h3>Authentication Modes</h3>
+        <p>The <code>AUTH_MODE</code> environment variable controls whether login is required:</p>
+        <ul>
+          <li><code>disabled</code> — No authentication. The dashboard is fully public.</li>
+          <li><code>admin_only</code> — Admin pages require login; the review dashboard is public.</li>
+          <li><code>full</code> — All dashboard access requires a valid login session.</li>
+        </ul>
+        <p>Auth mode can be changed in the <strong>Settings</strong> tab (requires a pipeline restart to take effect for environment-level changes).</p>
+      </div>
+
+      <div class="help-section">
+        <h2>Pipeline Settings</h2>
+        <p>The <strong>Settings</strong> tab exposes all pipeline configuration. Settings are saved to <code>config/pipeline_settings.json</code> and take effect on the next pipeline poll cycle — no restart required for most settings.</p>
+
+        <h3>Validation Settings</h3>
+        <div class="setting-row">
+          <div class="setting-name">arithmetic_tolerance</div>
+          <div class="setting-desc">Maximum allowable rounding difference when checking line-item totals against the stated subtotal and grand total. Set to <code>0.05</code> to allow up to 5 cents of rounding error. Default: <code>0.01</code>.<div class="setting-type">Float, 0–1</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">max_invoice_age_days</div>
+          <div class="setting-desc">Invoices older than this many days trigger a date warning discrepancy. Set to <code>0</code> to disable. Default: <code>90</code>.<div class="setting-type">Integer, 0–365</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">max_future_days</div>
+          <div class="setting-desc">Invoices dated more than this many days in the future trigger a date error discrepancy. Default: <code>7</code>.<div class="setting-type">Integer, 0–30</div></div>
+        </div>
+
+        <h3>Supplier Matching</h3>
+        <div class="setting-row">
+          <div class="setting-name">supplier_fuzzy_threshold</div>
+          <div class="setting-desc">Minimum fuzzy match score (0–100) required for a supplier name match. Higher values require closer matches. Default: <code>80</code>.<div class="setting-type">Integer, 0–100</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">use_anchoring</div>
+          <div class="setting-desc">When enabled, Parsely uses your Internal Companies list to detect and prevent self-identification errors (where the AI mistakes your company for the supplier). Recommended: <code>true</code>.<div class="setting-type">Boolean</div></div>
+        </div>
+
+        <h3>Purchase Order Matching</h3>
+        <div class="setting-row">
+          <div class="setting-name">po_line_fuzzy_threshold</div>
+          <div class="setting-desc">Minimum fuzzy match score for matching invoice line item descriptions to PO line descriptions. Default: <code>70</code>.<div class="setting-type">Integer, 0–100</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">po_total_tolerance_pct</div>
+          <div class="setting-desc">Allowable percentage variance between an invoice total and its matched PO total before a discrepancy is raised. Default: <code>0.05</code> (5%).<div class="setting-type">Float, 0–1</div></div>
+        </div>
+
+        <h3>Webhook Export</h3>
+        <div class="setting-row">
+          <div class="setting-name">webhook_export_enabled</div>
+          <div class="setting-desc">Enable or disable webhook POSTing when an invoice is exported.<div class="setting-type">Boolean</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">webhook_export_url</div>
+          <div class="setting-desc">The destination URL for webhook export requests.<div class="setting-type">String (URL)</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">webhook_export_method</div>
+          <div class="setting-desc">HTTP method to use: <code>POST</code>, <code>PUT</code>, or <code>PATCH</code>.<div class="setting-type">Dropdown</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">webhook_export_headers_json</div>
+          <div class="setting-desc">JSON object of custom HTTP headers (e.g., <code>{"Authorization": "Bearer token"}</code>).<div class="setting-type">JSON string</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">webhook_export_template</div>
+          <div class="setting-desc">Filename of a Jinja2 template in the <code>config/</code> directory used to shape the outbound JSON payload.<div class="setting-type">String (filename)</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">webhook_export_enable_pdf</div>
+          <div class="setting-desc">When enabled, the original PDF is base64-encoded and included in the webhook payload.<div class="setting-type">Boolean</div></div>
+        </div>
+        <p style="margin-top:16px">Use the <strong>Test Webhook Export</strong> button to send a dummy payload to the configured URL and verify connectivity before enabling in production.</p>
+
+        <h3>Email Ingestion</h3>
+        <div class="setting-row">
+          <div class="setting-name">email_ingest_enabled</div>
+          <div class="setting-desc">Enable automatic polling of an IMAP mailbox for invoice attachments.<div class="setting-type">Boolean</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">email_imap_host / port</div>
+          <div class="setting-desc">IMAP server hostname and port. Default port is <code>993</code> (SSL) or <code>143</code> (STARTTLS).<div class="setting-type">String / Integer</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">email_imap_user / password</div>
+          <div class="setting-desc">IMAP login credentials. The password is masked in the UI and never returned by the API in plaintext.<div class="setting-type">String (password masked)</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">email_use_ssl</div>
+          <div class="setting-desc">Use SSL/TLS for the IMAP connection. Disable for STARTTLS servers.<div class="setting-type">Boolean</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">email_mailbox</div>
+          <div class="setting-desc">The IMAP mailbox (folder) to monitor, e.g., <code>INBOX</code> or <code>Invoices</code>.<div class="setting-type">String</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">email_search_criteria</div>
+          <div class="setting-desc">IMAP SEARCH command criteria, e.g., <code>UNSEEN</code> or <code>UNSEEN FROM supplier@example.com</code>.<div class="setting-type">String</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">email_processed_mailbox</div>
+          <div class="setting-desc">After processing, emails are moved to this mailbox (e.g., <code>Processed</code>). Leave blank to leave emails in place and only mark as read.<div class="setting-type">String</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">email_check_interval_minutes</div>
+          <div class="setting-desc">How often (in minutes) to poll the IMAP server for new messages.<div class="setting-type">Integer</div></div>
+        </div>
+        <p style="margin-top:16px">Use the <strong>Test Email Ingest</strong> button to connect to the configured mailbox and process any waiting emails immediately, without waiting for the next poll cycle.</p>
+
+        <h3>Backup</h3>
+        <div class="setting-row">
+          <div class="setting-name">backup_enabled</div>
+          <div class="setting-desc">Enable automatic ZIP backups of the database and config files.<div class="setting-type">Boolean</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">backup_interval_hours</div>
+          <div class="setting-desc">How frequently (in hours) to create a backup archive.<div class="setting-type">Integer</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">backup_retention_count</div>
+          <div class="setting-desc">Number of backup archives to retain. Older archives are deleted automatically.<div class="setting-type">Integer</div></div>
+        </div>
+
+        <h3>Supplier Settings</h3>
+        <div class="setting-row">
+          <div class="setting-name">ALLOW_CREATE_SUPPLIER</div>
+          <div class="setting-desc">When enabled, operators (not just admins) can create new suppliers from the invoice edit modal.<div class="setting-type">Boolean</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">SUPPLIER_CODE_PREFIX</div>
+          <div class="setting-desc">Prefix used when auto-generating supplier ID codes, e.g., <code>SUP</code> produces <code>SUP-001</code>.<div class="setting-type">String</div></div>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>Field Configuration</h2>
+        <p>The <strong>Fields</strong> tab lets you customise which invoice fields are visible and mandatory, and add entirely new custom fields.</p>
+
+        <h3>Standard Fields</h3>
+        <p>Standard fields are the built-in invoice attributes (invoice number, date, totals, etc.). For each field you can toggle:</p>
+        <ul>
+          <li><strong>Mandatory:</strong> If checked, the invoice cannot be marked Ready until this field has a value. A red asterisk appears next to mandatory fields in the review interface.</li>
+          <li><strong>Hidden:</strong> If checked, the field is not shown in the review interface (useful for fields irrelevant to your workflow).</li>
+        </ul>
+        <p>Click <strong>Save Standard Fields</strong> to apply changes.</p>
+
+        <h3>Custom Fields</h3>
+        <p>Add extra fields specific to your business. Each custom field has the following properties:</p>
+        <ul>
+          <li><strong>Name / Label:</strong> The display name shown to operators.</li>
+          <li><strong>Key:</strong> An internal identifier (lowercase, no spaces) used in exports and webhooks.</li>
+          <li><strong>Source:</strong> How the value is obtained:
+            <ul>
+              <li><code>llm</code> — The AI extracts the value from the document, guided by your hint text.</li>
+              <li><code>regex_extract</code> — A regular expression applied to the raw document text.</li>
+              <li><code>csv_lookup</code> — A dropdown populated from a CSV file in the <code>data/</code> directory.</li>
+              <li><code>text</code> — A plain text field the operator fills in manually.</li>
+            </ul>
+          </li>
+          <li><strong>LLM Hint:</strong> (for <code>llm</code> source) A short description that guides the AI, e.g., "Project code in format PRJ-XXXXX".</li>
+          <li><strong>Regex Pattern:</strong> (for <code>regex_extract</code> source) A Python-compatible regex with a named capture group.</li>
+          <li><strong>CSV File:</strong> (for <code>csv_lookup</code> source) The name of a CSV file in <code>data/</code> providing the dropdown options.</li>
+          <li><strong>Mandatory / Hidden:</strong> Same behaviour as standard fields.</li>
+        </ul>
+        <p>Click <strong>Save Custom Fields</strong> to apply. Changes appear in the review interface immediately.</p>
+      </div>
+
+      <div class="help-section">
+        <h2>Master Data Management</h2>
+        <p>The <strong>Data</strong> tab provides in-browser editors for all CSV-based master data. Changes are reflected in the matching engine without a restart.</p>
+
+        <h3>Suppliers</h3>
+        <p>Your vendor master list. Used for supplier matching on every invoice. Columns:</p>
+        <table>
+          <thead><tr><th>Column</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>id</code></td><td>Unique supplier identifier (auto-generated or custom prefix)</td></tr>
+            <tr><td><code>name</code></td><td>Official trading name</td></tr>
+            <tr><td><code>abn</code></td><td>Australian Business Number — primary matching key</td></tr>
+            <tr><td><code>acn</code></td><td>Australian Company Number (optional)</td></tr>
+            <tr><td><code>email</code></td><td>Contact email — used as a secondary matching key</td></tr>
+            <tr><td><code>phone</code></td><td>Contact phone (informational only)</td></tr>
+            <tr><td><code>address</code></td><td>Physical address (informational only)</td></tr>
+            <tr><td><code>aliases</code></td><td>Pipe-separated alternate names used in fuzzy matching, e.g., <code>Acme Corp|Acme Pty Ltd</code></td></tr>
+          </tbody>
+        </table>
+
+        <h3>Purchase Orders</h3>
+        <p>Open PO headers. When an invoice references a PO number, Parsely looks it up here. Columns include PO number, linked supplier ID, expected total, and creation date.</p>
+
+        <h3>Purchase Order Lines</h3>
+        <p>The individual line items expected on each PO. Parsely fuzzy-matches invoice line items against these records and flags significant variances.</p>
+
+        <h3>Internal Companies</h3>
+        <p>Your own organisation's legal entities (names and ABNs). Used by the <strong>Anchoring</strong> feature to prevent the AI from extracting your own company as the supplier. Add all trading names and ABNs that appear on your invoices as the buyer.</p>
+
+        <h3>Uploading CSV Files</h3>
+        <p>On any Data tab, use the <strong>Upload CSV</strong> button to replace the entire table with a new CSV file. The file is validated and any parsing errors are reported before saving.</p>
+
+        <h3>Reload</h3>
+        <p>After editing data in the browser, click <strong>Reload into Pipeline</strong>. This clears the in-memory cache so the next pipeline run picks up your changes immediately.</p>
+
+        <div class="tip warning">
+          <div class="tip-title">CSV Format</div>
+          <p>Ensure uploaded CSVs use UTF-8 encoding and include the header row. The column names must match exactly (case-sensitive). Download the existing file first to use as a template.</p>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>Audit Log</h2>
+        <p>The <strong>Audit Log</strong> tab shows a global history of all pipeline events across all invoices: extractions, status changes, edits, exports, and deletions. Each entry records:</p>
+        <ul>
+          <li><strong>Timestamp</strong> (server local time)</li>
+          <li><strong>Actor</strong> (username or "system" for automated pipeline actions)</li>
+          <li><strong>Invoice</strong> (filename)</li>
+          <li><strong>Action</strong> (e.g., extracted, status_changed, correction_saved, exported, deleted)</li>
+          <li><strong>Detail</strong> (additional context, e.g., old and new status values)</li>
+        </ul>
+        <p>The log is paginated. Use the Load More button to see older entries. Per-invoice audit trails are also visible in the data panel of each invoice.</p>
+      </div>
+
+      <div class="help-section">
+        <h2>Database Maintenance</h2>
+        <p>The <strong>Database</strong> card in the Settings tab provides a destructive maintenance option:</p>
+        <ul>
+          <li><strong>Clear Database:</strong> Deletes the SQLite database file (and WAL/SHM files). All invoice records, corrections, notes, and audit history are permanently destroyed. The PDFs in the inbox folder are <em>not</em> deleted — they will be re-queued on the next pipeline restart.</li>
+        </ul>
+        <div class="tip error">
+          <div class="tip-title">This Action is Irreversible</div>
+          <p>Clearing the database cannot be undone. Ensure you have a backup (or have exported all needed data) before proceeding. The backup feature can create an automated archive before you clear.</p>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>Environment and Build Info</h2>
+        <p>The bottom of the Settings tab shows read-only information about the current deployment:</p>
+        <ul>
+          <li><strong>Environment Variables:</strong> Key configuration values resolved at startup (LLM model, paths, auth mode).</li>
+          <li><strong>Build Info:</strong> Git commit hash and Python version — useful when reporting issues.</li>
+        </ul>
+      </div>
+
+    </div>
+  `
+},
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TROUBLESHOOTING
+══════════════════════════════════════════════════════════════════════════════ */
+'troubleshooting': {
+  title: 'Troubleshooting',
+  subtitle: 'Common issues and how to resolve them',
+  content: `
+    <div class="help-container">
+
+      <div class="help-section">
+        <h2>Invoice Stuck in Processing</h2>
+        <p>If an invoice appears to be stuck and never reaches "Needs Review" status:</p>
+        <ul>
+          <li><strong>Check pipeline logs:</strong> The server console/log output contains per-invoice processing messages. Look for Python tracebacks or LLM timeout errors.</li>
+          <li><strong>LLM unavailable:</strong> If the LLM service is down or the configured <code>LLM_BASE_URL</code> is unreachable, extraction will fail silently. Verify the endpoint is responding.</li>
+          <li><strong>Docling model download:</strong> On first run, Docling downloads AI models (~1–2 GB). The pipeline will be slow or paused until the download completes. Check disk space.</li>
+          <li><strong>File permissions:</strong> Ensure the server process can read the PDF from the inbox folder and write to the database path.</li>
+          <li><strong>Corrupt PDF:</strong> Some PDFs are not parseable. Try opening the PDF in a standard viewer to confirm it is valid. If it is corrupt, the pipeline will skip it after retrying.</li>
+        </ul>
+        <div class="tip">
+          <div class="tip-title">Forced Reprocess</div>
+          <p>If an invoice record does exist in the dashboard but shows stale data, click <strong>Reprocess</strong> (<kbd>R</kbd>) to delete the record and re-queue the file.</p>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>Poor Extraction Quality</h2>
+        <p>If the AI is extracting wrong values or missing fields:</p>
+        <ul>
+          <li><strong>Scanned documents:</strong> Low-resolution scans produce poor OCR. Ensure the source PDF is at least 200 DPI. Request a digital (not scanned) copy from the supplier if possible.</li>
+          <li><strong>Non-standard layouts:</strong> Highly unusual invoice formats may confuse the LLM. Try adding a custom field with an LLM hint that explicitly describes the field location.</li>
+          <li><strong>LLM model capability:</strong> Smaller local models (e.g., 3B parameter) may struggle with complex tables. Consider switching to a larger model via the <code>LLM_MODEL</code> environment variable.</li>
+          <li><strong>After adjusting settings:</strong> Reprocess the invoice to get a fresh extraction with the new settings.</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h2>Supplier Not Matched</h2>
+        <p>If invoices consistently show an unrecognised supplier:</p>
+        <ul>
+          <li><strong>Add the supplier:</strong> Go to <strong>Admin &gt; Data &gt; Suppliers</strong> and add the vendor with their correct ABN and name.</li>
+          <li><strong>Add aliases:</strong> If the supplier uses a different trading name on invoices, add it to the <code>aliases</code> column (pipe-separated).</li>
+          <li><strong>Lower the fuzzy threshold:</strong> If names differ slightly (spacing, abbreviations), reduce <code>supplier_fuzzy_threshold</code> in Settings. Be careful not to set it too low, which can cause incorrect matches.</li>
+          <li><strong>ABN matching:</strong> If the supplier's ABN is on the invoice, adding it to the master list will produce a confident match regardless of name formatting.</li>
+          <li><strong>Self-identification (anchoring):</strong> If the system is matching your own company as the supplier, enable <code>use_anchoring</code> and add your company's ABN and name to <strong>Admin &gt; Data &gt; Internal Companies</strong>.</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h2>PO Not Matched / PO Discrepancies</h2>
+        <ul>
+          <li><strong>PO not found:</strong> Ensure the PO number in your <code>purchase_orders.csv</code> exactly matches the format on the invoice (e.g., with or without leading zeros: <code>PO-001</code> vs <code>PO-1</code>).</li>
+          <li><strong>Line item mismatch:</strong> If the AI extracts slightly different descriptions than what is in your PO lines, lower <code>po_line_fuzzy_threshold</code>.</li>
+          <li><strong>Total tolerance:</strong> Small billing adjustments can trigger a PO total discrepancy. Increase <code>po_total_tolerance_pct</code> to allow a wider variance.</li>
+          <li><strong>After updating CSV data:</strong> Click <strong>Reload into Pipeline</strong> so the changes take effect without waiting for the next poll cycle.</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h2>Arithmetic Discrepancies</h2>
+        <p>If invoices with correct arithmetic are flagged as mismatched:</p>
+        <ul>
+          <li><strong>Rounding:</strong> Suppliers sometimes round line totals in ways that cause small differences when summed. Increase <code>arithmetic_tolerance</code> (e.g., to <code>0.05</code>) to tolerate up to 5 cents difference.</li>
+          <li><strong>Extraction errors:</strong> The AI may have misread a digit. Use PDF highlighting to verify each field against the source document, then correct via Edit mode.</li>
+          <li><strong>Tax included vs. excluded:</strong> If the invoice's grand total includes tax but the subtotal does not, ensure both fields are extracted correctly. Reprocessing with a custom LLM hint for tax handling can help.</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h2>Webhook Export Failures</h2>
+        <ul>
+          <li><strong>Test first:</strong> Use the <strong>Test Webhook Export</strong> button in Settings to send a sample payload. This shows the HTTP response code and body from the remote server.</li>
+          <li><strong>Authentication:</strong> Add required headers (e.g., <code>Authorization: Bearer ...</code>) to the <code>webhook_export_headers_json</code> field.</li>
+          <li><strong>Template errors:</strong> If you are using a Jinja2 template, a syntax error in the template will prevent export. Check server logs for Jinja2 error messages.</li>
+          <li><strong>Network connectivity:</strong> Ensure the Parsely server can reach the webhook URL. Firewalls, VPNs, and proxy settings may need configuration.</li>
+          <li><strong>Timeouts:</strong> The webhook request has a timeout. If the remote server is slow, consider making it asynchronous on the receiving end.</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h2>Email Ingestion Not Working</h2>
+        <ul>
+          <li><strong>Test the connection:</strong> Use <strong>Test Email Ingest</strong> in Settings. The result shows whether the IMAP connection succeeded and how many messages were found.</li>
+          <li><strong>App passwords:</strong> Gmail, Outlook, and other providers require an "app-specific password" when 2FA is enabled. Your regular account password will not work.</li>
+          <li><strong>IMAP not enabled:</strong> Some email providers have IMAP disabled by default. Enable it in your mail account settings.</li>
+          <li><strong>SSL / port mismatch:</strong> Port 993 uses implicit SSL. Port 143 uses STARTTLS. Ensure <code>email_use_ssl</code> matches your port choice.</li>
+          <li><strong>Search criteria:</strong> If the mailbox has messages but none are being picked up, verify the <code>email_search_criteria</code>. <code>UNSEEN</code> only finds unread messages. Use <code>ALL</code> to test with all messages in the folder.</li>
+          <li><strong>No PDF attachments:</strong> Parsely only processes PDF attachments. Emails with inline images or other formats are skipped.</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h2>Login / Access Issues</h2>
+        <ul>
+          <li><strong>Forgot password:</strong> Admins can reset any user's password from <strong>Admin &gt; Users</strong>. If the admin password is lost, the admin account must be deleted and recreated via the CLI or database tools.</li>
+          <li><strong>Locked out of admin:</strong> If the last admin account is lost, contact your system administrator to directly edit the <code>users</code> table in the SQLite database.</li>
+          <li><strong>Session expired:</strong> Sessions expire after inactivity. Refresh the page and log in again.</li>
+          <li><strong>Wrong auth mode:</strong> If login is not required but you expected it, check the <code>AUTH_MODE</code> environment variable. Modes are <code>disabled</code>, <code>admin_only</code>, and <code>full</code>.</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h2>Performance Issues</h2>
+        <ul>
+          <li><strong>Slow PDF rendering:</strong> Large PDFs with many pages can take time to render. Page images are cached after the first load. Subsequent views of the same page are fast.</li>
+          <li><strong>Slow extraction:</strong> On CPU-only servers, Docling's layout analysis and the LLM inference are the bottlenecks. Use GPU-accelerated hardware for production workloads. Local LLM inference benefits greatly from a GPU.</li>
+          <li><strong>Large invoice list:</strong> The invoice list loads up to 2000 records. Use date filters and status filters to reduce the loaded set if browsing feels slow.</li>
+          <li><strong>Database size:</strong> After many months of use, the SQLite database may grow large. Use the backup-then-clear workflow if you need to archive and reset.</li>
+        </ul>
+      </div>
+
+    </div>
+  `
+},
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+══════════════════════════════════════════════════════════════════════════════ */
+'keyboard-shortcuts': {
+  title: 'Keyboard Shortcuts',
+  subtitle: 'Workflow commands for power users',
+  content: `
+    <div class="help-container">
+
+      <div class="help-section">
+        <h2>Global Navigation</h2>
+        <table>
+          <thead><tr><th>Key</th><th>Action</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>/</kbd></td><td>Focus search bar</td><td>Works from anywhere on the page</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Open keyboard shortcuts help</td><td>Shows a quick-reference modal</td></tr>
+            <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Previous / Next invoice</td><td>Navigate the sidebar list</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Cancel / Close</td><td>Cancels edit mode or closes any open modal</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="help-section">
+        <h2>Invoice Actions</h2>
+        <p>These shortcuts act on the currently selected invoice. They are disabled when a modal or input is focused.</p>
+        <table>
+          <thead><tr><th>Key</th><th>Action</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>E</kbd></td><td>Enter Edit mode</td><td>Opens the correction form</td></tr>
+            <tr><td><kbd>S</kbd></td><td>Mark as Ready</td><td>Sets status to <span class="status ready">Ready</span></td></tr>
+            <tr><td><kbd>F</kbd></td><td>Flag / Unflag</td><td>Toggles the flag marker; also reverts Ready → Needs Review</td></tr>
+            <tr><td><kbd>X</kbd></td><td>Export</td><td>Only active when status is <span class="status ready">Ready</span>. Shows confirmation dialog.</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Reprocess</td><td>Deletes record and re-queues for AI extraction. Shows confirmation dialog.</td></tr>
+            <tr><td><kbd>N</kbd></td><td>Focus Notes field</td><td>Scrolls to and focuses the notes text area</td></tr>
+            <tr><td><kbd>Del</kbd></td><td>Delete invoice</td><td>Shows confirmation dialog. Not available for exported invoices.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="help-section">
+        <h2>Edit Mode</h2>
+        <table>
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td><td>Save edits and exit edit mode</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Cancel edits and exit edit mode (changes discarded)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="help-section">
+        <h2>PDF Viewer</h2>
+        <table>
+          <thead><tr><th>Key / Action</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Scroll</kbd></td><td>Zoom in / Zoom out</td></tr>
+            <tr><td><kbd>Shift</kbd> + <kbd>Scroll</kbd></td><td>Scroll horizontally (for wide pages)</td></tr>
+            <tr><td>Click PDF toolbar <kbd>+</kbd></td><td>Zoom in by one step</td></tr>
+            <tr><td>Click PDF toolbar <kbd>-</kbd></td><td>Zoom out by one step</td></tr>
+            <tr><td>Click PDF toolbar fit button</td><td>Fit page to viewer width</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="help-section">
+        <h2>Tips for Power Users</h2>
+        <ul>
+          <li>The fastest review workflow: select an invoice with <kbd>↓</kbd>, glance at the PDF via hover highlighting, press <kbd>S</kbd> if correct, then <kbd>↓</kbd> to move to the next one.</li>
+          <li>If a field looks wrong, press <kbd>E</kbd> to edit, <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to save, then <kbd>S</kbd> to approve — all without touching the mouse.</li>
+          <li>Use <kbd>/</kbd> to search for a specific invoice number when a supplier sends an email query about a specific document.</li>
+          <li>Press <kbd>?</kbd> at any time to see all shortcuts in a quick-reference modal without leaving the current invoice.</li>
+        </ul>
+      </div>
+
+    </div>
+  `
+},
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   API REFERENCE
+══════════════════════════════════════════════════════════════════════════════ */
+'api-reference': {
+  title: 'API Reference',
+  subtitle: 'REST endpoints for developers and integrators',
+  content: `
+    <div class="help-container">
+
+      <div class="help-section">
+        <h2>Authentication</h2>
+        <p>When <code>AUTH_MODE</code> is <code>full</code> or <code>admin_only</code>, API calls require a valid session cookie obtained by <code>POST /login</code>. Pass credentials as form data (<code>username</code>, <code>password</code>). The server responds with a <code>Set-Cookie</code> header containing a signed session token. Include this cookie in subsequent requests.</p>
+        <pre><code>POST /login
+Content-Type: application/x-www-form-urlencoded
+
+username=myuser&amp;password=mypassword</code></pre>
+        <p>Admin-only endpoints return <code>403 Forbidden</code> if the authenticated user does not have the <code>admin</code> role.</p>
+        <p>Unauthenticated requests to protected endpoints receive <code>401 Unauthorized</code> or a redirect to <code>/login</code>.</p>
+      </div>
+
+      <div class="help-section">
+        <h2>Invoice Endpoints</h2>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/invoices</span>
           </div>
+          <p class="endpoint-desc">List invoice summaries. Supports filtering and pagination.</p>
+          <p><strong>Query parameters:</strong></p>
+          <ul>
+            <li><code>status</code> — Filter by status: <code>needs_review</code>, <code>ready</code>, <code>exported</code></li>
+            <li><code>search</code> — Text search across invoice number and supplier name</li>
+            <li><code>date_filter</code> — <code>today</code> | <code>last7</code> | <code>last30</code> | <code>this_year</code> | <code>all</code></li>
+            <li><code>tz_offset</code> — Client timezone offset in minutes (for date boundary calculations)</li>
+            <li><code>sort</code> — <code>asc</code> or <code>desc</code> (by created date)</li>
+            <li><code>limit</code> — Max results (default 2000)</li>
+            <li><code>offset</code> — Pagination offset</li>
+          </ul>
         </div>
 
-        <div class="help-section">
-          <h2>Understanding Statuses</h2>
-          <table>
-            <thead>
-              <tr><th>Status</th><th>Description</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><span class="status needs_review">Needs Review</span></td>
-                <td>Initial state. Requires operator verification before export.</td>
-              </tr>
-              <tr>
-                <td><span class="status ready">Ready</span></td>
-                <td>Verified and approved. Ready to be exported to downstream systems.</td>
-              </tr>
-              <tr>
-                <td><span class="status exported">Exported</span></td>
-                <td>Already exported. The data and PDF are in the output folder.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `
-  },
-  'user-guide': {
-    title: 'User Guide',
-    subtitle: 'Detailed instructions for reviewing and processing invoices',
-    content: `
-      <div class="help-container">
-        <div class="help-section">
-          <h2>Reviewing Extracted Data</h2>
-          <p>The right panel displays all extracted information organized into logical sections.</p>
-          
-          <h3>Supplier Information</h3>
-          <ul>
-            <li><strong>Supplier Name:</strong> Extracted from the document.</li>
-            <li><strong>Supplier ID:</strong> Internal identifier from master data.</li>
-            <li><strong>Match Method:</strong> Indicates how we found this supplier (ABN, exact name, fuzzy name, etc).</li>
-          </ul>
-          
-          <div class="tip warning">
-            <div class="tip-title">Check Match Confidence</div>
-            <p>If the match method is "name_fuzzy", verify that the supplier is correct, as fuzzy matching can sometimes pick similar trading names.</p>
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/invoices/{stem}</span>
           </div>
-          
-          <h3>Invoice Details & Financials</h3>
-          <ul>
-            <li><strong>Invoice Number:</strong> Extracted reference.</li>
-            <li><strong>Due Date:</strong> Extracted or calculated from terms.</li>
-            <li><strong>Totals:</strong> Subtotal, Tax, and Total are validated against each other.</li>
-          </ul>
+          <p class="endpoint-desc">Returns the full invoice payload: extracted fields, corrections, line items, supplier match, PO match, discrepancies, notes, status, and audit trail. <code>{stem}</code> is the filename without extension.</p>
         </div>
 
-        <div class="help-section">
-          <h2>Correcting Data</h2>
-          <p>Click <strong>Edit</strong> (or press <kbd>E</kbd>) to modify any field.</p>
-          <ul>
-            <li><strong>Supplier Lookup:</strong> Click the magnifying glass in the Supplier field to search the master list.</li>
-            <li><strong>Line Items:</strong> Click "Edit Line Items" to modify descriptions, quantities, or prices.</li>
-            <li><strong>Save Changes:</strong> Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to save. Validation runs automatically after saving.</li>
-          </ul>
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/invoices/{stem}/pages</span>
+          </div>
+          <p class="endpoint-desc">Returns PDF pages as base64-encoded JPEG images for the viewer. Pages are cached by file modification time.</p>
         </div>
 
-        <div class="help-section">
-          <h2>Handling Discrepancies</h2>
-          <p>Discrepancies appear as colored warnings in the right panel.</p>
-          <ul>
-            <li><strong>Critical (Red):</strong> Math errors or invalid POs. Must be fixed or noted before export.</li>
-            <li><strong>Warning (Yellow):</strong> Price/Quantity mismatches or low confidence matches.</li>
-            <li><strong>Info (Blue):</strong> Missing due dates or assumed currencies.</li>
-          </ul>
-          <p>Use the <strong>Notes</strong> panel (<kbd>N</kbd>) to document why a discrepancy was accepted.</p>
-        </div>
-      </div>
-    `
-  },
-  'system-functions': {
-    title: 'System Functions',
-    subtitle: 'Understanding the pipeline and configuration options',
-    content: `
-      <div class="help-container">
-        <div class="help-section">
-          <h2>The Pipeline Stages</h2>
-          <ol>
-            <li><strong>Parsing:</strong> Docling extracts text layout and tables.</li>
-            <li><strong>LLM Extraction:</strong> AI identifies header and summary data.</li>
-            <li><strong>Matching:</strong> Supplier master data and Purchase Orders are linked.</li>
-            <li><strong>Validation:</strong> Mathematical and business rule checks are performed.</li>
-          </ol>
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/invoices/{stem}/pdf</span>
+          </div>
+          <p class="endpoint-desc">Streams the raw PDF file (for download or external viewing).</p>
         </div>
 
-        <div class="help-section">
-          <h2>Authentication Modes</h2>
-          <p>Set via <code>AUTH_MODE</code> environment variable:</p>
-          <ul>
-            <li><code>disabled</code>: No login required.</li>
-            <li><code>admin_only</code>: Password required only for settings/admin tasks.</li>
-            <li><code>full</code>: Login required for all access.</li>
-          </ul>
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/invoices/{stem}/audit</span>
+          </div>
+          <p class="endpoint-desc">Returns the full audit trail for a single invoice, newest first.</p>
         </div>
 
-        <div class="help-section">
-          <h2>Configuration</h2>
-          <h3>Custom Fields</h3>
-          <p>Add site-specific extraction rules in <code>config/custom_fields.json</code>.</p>
-          <h3>Column Mapping</h3>
-          <p>Map non-standard table headers in <code>config/column_keys.json</code>.</p>
-        </div>
-      </div>
-    `
-  },
-  'troubleshooting': {
-    title: 'Troubleshooting',
-    subtitle: 'Common issues and how to resolve them',
-    content: `
-      <div class="help-container">
-        <div class="help-section">
-          <h2>Common Issues</h2>
-          
-          <h3>Invoice Not Appearing</h3>
-          <p>Check the <code>pipeline</code> logs: <code>docker compose logs -f pipeline</code>. Ensure the file is a valid PDF and under the size limit.</p>
-          
-          <h3>Poor Extraction</h3>
-          <p>Try a different LLM model (e.g., <code>qwen2.5:7b</code> or <code>gpt-4o-mini</code>). Ensure the PDF text is selectable; if not, OCR may be required.</p>
-          
-          <h3>Database Locked</h3>
-          <p>Restart the containers: <code>docker compose restart dashboard</code>. This typically happens if multiple processes try to write to SQLite simultaneously.</p>
-        </div>
-      </div>
-    `
-  },
-  'api-reference': {
-    title: 'API Reference',
-    subtitle: 'REST API endpoints for integration',
-    content: `
-      <div class="help-container">
-        <div class="help-section">
-          <h2>Invoices</h2>
-          <pre><code>GET   /api/invoices</code> (List with search/status filters)
-<code>GET   /api/invoices/{stem}</code> (Full details)
-<code>PATCH /api/invoices/{stem}/status</code> (Set ready/needs_review)
-<code>PATCH /api/invoices/{stem}/corrections</code> (Update fields)
-<code>PATCH /api/invoices/{stem}/notes</code> (Update notes)
-<code>POST  /api/invoices/{stem}/export</code> (Trigger export)
-<code>POST  /api/invoices/{stem}/reprocess</code> (Rerun pipeline)
-<code>POST  /api/invoices/upload</code> (Multipart upload)</pre>
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/invoices/{stem}/status</span>
+          </div>
+          <p class="endpoint-desc">Update invoice status.</p>
+          <pre><code>{ "status": "ready" }   // or "needs_review"</code></pre>
         </div>
 
-        <div class="help-section">
-          <h2>Data Management</h2>
-          <pre><code>GET   /api/suppliers</code>
-<code>POST  /api/suppliers/create</code>
-<code>GET   /api/purchase-orders</code>
-<code>GET   /api/stats</code>
-<code>POST  /api/bulk-export</code> (Export all Ready)</pre>
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/invoices/{stem}/corrections</span>
+          </div>
+          <p class="endpoint-desc">Save operator field corrections. Send only the fields that changed. Corrections are merged with existing data.</p>
+          <pre><code>{
+  "invoice_number": "INV-2024-001",
+  "total": 1234.56,
+  "supplier_id": "SUP-001"
+}</code></pre>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/invoices/{stem}/notes</span>
+          </div>
+          <p class="endpoint-desc">Save operator notes.</p>
+          <pre><code>{ "notes": "Confirmed with supplier on 2024-03-15." }</code></pre>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/invoices/{stem}/export</span>
+          </div>
+          <p class="endpoint-desc">Export a single invoice. Writes JSON/XML files, moves the PDF, fires webhooks, updates status to <code>exported</code>. The invoice must be in <code>ready</code> status.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/invoices/{stem}/reprocess</span>
+          </div>
+          <p class="endpoint-desc">Delete the database record and re-queue the PDF for AI extraction. All corrections are lost.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method delete">DELETE</span>
+            <span class="endpoint-path">/api/invoices/{stem}</span>
+          </div>
+          <p class="endpoint-desc">Permanently delete the invoice record and PDF. Not permitted for exported invoices.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/bulk-export</span>
+          </div>
+          <p class="endpoint-desc">Export all invoices currently in <code>ready</code> status. Returns a count of exported invoices.</p>
         </div>
       </div>
-    `
-  },
-  'glossary': {
-    title: 'Glossary',
-    subtitle: 'Terms used in Parsely',
-    content: `
-      <div class="help-container">
-        <div class="help-section">
-          <dl>
-            <dt>ABN</dt><dd>Australian Business Number. Primary key for supplier matching.</dd>
-            <dt>Correction</dt><dd>Manual edit that overrides AI-extracted data.</dd>
-            <dt>Discrepancy</dt><dd>Validation failure or warning (e.g., total mismatch).</dd>
-            <dt>Stem</dt><dd>Unique ID derived from filename (e.g., <code>inv_123</code> from <code>inv_123.pdf</code>).</dd>
-            <dt>WAL Mode</dt><dd>Write-Ahead Logging in SQLite for concurrent performance.</dd>
-          </dl>
+
+      <div class="help-section">
+        <h2>Upload & Stats</h2>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/upload</span>
+          </div>
+          <p class="endpoint-desc">Upload one or more PDF files for processing. Use <code>multipart/form-data</code> with field name <code>files</code>. Returns the sanitised filename(s) assigned.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/stats</span>
+          </div>
+          <p class="endpoint-desc">Returns invoice counts grouped by status. Accepts <code>date_filter</code> and <code>tz_offset</code> query params.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/pipeline/status</span>
+          </div>
+          <p class="endpoint-desc">Returns the current pipeline status (idle, processing, queue depth).</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/health</span>
+          </div>
+          <p class="endpoint-desc">Liveness probe. Returns 200 with path and DB status information. Used by Docker health checks.</p>
         </div>
       </div>
-    `
-  },
-  'keyboard-shortcuts': {
-    title: 'Keyboard Shortcuts',
-    subtitle: 'Workflow commands',
-    content: `
-      <div class="help-container">
-        <div class="help-section">
-          <table>
-            <thead><tr><th>Key</th><th>Action</th></tr></thead>
-            <tbody>
-              <tr><td><kbd>/</kbd></td><td>Focus search bar</td></tr>
-              <tr><td><kbd>E</kbd></td><td>Edit invoice</td></tr>
-              <tr><td><kbd>S</kbd></td><td>Mark Ready</td></tr>
-              <tr><td><kbd>F</kbd></td><td>Flag invoice</td></tr>
-              <tr><td><kbd>X</kbd></td><td>Export</td></tr>
-              <tr><td><kbd>R</kbd></td><td>Reprocess</td></tr>
-              <tr><td><kbd>N</kbd></td><td>Notes</td></tr>
-              <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Save Edits</td></tr>
-              <tr><td><kbd>Esc</kbd></td><td>Cancel / Close</td></tr>
-            </tbody>
-          </table>
+
+      <div class="help-section">
+        <h2>Lookup & Field Config</h2>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/lookup/{csv_name}</span>
+          </div>
+          <p class="endpoint-desc">Fetch rows from a CSV file in the <code>data/</code> directory. Used to populate custom field dropdowns. Directory traversal is prevented — only filenames, not paths, are accepted.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/field-config</span>
+          </div>
+          <p class="endpoint-desc">Returns the active field configuration (which fields are mandatory/hidden) for use by the frontend.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/auth/me</span>
+          </div>
+          <p class="endpoint-desc">Returns the current session user, role, auth mode, and client configuration values (e.g., <code>allow_create_supplier</code>, <code>arithmetic_tolerance</code>).</p>
         </div>
       </div>
-    `
-  }
-};
+
+      <div class="help-section">
+        <h2>Admin Endpoints</h2>
+        <p>All <code>/api/admin/*</code> endpoints require the <code>admin</code> role.</p>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/admin/settings</span>
+          </div>
+          <p class="endpoint-desc">Returns the full settings schema including current values, types, valid options, and environment snapshot.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/admin/settings</span>
+          </div>
+          <p class="endpoint-desc">Save pipeline settings. Send a flat JSON object with setting keys and new values. Unknown keys are ignored.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/admin/reload</span>
+          </div>
+          <p class="endpoint-desc">Clear the in-memory CSV metadata cache so the pipeline picks up changes to suppliers/POs on the next poll.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/admin/users</span>
+          </div>
+          <p class="endpoint-desc">List all users (username and role). Passwords are never returned.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/admin/users</span>
+          </div>
+          <p class="endpoint-desc">Create a new user.</p>
+          <pre><code>{ "username": "alice", "password": "securepassword", "role": "user" }</code></pre>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/admin/users/{username}</span>
+          </div>
+          <p class="endpoint-desc">Update a user's role and/or password. Send only the fields to change.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method delete">DELETE</span>
+            <span class="endpoint-path">/api/admin/users/{username}</span>
+          </div>
+          <p class="endpoint-desc">Delete a user. Returns 400 if this would remove the last admin.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/admin/{tab}</span>
+          </div>
+          <p class="endpoint-desc">Get data table rows for a tab. Valid tabs: <code>suppliers</code>, <code>purchase_orders</code>, <code>purchase_order_lines</code>, <code>internal_companies</code>.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/admin/{tab}</span>
+          </div>
+          <p class="endpoint-desc">Save edited table data (replaces the CSV file).</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/admin/{tab}/upload</span>
+          </div>
+          <p class="endpoint-desc">Upload a replacement CSV file for the given tab.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/admin/audit</span>
+          </div>
+          <p class="endpoint-desc">Get global audit log entries. Params: <code>limit</code> (1–1000, default 100), <code>offset</code>.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/admin/database/clear</span>
+          </div>
+          <p class="endpoint-desc">Delete the SQLite database file. Irreversible. Admin only.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/admin/webhook-export/test</span>
+          </div>
+          <p class="endpoint-desc">Send a test webhook payload using the provided (unsaved) config. Useful for verifying connectivity before saving settings.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/admin/email-ingest/test</span>
+          </div>
+          <p class="endpoint-desc">Immediately poll the configured IMAP mailbox and process any waiting PDF attachments.</p>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/suppliers/create</span>
+          </div>
+          <p class="endpoint-desc">Create a new supplier entry. Available to all authenticated users if <code>ALLOW_CREATE_SUPPLIER</code> is enabled, otherwise admin only. Auto-generates a supplier ID using the configured prefix.</p>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>Error Responses</h2>
+        <p>All error responses return JSON with an <code>error</code> key:</p>
+        <pre><code>{ "error": "Invoice not found" }</code></pre>
+        <table>
+          <thead><tr><th>HTTP Code</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>400</code></td><td>Bad Request — invalid parameters or business rule violation</td></tr>
+            <tr><td><code>401</code></td><td>Unauthorized — authentication required</td></tr>
+            <tr><td><code>403</code></td><td>Forbidden — insufficient role (user accessing admin endpoint)</td></tr>
+            <tr><td><code>404</code></td><td>Not Found — invoice stem or resource does not exist</td></tr>
+            <tr><td><code>409</code></td><td>Conflict — duplicate filename or resource</td></tr>
+            <tr><td><code>500</code></td><td>Server Error — check server logs for details</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  `
+},
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOSSARY
+══════════════════════════════════════════════════════════════════════════════ */
+'glossary': {
+  title: 'Glossary',
+  subtitle: 'Definitions for terms used throughout Parsely',
+  content: `
+    <div class="help-container">
+      <div class="help-section">
+        <h2>A – D</h2>
+
+        <p class="glossary-term">ABN (Australian Business Number)</p>
+        <p class="glossary-def">An 11-digit identifier issued by the ATO to every Australian business entity. Parsely uses it as the primary key for supplier matching. Matching on ABN is always a high-confidence result.</p>
+
+        <p class="glossary-term">Anchoring</p>
+        <p class="glossary-def">A feature that prevents the AI from identifying your own company as the supplier on an invoice. Parsely compares the extracted supplier name and ABN against the Internal Companies list and flags or corrects self-identification errors.</p>
+
+        <p class="glossary-term">Arithmetic Tolerance</p>
+        <p class="glossary-def">The maximum allowable difference (in currency units) between the sum of line item totals and the stated subtotal or grand total before an arithmetic discrepancy is raised. Accounts for supplier rounding.</p>
+
+        <p class="glossary-term">Audit Trail</p>
+        <p class="glossary-def">A chronological, append-only log of every action taken on an invoice (extraction, edits, status changes, exports). Stored in the database and visible per-invoice in the data panel or globally in Admin &gt; Audit Log.</p>
+
+        <p class="glossary-term">Correction</p>
+        <p class="glossary-def">A manually entered field value that overrides the AI's original extraction. Corrections are stored separately from the original extraction so the AI output is always preserved for comparison. If an invoice is reprocessed, corrections are deleted.</p>
+
+        <p class="glossary-term">Discrepancy</p>
+        <p class="glossary-def">A validation issue detected by Parsely, such as an arithmetic mismatch, missing mandatory field, unrecognised supplier, or date out of range. Discrepancies are categorised and displayed in the Discrepancies card in the data panel.</p>
+
+        <p class="glossary-term">Docling</p>
+        <p class="glossary-def">IBM's open-source document intelligence library used by Parsely for PDF layout analysis and table extraction. Docling understands document structure (headings, tables, paragraphs) before passing text to the LLM.</p>
+
+        <h2 style="margin-top: 32px;">E – L</h2>
+
+        <p class="glossary-term">Export</p>
+        <p class="glossary-def">The finalisation action for an invoice. Parsely writes structured JSON and XML files to the export directory, moves the PDF, fires any configured webhooks, and sets the status to Exported. Export is irreversible.</p>
+
+        <p class="glossary-term">Extraction</p>
+        <p class="glossary-def">The automated process of converting a PDF invoice into structured data. Parsely uses Docling for layout and table analysis, then an LLM to identify and classify each field.</p>
+
+        <p class="glossary-term">Flag</p>
+        <p class="glossary-def">A secondary marker (shown as a flag icon) indicating an invoice needs special attention. Flagging an invoice in Ready status reverts it to Needs Review.</p>
+
+        <p class="glossary-term">Fuzzy Matching</p>
+        <p class="glossary-def">A string similarity algorithm used when exact text matching fails. Parsely uses fuzzy matching for supplier names and PO line descriptions when ABN or exact matches are not available. The threshold is configurable.</p>
+
+        <p class="glossary-term">Grounding</p>
+        <p class="glossary-def">The linking of extracted field values back to their spatial location in the original PDF. When you hover over a field, Parsely highlights the corresponding text in the PDF viewer. This allows rapid visual verification.</p>
+
+        <p class="glossary-term">Inbox</p>
+        <p class="glossary-def">The server-side directory where new PDF files are placed for processing. The pipeline polls this folder on a regular interval and extracts any new files it finds.</p>
+
+        <p class="glossary-term">LLM (Large Language Model)</p>
+        <p class="glossary-def">The AI model used to parse extracted text into structured invoice data. Parsely works with any OpenAI-compatible API endpoint, including local models (e.g., Ollama with Llama 3, Mistral) and hosted providers.</p>
+
+        <h2 style="margin-top: 32px;">M – P</h2>
+
+        <p class="glossary-term">Master List (Supplier Master)</p>
+        <p class="glossary-def">Your organisation's authoritative list of known vendors, stored as <code>suppliers.csv</code>. Contains ABN, name, email, and aliases used for matching. Managed via Admin &gt; Data &gt; Suppliers.</p>
+
+        <p class="glossary-term">Match Confidence</p>
+        <p class="glossary-def">A percentage (0–100%) indicating how well the extracted supplier matches a record in your master list. 100% = ABN match. Lower scores indicate fuzzy name matches and warrant operator verification.</p>
+
+        <p class="glossary-term">OCR (Optical Character Recognition)</p>
+        <p class="glossary-def">The process of converting raster image text (scanned pages) into machine-readable characters. Parsely automatically applies OCR to any PDF page that contains no embedded text. OCR quality depends heavily on scan resolution and quality.</p>
+
+        <p class="glossary-term">PO (Purchase Order)</p>
+        <p class="glossary-def">A buyer-issued document authorising a purchase. Parsely matches invoice PO references against your <code>purchase_orders.csv</code> and validates line items and totals against expected values.</p>
+
+        <p class="glossary-term">Pipeline</p>
+        <p class="glossary-def">The automated background process that polls the inbox folder and processes PDFs through extraction, matching, and validation stages. The pipeline runs continuously while Parsely is running.</p>
+
+        <h2 style="margin-top: 32px;">R – Z</h2>
+
+        <p class="glossary-term">Reprocess</p>
+        <p class="glossary-def">Deletes the database record for an invoice and re-queues the PDF for fresh AI extraction. All corrections and notes are permanently discarded. Use when the initial extraction is substantially wrong.</p>
+
+        <p class="glossary-term">Row Locking</p>
+        <p class="glossary-def">A feature of the PDF grounding system that constrains the highlight search for line item cells (price, quantity) to a specific table row. This prevents a price from one row highlighting an identical number in a different row.</p>
+
+        <p class="glossary-term">Stem</p>
+        <p class="glossary-def">The filename of a PDF without its extension. Used as the unique identifier for an invoice throughout the API (e.g., <code>invoice_001</code> for <code>invoice_001.pdf</code>).</p>
+
+        <p class="glossary-term">Webhook</p>
+        <p class="glossary-def">An HTTP callback triggered when an invoice is exported. Parsely sends the structured invoice data (and optionally the PDF) to a configured URL, enabling integration with ERP, accounting, or document management systems.</p>
+
+        <p class="glossary-term">Watch Folder</p>
+        <p class="glossary-def">See <em>Inbox</em>. Files placed in this directory are automatically detected by the pipeline.</p>
+      </div>
+    </div>
+  `
+}
+
+}; // end sections
 
 function initTheme() {
   const saved = localStorage.getItem('theme');
@@ -624,16 +1670,18 @@ function setTab(tab) {
   document.querySelectorAll('.side-tab').forEach(el => {
     el.classList.toggle('active', el.dataset.tab === tab);
   });
-  
+
   const section = sections[tab];
   if (section) {
     document.getElementById('page-title').textContent = section.title;
     document.getElementById('page-subtitle').textContent = section.subtitle || '';
     document.getElementById('content-area').innerHTML = section.content;
+    main.scrollTop = 0;
     history.replaceState(null, null, '#' + tab);
   }
 }
 
+const main = document.querySelector('main');
 const initialTab = location.hash.slice(1) || 'getting-started';
 setTab(initialTab);
 </script>

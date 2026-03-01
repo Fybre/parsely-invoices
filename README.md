@@ -8,31 +8,25 @@ An AI-powered invoice processing pipeline that extracts  and parses structured d
 
 ## Features
 
-- **Layout-aware PDF extraction** — Docling preserves table structure and handles multi-column layouts; pdfplumber provides supplementary table extraction for edge cases.
-- **OCR support** — Docling's built-in OCR handles scanned/image PDFs automatically.
-- **Structured LLM extraction** — Works with any OpenAI-compatible API: local Ollama, OpenAI, Groq, or any other hosted model.
-- **Direct table extraction** — Line items are parsed directly from PDF tables where possible, reducing LLM load and improving accuracy.
-- **Supplier matching** — ABN exact → name exact → fuzzy name → email domain.
-- **PO matching** — Matches by PO number; fuzzy line-item comparison by description and SKU.
+- **Interactive PDF Highlighting** — Visually verify extracted data by hovering or clicking fields in the dashboard; features stream offset mapping and row-locking for absolute precision.
+- **Buyer Anchoring** — Prevents self-identification by using an "Internal Companies" list to help the AI distinguish between the sender and the receiver.
+- **Dynamic Custom Fields** — Define fields with multiple sources: `llm` (automated), `text` (manual), or `lookup` (CSV-based dropdowns).
+- **Layout-aware PDF extraction** — Docling preserves table structure and handles multi-column layouts; pdfplumber provides supplementary table extraction.
+- **OCR support** — Built-in OCR handles scanned/image PDFs automatically.
+- **Structured LLM extraction** — Works with any OpenAI-compatible API: local Ollama, OpenAI, Groq, or hosted models.
+- **Direct table extraction** — Line items are parsed directly from PDF tables where possible, reducing tokens and improving accuracy.
 - **Webhook Export** — Automatically push approved invoice data to external REST APIs (e.g. Therefore DMS, Xero, ERP) using Jinja2 templates.
-- **Automated Backups** — Periodic background ZIP archives of your database, configuration, and master data with automatic rotation.
-- **Self-Healing Config** — Built-in bootstrap system that automatically restores factory default configuration files if volumes are missing or empty.
-- **Web dashboard** — Review, correct, and approve invoices; upload PDFs directly from the browser; keyboard shortcuts; dark mode support.
-- **Admin page** — Category-based settings management; edit suppliers, POs, and PO lines in-browser; reload data without restarting.
-- **Help System** — Comprehensive in-app help covering workflow, API reference, troubleshooting, and keyboard shortcuts.
-- **Custom fields** — Define site-specific fields (e.g. strata reference, job number) extracted alongside standard fields.
-- **SQLite-backed state** — All results, corrections, and approvals stored in a single database.
-- **Test Suite** — 46 automated tests covering unit and integration scenarios.
+- **Modern Web Dashboard** — Glassmorphism UI with side-by-side review, keyboard shortcuts, and dark mode.
+- **Admin Management** — Category-based settings; manage suppliers, internal entities, and custom fields directly in-browser.
 
 ---
 
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) (v2)
-- An LLM backend — one of:
-  - **[Ollama](https://ollama.com)** running locally (free, fully offline)
-  - **OpenAI** API key
-  - **[Groq](https://console.groq.com)** API key (free tier available, fast)
+- **Local LLM (Recommended)**: [Ollama](https://ollama.com) running locally.
+    - *Hardware Tip*: For an **NVIDIA RTX 4070 Super (12GB VRAM)**, we recommend the **Mistral NeMo 12B** or **Qwen 2.5 14B** models for the best balance of speed and accuracy.
+- **Hosted LLM (Optional)**: OpenAI API key or [Groq](https://console.groq.com) API key.
 
 ---
 
@@ -46,9 +40,17 @@ cd parsely-invoices
 cp .env.example .env
 ```
 
-Open `.env` and set your LLM connection details (see [Configuration](#configuration) below).
+Open `.env` and set your LLM connection details. For local Ollama on the host:
+`LLM_BASE_URL=http://host.docker.internal:11434/v1`
 
-### 2. Build and Start
+### 2. Ingestion Methods
+
+Parsely monitors multiple sources for new invoices:
+- **Web Dashboard**: Drag-and-drop PDF files directly into the sidebar.
+- **Email**: Enable IMAP ingestion in Admin settings to automatically process attachments from a dedicated mailbox.
+- **Local Folder**: Any PDF moved into the `./invoices` directory is automatically queued.
+
+### 3. Build and Start
 
 ```bash
 docker compose build
