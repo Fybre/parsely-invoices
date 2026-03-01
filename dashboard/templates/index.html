@@ -1926,6 +1926,26 @@ kbd {
   margin: -10px;
 }
 
+/* Missing mandatory field highlight in the data panel */
+.kv-item.missing-field {
+  animation: missing-field-pulse 1s ease-in-out 3;
+  border-radius: 4px;
+}
+.kv-item.missing-field .kv-label {
+  color: #dc2626;
+  font-weight: 600;
+}
+.kv-item.missing-field .kv-value {
+  background: rgba(220, 38, 38, 0.15);
+  border: 2px solid #dc2626;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+@keyframes missing-field-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+}
+
 </style>
 <!-- PDF.js -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
@@ -2318,6 +2338,47 @@ function showLineItemCell(descStr, cellStr) {
   _renderMatchHighlights([best]);
 }
 
+// Map field names to user-friendly labels
+const FIELD_LABELS = {
+  'invoice_number': 'Invoice Number',
+  'invoice_date': 'Invoice Date',
+  'due_date': 'Due Date',
+  'po_number': 'PO Number',
+  'reference': 'Reference',
+  'currency': 'Currency',
+  'subtotal': 'Subtotal',
+  'tax_rate': 'Tax Rate',
+  'tax_amount': 'Tax Amount',
+  'shipping': 'Shipping',
+  'other_charges': 'Other Charges',
+  'total': 'Total',
+  'payment_terms': 'Payment Terms',
+  'bank_details': 'Bank Details',
+  'notes': 'Notes',
+  'supplier.name': 'Supplier Name',
+  'supplier.abn': 'Supplier ABN',
+  'supplier.acn': 'Supplier ACN',
+  'supplier.address': 'Supplier Address',
+  'supplier.email': 'Supplier Email',
+  'supplier.phone': 'Supplier Phone',
+  'supplier.website': 'Supplier Website',
+  'bill_to.name': 'Bill To Name',
+  'bill_to.address': 'Bill To Address',
+  'bill_to.email': 'Bill To Email',
+  'bill_to.contact': 'Bill To Contact'
+};
+
+// Get user-friendly label for a field name
+function getFieldLabel(fieldName) {
+  // Check if it's a custom field with a title
+  const customField = S.fieldConfig[fieldName];
+  if (customField && customField.title) {
+    return customField.title;
+  }
+  // Use standard label mapping
+  return FIELD_LABELS[fieldName] || fieldName;
+}
+
 // Check if all mandatory fields have values. Returns array of missing field names.
 function checkMandatoryFields() {
   if (!S.currentResult) return [];
@@ -2337,12 +2398,38 @@ function checkMandatoryFields() {
     
     // Check if value is empty
     if (value === null || value === undefined || (typeof value === 'string' && !value.trim())) {
-      // Use the label from the config if available, otherwise the field name
       missing.push(fieldName);
     }
   }
   
   return missing;
+}
+
+// Highlight mandatory fields that are missing values
+function highlightMissingFields(fieldNames) {
+  // First clear any existing highlights
+  document.querySelectorAll('.kv-item.missing-field').forEach(el => {
+    el.classList.remove('missing-field');
+  });
+  
+  // Add highlight class to missing field elements
+  fieldNames.forEach(fieldName => {
+    const fieldEl = document.querySelector(`.kv-item[data-field="${fieldName}"]`);
+    if (fieldEl) {
+      fieldEl.classList.add('missing-field');
+      // Scroll first missing field into view
+      if (fieldName === fieldNames[0]) {
+        fieldEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  });
+  
+  // Auto-remove highlights after 5 seconds
+  setTimeout(() => {
+    document.querySelectorAll('.kv-item.missing-field').forEach(el => {
+      el.classList.remove('missing-field');
+    });
+  }, 5000);
 }
 
 // Get field value from invoice or corrections using dot notation (e.g., 'supplier.name').
@@ -4145,7 +4232,9 @@ async function exportInvoice(stem) {
   // Check mandatory fields before export
   const missingMandatory = checkMandatoryFields();
   if (missingMandatory.length > 0) {
-    showToast(`Cannot export: Missing mandatory fields (${missingMandatory.join(', ')})`, 'error', 5000);
+    const fieldLabels = missingMandatory.map(getFieldLabel);
+    highlightMissingFields(missingMandatory);
+    showToast(`Cannot export: Missing ${missingMandatory.length} mandatory field${missingMandatory.length > 1 ? 's' : ''} (${fieldLabels.join(', ')})`, 'error', 5000);
     return;
   }
 
@@ -4183,13 +4272,24 @@ async function flagInvoice(stem) {
 }
 
 async function clearFlag(stem) {
+  // Check mandatory fields before marking as ready
+  const missingMandatory = checkMandatoryFields();
+  if (missingMandatory.length > 0) {
+    const fieldLabels = missingMandatory.map(getFieldLabel);
+    highlightMissingFields(missingMandatory);
+    showToast(`Cannot mark as ready: Missing ${missingMandatory.length} mandatory field${missingMandatory.length > 1 ? 's' : ''} (${fieldLabels.join(', ')})`, 'error', 5000);
+    return false;
+  }
+  
   const prevIndex = S.filtered.findIndex(inv => inv.stem === stem);
   try {
     await api.setStatus(stem, 'ready');
     await poll();
     await autoAdvance(stem, prevIndex);
+    return true;
   } catch (e) {
     alert('Failed to update status: ' + e.message);
+    return false;
   }
 }
 
@@ -5471,8 +5571,8 @@ document.addEventListener('keydown', e => {
       // Mark as Ready
       if (stem && !S.editing && S.currentResult?.status !== 'exported') {
         e.preventDefault();
-        clearFlag(stem);
-        showToast('Marked as Ready', 'success', 1500);
+        const success = await clearFlag(stem);
+        if (success) showToast('Marked as Ready', 'success', 1500);
       }
       break;
       
