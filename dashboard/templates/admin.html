@@ -962,13 +962,6 @@ main {
       </svg>
       Suppliers
     </div>
-    <div class="side-tab" data-tab="internal_companies" onclick="setTab('internal_companies')">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
-      Internal Companies
-    </div>
     <div class="side-tab" data-tab="purchase_orders" onclick="setTab('purchase_orders')">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -988,6 +981,13 @@ main {
         <line x1="3" y1="18" x2="3.01" y2="18"/>
       </svg>
       PO Lines
+    </div>
+    <div class="side-tab" data-tab="internal_companies" onclick="setTab('internal_companies')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      Internal Companies
     </div>
     
     <div class="side-divider"></div>
@@ -2018,6 +2018,18 @@ async function loadSettings() {
             </select>`;
         } else if (s.ui_type === 'bool') {
           control = `<input type="checkbox" id="setting-${esc(s.key)}" ${s.value ? 'checked' : ''} data-type="bool">`;
+        } else if (s.ui_type === 'headers_from_env') {
+          const envSet = data.webhook_headers_env_var_set;
+          const envStatus = envSet
+            ? `<span style="color:var(--ok);font-weight:600">✓ WEBHOOK_EXPORT_HEADERS is set</span>`
+            : `<span style="color:var(--warn)">⚠ WEBHOOK_EXPORT_HEADERS is not set in .env</span>`;
+          control = `
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="setting-${esc(s.key)}" ${s.value ? 'checked' : ''} data-type="bool"
+                     onchange="onHeadersFromEnvChange(this.checked)">
+              <span>Load from <code>WEBHOOK_EXPORT_HEADERS</code> environment variable</span>
+            </label>
+            <div id="headers-env-status" style="margin-top:6px;font-size:12px">${envStatus}</div>`;
         } else if (s.ui_type === 'password') {
           control = `<input type="password" id="setting-${esc(s.key)}" value="${esc(s.value)}" data-type="str" class="long">`;
         } else if (s.ui_type === 'textarea') {
@@ -2142,6 +2154,11 @@ async function loadSettings() {
         </table>
       </div>
     `;
+
+    // Apply initial disabled state for the headers textarea based on from_env checkbox
+    const fromEnvCb = document.getElementById('setting-webhook_export_headers_from_env');
+    if (fromEnvCb) onHeadersFromEnvChange(fromEnvCb.checked);
+
   } catch (e) {
     document.getElementById('settings-panel').innerHTML = `
       <div class="db-card"><h3>Error</h3><p>Failed to load settings: ${esc(e.message)}</p></div>`;
@@ -2151,8 +2168,12 @@ async function loadSettings() {
 function resetSetting(key, defaultValue, uiType) {
   const el = document.getElementById('setting-' + key);
   if (!el) return;
-  if (uiType === 'bool') el.checked = !!defaultValue;
-  else el.value = defaultValue;
+  if (uiType === 'bool' || uiType === 'headers_from_env') {
+    el.checked = !!defaultValue;
+    if (uiType === 'headers_from_env') onHeadersFromEnvChange(el.checked);
+  } else {
+    el.value = defaultValue;
+  }
 }
 
 async function testWebhook() {
@@ -2627,6 +2648,14 @@ async function saveCustomFieldConfig() {
   } catch (e) {
     toast('Failed to save: ' + e.message, 'error');
   }
+}
+
+function onHeadersFromEnvChange(fromEnv) {
+  const ta = document.getElementById('setting-webhook_export_headers_json');
+  if (!ta) return;
+  ta.disabled = fromEnv;
+  ta.style.opacity = fromEnv ? '0.4' : '';
+  ta.style.cursor  = fromEnv ? 'not-allowed' : '';
 }
 
 async function saveSettings() {

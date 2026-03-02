@@ -329,6 +329,70 @@ class Database:
             )
             return conn.execute("SELECT changes()").fetchone()[0] > 0
 
+    def update_reevaluated(self, stem: str, result_dict: dict) -> str:
+        """
+        Persist re-evaluation results (new matching + validation) without
+        touching corrections, notes, source_mtime, or exported_at.
+
+        Status is set to needs_review when errors are found; otherwise it
+        is left at its current value so a previously-approved invoice that
+        still passes validation remains 'ready'.
+
+        Returns the new status string.
+        """
+        inv   = result_dict.get("extracted_invoice") or {}
+        ms    = result_dict.get("matched_supplier") or {}
+        mp    = result_dict.get("matched_po") or {}
+        discs = result_dict.get("discrepancies") or []
+
+        new_status = (
+            STATUS_NEEDS_REVIEW
+            if result_dict.get("requires_review", False)
+            else STATUS_READY
+        )
+
+        with self._conn() as conn:
+            # Only promote to needs_review; never silently approve.
+            # If the invoice previously had issues and now is clean, let the
+            # user decide — so we only force needs_review, not force ready.
+            conn.execute(
+                """UPDATE invoices SET
+                    matched_supplier  = :ms_name,
+                    matched_po        = :mp_number,
+                    error_count       = :error_count,
+                    warning_count     = :warning_count,
+                    discrepancy_count = :disc_count,
+                    extracted_data    = :data,
+                    status            = CASE
+                        WHEN :new_status = 'needs_review' THEN 'needs_review'
+                        ELSE status
+                    END
+                WHERE stem = :stem""",
+                {
+                    "ms_name":     ms.get("supplier_name"),
+                    "mp_number":   mp.get("po_number"),
+                    "error_count": result_dict.get("error_count", 0),
+                    "warning_count": result_dict.get("warning_count", 0),
+                    "disc_count":  len(discs),
+                    "data":        json.dumps(result_dict),
+                    "new_status":  new_status,
+                    "stem":        stem,
+                },
+            )
+            changed = conn.execute("SELECT changes()").fetchone()[0]
+
+        if not changed:
+            return new_status
+
+        # Read back actual status after the conditional update
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT status FROM invoices WHERE stem=?", (stem,)
+            ).fetchone()
+        actual_status = row["status"] if row else new_status
+
+        return actual_status
+
     def update_notes(self, stem: str, notes: str) -> bool:
         """Save operator free-text notes for an invoice."""
         with self._conn() as conn:

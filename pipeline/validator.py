@@ -64,7 +64,7 @@ class InvoiceValidator:
         issues.extend(self._check_arithmetic(invoice))
         issues.extend(self._check_dates(invoice))
         issues.extend(self._check_supplier(invoice, matched_supplier))
-        issues.extend(self._check_po(invoice, matched_po, po_record))
+        issues.extend(self._check_po(invoice, matched_po, po_record, matched_supplier))
 
         # Check for Supplier/Buyer Inversion (Anchoring)
         if internal_company_manager and invoice.supplier:
@@ -356,6 +356,7 @@ class InvoiceValidator:
         inv: ExtractedInvoice,
         matched_po: Optional[MatchedPO],
         po_record: Optional[PurchaseOrder],
+        matched_supplier: Optional[MatchedSupplier] = None,
     ) -> list[Discrepancy]:
         issues = []
 
@@ -376,8 +377,24 @@ class InvoiceValidator:
             ))
             return issues
 
-        # Supplier mismatch between PO and matched supplier
-        if (matched_po.po_supplier_name
+        # Supplier mismatch between PO and matched supplier.
+        # Prefer ID comparison (reliable); fall back to name comparison if IDs absent.
+        _matched_sid = matched_supplier.supplier_id if matched_supplier else None
+        _po_sid = matched_po.po_supplier_id
+        if _matched_sid and _po_sid:
+            if _matched_sid != _po_sid:
+                issues.append(Discrepancy(
+                    type="po_supplier_mismatch",
+                    severity="warning",
+                    description=(
+                        f"Matched supplier ID '{_matched_sid}' does not match "
+                        f"PO supplier ID '{_po_sid}'"
+                    ),
+                    field="supplier.name",
+                    invoice_value=_matched_sid,
+                    expected_value=_po_sid,
+                ))
+        elif (matched_po.po_supplier_name
                 and inv.supplier
                 and inv.supplier.name
                 and inv.supplier.name.lower() != matched_po.po_supplier_name.lower()):

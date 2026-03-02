@@ -110,11 +110,17 @@ class Config:
     webhook_export_headers_json: Optional[str] = field(
         default_factory=lambda: os.getenv("WEBHOOK_EXPORT_HEADERS")
     )
+    webhook_export_headers_from_env: bool = field(
+        default_factory=lambda: False
+    )
     webhook_export_template: Optional[str] = field(
         default_factory=lambda: os.getenv("WEBHOOK_EXPORT_TEMPLATE", "webhook_export_template.json.j2")
     )
     webhook_export_enable_pdf: bool = field(
         default_factory=lambda: os.getenv("WEBHOOK_EXPORT_ENABLE_PDF", "false").lower() == "true"
+    )
+    webhook_export_delete_on_success: bool = field(
+        default_factory=lambda: os.getenv("WEBHOOK_EXPORT_DELETE_ON_SUCCESS", "false").lower() == "true"
     )
 
     # --- Backup settings ---
@@ -177,9 +183,11 @@ class Config:
             "webhook_export_enabled":        bool,
             "webhook_export_url":            str,
             "webhook_export_method":         str,
-            "webhook_export_headers_json":   str,
-            "webhook_export_template":       str,
-            "webhook_export_enable_pdf":     bool,
+            "webhook_export_headers_json":        str,
+            "webhook_export_headers_from_env":    bool,
+            "webhook_export_template":            str,
+            "webhook_export_enable_pdf":           bool,
+            "webhook_export_delete_on_success":    bool,
             "backup_enabled":                bool,
             "backup_interval_hours":         int,
             "backup_retention_count":        int,
@@ -200,6 +208,10 @@ class Config:
             for key, val in overrides.items():
                 if key in _type_map and hasattr(self, key):
                     setattr(self, key, _type_map[key](val))
+            # When headers are sourced from the env var, ignore the stored JSON value
+            # so the env var (already set as the field default) takes precedence.
+            if overrides.get("webhook_export_headers_from_env"):
+                self.webhook_export_headers_json = os.getenv("WEBHOOK_EXPORT_HEADERS")
         except Exception as exc:
             logger.warning("Failed to load pipeline_settings.json: %s", exc)
 

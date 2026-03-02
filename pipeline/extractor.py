@@ -410,10 +410,12 @@ def _matches(header, key_set: set[str]) -> bool:
     # Exact match on the full normalised header
     if _norm(header) in key_set:
         return True
-    # Also check each slash-separated part independently.
-    # Handles composite headers like "Item Description / Labour Description"
-    # or "Delivered Quantity/Hours" where one part matches a known key.
-    for part in re.split(r"\s*/\s*", header):
+    # Also check each part split on common composite-header delimiters: / , & +
+    # Handles headers like:
+    #   "Item Description / Labour Description"  (slash)
+    #   "Item Code, Description & Serial No."    (comma + ampersand — Canon)
+    #   "Qty/Hours"                              (slash)
+    for part in re.split(r"\s*[/,&+]\s*", header):
         part = part.strip()
         if part and _norm(part) in key_set:
             return True
@@ -537,8 +539,25 @@ class TableLineItemExtractor:
                 has_total      = "total" in item
                 has_dimension  = "quantity" in item or "unit_price" in item
                 has_identity   = "sku" in item or "description" in item
+
                 if has_total and has_dimension and has_identity:
                     items.append(item)
+                elif not has_total and not has_dimension and has_identity and items:
+                    # Description-continuation row: some invoice formats (e.g. Canon)
+                    # emit the full human-readable description on a separate row below
+                    # the row that carries the numeric data.  Append it to the most
+                    # recent accepted item so the description is complete.
+                    continuation = item.get("description") or item.get("sku") or ""
+                    if continuation:
+                        prev = items[-1]
+                        if prev.get("description"):
+                            prev["description"] = prev["description"] + " " + continuation
+                        else:
+                            prev["description"] = continuation
+                        logger.debug(
+                            "Appended continuation '%s' to item %d",
+                            continuation, prev["line_number"],
+                        )
                 else:
                     logger.debug(
                         "Rejected sub-row: total=%s dim=%s identity=%s item=%s",

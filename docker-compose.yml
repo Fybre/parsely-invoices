@@ -66,6 +66,9 @@ services:
       # WATCH_MODE=true:            poll continuously — use with `docker compose up -d`
       WATCH_MODE: ${WATCH_MODE:-true}
       POLL_INTERVAL: ${POLL_INTERVAL:-30}
+      # --- Webhook export ---
+      WEBHOOK_EXPORT_HEADERS: ${WEBHOOK_EXPORT_HEADERS:-}
+      WEBHOOK_EXPORT_DELETE_ON_SUCCESS: ${WEBHOOK_EXPORT_DELETE_ON_SUCCESS:-false}
       # --- Config / data paths ---
       CONFIG_DIR: ${CONFIG_DIR:-/app/config}   # pipeline reads pipeline_settings.json from here
       DB_PATH: ${DB_PATH:-/app/output/pipeline.db}
@@ -141,6 +144,9 @@ services:
       BUILD_COMMIT: ${BUILD_COMMIT:-}
       # --- Export format ---
       EXPORT_FORMAT: ${EXPORT_FORMAT:-json}            # json | xml | both
+      # --- Webhook export ---
+      WEBHOOK_EXPORT_HEADERS: ${WEBHOOK_EXPORT_HEADERS:-}
+      WEBHOOK_EXPORT_DELETE_ON_SUCCESS: ${WEBHOOK_EXPORT_DELETE_ON_SUCCESS:-false}
       # --- Database path (optional override) ---
       DB_PATH: ${DB_PATH:-/app/output/pipeline.db}
     restart: unless-stopped

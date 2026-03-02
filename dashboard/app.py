@@ -20,6 +20,7 @@ Endpoints
   GET  /api/invoices/{stem}             → full result for one invoice
   GET  /api/invoices/{stem}/pages       → PDF pages as base64 JPEG images
   POST /api/invoices/{stem}/export      → approve: write export files, move PDF
+  POST /api/invoices/{stem}/reevaluate  → re-run matching+validation without LLM (preserves corrections)
   POST /api/invoices/{stem}/reprocess   → reset mtime so pipeline re-runs LLM extraction
   DELETE /api/invoices/{stem}           → delete PDF + DB record (non-exported only)
   POST /api/bulk-export                 → export ALL ready invoices in one call
@@ -250,6 +251,15 @@ _SETTINGS_SCHEMA: list[dict] = [
         "default":     "{}",
     },
     {
+        "key":         "webhook_export_headers_from_env",
+        "group":       "Webhook Export",
+        "type":        "bool",
+        "ui_type":     "headers_from_env",
+        "label":       "Load Headers from Environment",
+        "description": "When enabled, headers are read from the WEBHOOK_EXPORT_HEADERS env var instead of the field above. Use this to keep secrets out of the admin UI and pipeline_settings.json.",
+        "default":     False,
+    },
+    {
         "key":         "webhook_export_template",
         "group":       "Webhook Export",
         "type":        "str",
@@ -266,6 +276,15 @@ _SETTINGS_SCHEMA: list[dict] = [
         "ui_type":     "bool",
         "label":       "Send PDF in Webhook Export",
         "description": "Whether to include the Base64-encoded PDF in the payload context (pdf_base64)",
+        "default":     False,
+    },
+    {
+        "key":         "webhook_export_delete_on_success",
+        "group":       "Webhook Export",
+        "type":        "bool",
+        "ui_type":     "bool",
+        "label":       "Delete Export Files After Successful Webhook",
+        "description": "When enabled, the local export files (JSON, XML, PDF) are deleted from the export folder after the webhook call returns HTTP 2xx. Useful when the webhook is the authoritative destination and local copies are not needed.",
         "default":     False,
     },
     {
@@ -1206,7 +1225,12 @@ def export_invoice(stem: str, request: Request):
         "operator_notes":      rec.get("notes"),
         "supplier":            normalized_supplier,
         "line_items":          normalized_line_items,
+        # Flat fields for backwards-compatible template access
         **final_invoice_data,
+        # Also expose the full nested object so templates can use extracted_invoice.*
+        "extracted_invoice":   final_invoice_data,
+        "matched_supplier":    final_result.get("matched_supplier"),
+        "matched_po":          final_result.get("matched_po"),
     }
 
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -1234,6 +1258,7 @@ def export_invoice(stem: str, request: Request):
 
     # Trigger external webhook export if configured
     cfg = Config()
+    webhook_export_res = None
     if cfg.webhook_export_enabled:
         webhook_export_service = WebhookExportService(cfg)
         webhook_export_res = webhook_export_service.send_webhook_export(stem, export_payload, export_pdf_path)
@@ -1241,11 +1266,163 @@ def export_invoice(stem: str, request: Request):
             db.log_audit(stem, "webhook_export_triggered", actor=_get_actor(request),
                          detail=webhook_export_res)
 
+        # Delete local export files if webhook succeeded and the setting is on
+        if (webhook_export_res.get("status") == "success"
+                and cfg.webhook_export_delete_on_success):
+            deleted = []
+            for candidate in [
+                export_pdf_path,
+                EXPORT_DIR / f"{stem}.json",
+                EXPORT_DIR / f"{stem}.xml",
+            ]:
+                if candidate.exists():
+                    try:
+                        candidate.unlink()
+                        deleted.append(candidate.name)
+                    except Exception as del_err:
+                        logger.warning("Could not delete export file %s: %s", candidate, del_err)
+            if deleted:
+                logger.info("Deleted export files after successful webhook: %s", deleted)
+                db.log_audit(stem, "export_files_deleted", actor=_get_actor(request),
+                             detail={"files": deleted})
+
     logger.info("Exported: %s → %s", stem, EXPORT_DIR)
     result = {"status": "exported", "export_pdf": str(export_pdf_path)}
     if EXPORT_FORMAT in ("json", "both"):
         result["export_json"] = str(export_json_path)
+    if webhook_export_res and webhook_export_res.get("status") not in ("skipped",):
+        result["webhook"] = webhook_export_res
     return result
+
+
+@app.post("/api/invoices/{stem}/reevaluate")
+def reevaluate_invoice(stem: str, request: Request):
+    """
+    Re-run supplier matching, PO matching, and validation on the already-
+    extracted invoice data (with operator corrections applied), without
+    re-invoking the LLM.
+
+    Useful after:
+    - Correcting a PO number or supplier name inline
+    - Updating the suppliers / PO CSV and clicking Reload
+    - Changing tolerance settings in Admin
+
+    Corrections and notes are preserved.  Status is bumped to
+    needs_review only if new errors are found; a previously-approved
+    invoice that still passes stays 'ready'.
+
+    Not permitted for exported invoices.
+    """
+    from pipeline.supplier_matcher import SupplierMatcher
+    from pipeline.po_matcher import POMatcher
+    from pipeline.validator import InvoiceValidator
+    from pipeline.internal_company_manager import InternalCompanyManager
+    from models.invoice import ExtractedInvoice
+
+    db = get_db()
+    rec = db.get_invoice(stem)
+    if not rec:
+        raise HTTPException(404, f"Invoice not found: {stem}")
+    if rec["status"] == "exported":
+        raise HTTPException(400, "Cannot re-evaluate an exported invoice")
+
+    # Load stored result
+    try:
+        stored: dict = json.loads(rec.get("extracted_data") or "{}")
+    except Exception:
+        raise HTTPException(500, "Stored invoice data is corrupt")
+
+    # Apply any operator corrections so the matchers see the corrected values
+    corrections: dict = {}
+    if rec.get("corrections"):
+        try:
+            corrections = json.loads(rec["corrections"])
+        except Exception:
+            pass
+
+    effective = apply_corrections(stored, corrections)
+    inv_dict  = effective.get("extracted_invoice") or {}
+
+    try:
+        invoice = ExtractedInvoice(**inv_dict)
+    except Exception as exc:
+        raise HTTPException(500, f"Could not parse stored invoice: {exc}")
+
+    # Instantiate matchers/validator with current config + CSVs
+    cfg = Config()
+    supplier_matcher = SupplierMatcher(
+        cfg.suppliers_csv,
+        fuzzy_threshold=cfg.supplier_fuzzy_threshold,
+    )
+    po_matcher = POMatcher(
+        cfg.po_csv,
+        cfg.po_lines_csv,
+        line_fuzzy_threshold=cfg.po_line_fuzzy_threshold,
+    )
+    validator = InvoiceValidator(
+        max_days_past=cfg.max_invoice_age_days,
+        max_days_future=cfg.max_future_days,
+        arithmetic_tolerance=cfg.arithmetic_tolerance,
+        po_total_tolerance_pct=cfg.po_total_tolerance_pct,
+    )
+    internal_mgr = (
+        InternalCompanyManager(cfg.internal_companies_json)
+        if cfg.use_anchoring else None
+    )
+
+    # Re-run matching
+    matched_supplier = supplier_matcher.match(invoice)
+    matched_po       = po_matcher.match(invoice)
+    po_record        = None
+    if matched_po and matched_po.po_number:
+        po_record = po_matcher.get_po(matched_po.po_number)
+
+    discrepancies = validator.validate(
+        invoice, matched_po, matched_supplier, po_record,
+        internal_company_manager=internal_mgr,
+    )
+
+    # Build updated result dict — start from stored, overlay new matching data
+    import copy
+    updated = copy.deepcopy(stored)
+    updated["matched_supplier"] = (
+        json.loads(matched_supplier.model_dump_json()) if matched_supplier else None
+    )
+    updated["matched_po"] = (
+        json.loads(matched_po.model_dump_json()) if matched_po else None
+    )
+    updated["discrepancies"] = [
+        json.loads(d.model_dump_json()) for d in discrepancies
+    ]
+    error_count   = sum(1 for d in discrepancies if d.severity == "error")
+    warning_count = sum(1 for d in discrepancies if d.severity == "warning")
+    updated["error_count"]       = error_count
+    updated["warning_count"]     = warning_count
+    updated["requires_review"]   = error_count > 0 or warning_count > 0
+    updated["review_reasons"]    = list({d.description for d in discrepancies
+                                         if d.severity in ("error", "warning")})
+
+    # Persist — preserving corrections, notes, source_mtime, exported_at
+    new_status = db.update_reevaluated(stem, updated)
+
+    logger.info(
+        "Re-evaluated: %s  errors=%d warnings=%d status=%s",
+        stem, error_count, warning_count, new_status,
+    )
+    db.log_audit(stem, "reevaluated", actor=_get_actor(request),
+                 detail={"errors": error_count, "warnings": warning_count, "status": new_status})
+
+    # Return the same shape as GET /api/invoices/{stem} so the frontend
+    # can call renderData() directly on the response
+    return {
+        **updated,
+        "stem":        stem,
+        "status":      new_status,
+        "corrections": corrections,
+        "notes":       rec.get("notes"),
+        "exported_at": rec.get("exported_at"),
+        "processed_at": rec.get("processed_at") or updated.get("processed_at"),
+    }
 
 
 @app.post("/api/invoices/{stem}/reprocess")
@@ -1724,10 +1901,17 @@ async def test_webhook_export(request: Request):
 
     # Create a temporary config object from the request body
     from types import SimpleNamespace
+    # When "Load from .env" is checked, use the server-side env var for headers
+    # rather than whatever is stored in the (disabled) textarea.
+    if body.get("webhook_export_headers_from_env"):
+        headers_json = os.getenv("WEBHOOK_EXPORT_HEADERS")
+    else:
+        headers_json = body.get("webhook_export_headers_json")
+
     mock_cfg = SimpleNamespace(
         webhook_export_url=body.get("webhook_export_url"),
         webhook_export_method=body.get("webhook_export_method", "POST"),
-        webhook_export_headers_json=body.get("webhook_export_headers_json"),
+        webhook_export_headers_json=headers_json,
         webhook_export_template=body.get("webhook_export_template"),
         webhook_export_enable_pdf=body.get("webhook_export_enable_pdf", False),
     )
@@ -1829,6 +2013,7 @@ def get_admin_settings():
         "settings": schema_with_values,
         "env":      _get_env_snapshot(),
         "webhook_export_templates": _get_webhook_export_templates(),
+        "webhook_headers_env_var_set": bool(os.getenv("WEBHOOK_EXPORT_HEADERS")),
     }
 
 

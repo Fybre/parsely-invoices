@@ -1,12 +1,12 @@
 [
   {
-    "id": "",
-    "name": "",
-    "abn": "",
+    "id": "COMPANY1",
+    "name": "Moyaware",
+    "abn": "22 234 567 789",
     "acn": "",
     "email": "",
     "phone": "",
-    "address": "",
+    "address": "11 Moya River Road, Moya River Springs",
     "aliases": []
   }
 ]

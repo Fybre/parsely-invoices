@@ -45,6 +45,7 @@ IMPORTANT RULES:
 - tax_rate should be a decimal (e.g. 0.10 for 10% GST, not 10)
 - If GST is mentioned without a rate, assume 0.10 (Australian standard)
 - The invoice is rendered as Markdown -- pipe tables (| col | col |) contain the line items
+- invoice_number is the invoice/tax invoice reference number ONLY -- do not include adjacent customer numbers, account numbers, or any other separate reference codes that appear nearby
 
 Return a JSON object with exactly this structure:
 {{
@@ -114,6 +115,7 @@ IMPORTANT RULES:
 - tax_rate should be a decimal (e.g. 0.10 for 10% GST, not 10)
 - If GST is mentioned without a rate, assume 0.10 (Australian standard)
 - Set "line_items" to [] -- do not extract line items
+- invoice_number is the invoice/tax invoice reference number ONLY -- do not include adjacent customer numbers, account numbers, or any other separate reference codes that appear nearby
 
 Return a JSON object with exactly this structure:
 {{
