@@ -6560,6 +6560,10 @@ async function loadAuth() {
       adminLink.style.display = 'inline-block';
     } else if (auth.user && auth.user.role === 'admin') {
       adminLink.style.display = 'inline-block';
+    } else if (auth.auth_mode === 'admin_only') {
+      // No session but admin_only mode — keep Admin link visible so the user
+      // can click through to the login page and authenticate.
+      adminLink.style.display = 'inline-block';
     } else {
       adminLink.style.display = 'none';
     }
