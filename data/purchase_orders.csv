@@ -1,0 +1,3 @@
+po_number,supplier_id,supplier_name,issue_date,expected_delivery,subtotal,tax_amount,total,currency,status,notes
+PO-0001,SUP1,Acme Insight Solutions Pty Ltd,2026-01-15,2026-01-25,28400,2840,31240,AUD,open,Professional Services
+PO-0007,SUP2,River Springs Marketing,2026-01-20,2026-02-05,1091.60,109.16,1200.76,AUD,closed,Marketing banners

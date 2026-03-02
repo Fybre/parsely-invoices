@@ -1,0 +1,13 @@
+po_number,line_number,sku,description,quantity,unit,unit_price,total
+PO-0001,1,PS-CON,Professional Services - Consulting,15,ea,1500,22500
+PO-0001,2,PS-PM,Professional Services - Management,5,ea,1200,6000
+PO-0001,3,COURIER,Courier Services,1,ea,100,100
+PO-0007,1,35854-06,Outdoor Pull Up Banner,3,ea,150.40,451.20
+PO-0007,2,8020K,SNAP A Frame Foldable,2,ea,320.20,640.40
+PO-2026-001,6,NOTEBOOK-A5,A5 spiral notebooks,15,ea,7.50,112.50
+PO-2026-001,8,MARKERS-ASST,Whiteboard markers assorted (pack 4),10,pack,38.50,385.00
+PO-2026-002,2,SRV-SSD-2T,2TB NVMe SSD enterprise,4,ea,325.00,1300.00
+PO-2026-003,1,CLD-LICENCE,SaaS platform licence (monthly),15,user,30.00,450.00
+PO-2026-004,1,FREIGHT-URG,Urgent freight — Sydney to Melbourne,1,job,280.00,280.00
+PO-2025-099,1,PENS-BLK-12,Black ballpoint pens (box of 12),3,box,8.50,25.50
+PO-2025-099,2,PAPER-A4-500,A4 copy paper 80gsm (ream of 500),10,ream,9.90,99.00
