@@ -6914,7 +6914,16 @@ function startTour(force = false) {
         element: '.action-bar',
         popover: {
           title: 'Invoice Actions',
-          description: '<strong>Edit</strong> — correct any field the AI got wrong.<br><strong>Reprocess</strong> — re-run the AI extraction from scratch.<br><strong>Delete</strong> — remove this invoice entirely.<br><br><strong>Mark Ready</strong> — approve the data and queue it for export.<br><strong>Export Invoice</strong> — generate the JSON/XML output file immediately.',
+          description: '<strong>Edit</strong> — correct any field the AI got wrong.<br><strong>Mark Ready</strong> — approve the invoice and queue it for export.<br><strong>Export Invoice</strong> — generate the JSON/XML output file immediately.<br><br>The <strong>⋮</strong> menu contains additional actions: <strong>Re-evaluate</strong> (re-run supplier &amp; PO matching without re-extracting), <strong>Reprocess</strong> (full AI re-extraction from scratch), and <strong>Delete</strong>.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+      {
+        element: '.status-queue-strip',
+        popover: {
+          title: 'Invoice Status',
+          description: 'This banner shows where the invoice is in the workflow — <strong style="color:var(--warn)">Needs Review</strong>, <strong style="color:var(--ok)">Ready to Export</strong>, or <strong style="color:#7c3aed">Exported</strong>. Click it when there are discrepancies to jump straight to the details.',
           side: 'bottom',
           align: 'start',
         },
