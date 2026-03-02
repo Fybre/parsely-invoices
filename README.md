@@ -1,6 +1,6 @@
 # Parsely — Invoice Processing
 
-An AI-powered invoice processing pipeline that extracts  and parses structured data from PDF invoices, matches them against Purchase Orders and a supplier master list, flags discrepancies, and surfaces everything through a web dashboard.
+An AI-powered invoice processing pipeline that extracts and parses structured data from PDF invoices, matches them against Purchase Orders and a supplier master list, flags discrepancies, and surfaces everything through a web dashboard.
 
 **Docker is the recommended way to run Parsely.** All dependencies — Python, Docling ML models, PDF rendering tools — are bundled in the image.
 
@@ -16,8 +16,12 @@ An AI-powered invoice processing pipeline that extracts  and parses structured d
 - **Structured LLM extraction** — Works with any OpenAI-compatible API: local Ollama, OpenAI, Groq, or hosted models.
 - **Direct table extraction** — Line items are parsed directly from PDF tables where possible, reducing tokens and improving accuracy.
 - **Webhook Export** — Automatically push approved invoice data to external REST APIs (e.g. Therefore DMS, Xero, ERP) using Jinja2 templates.
-- **Modern Web Dashboard** — Glassmorphism UI with side-by-side review, keyboard shortcuts, and dark mode.
+- **Modern Web Dashboard** — Glassmorphism UI with side-by-side review, keyboard shortcuts, dark mode, and date/sort filtering.
+- **Onboarding Tour** — Built-in interactive tour (Driver.js) walks new users through every part of the UI, including a live mock invoice demonstration. Accessible from the sidebar footer at any time.
+- **About Modal** — Version info, build commit, library attributions, and links to the GitHub repo, issue tracker, and changelog — accessible from the sidebar footer.
 - **Admin Management** — Category-based settings; manage suppliers, internal entities, and custom fields directly in-browser.
+- **Automatic Config Bootstrap** — On first run, all config files are created from factory defaults. On upgrade, new settings and fields are backfilled automatically without overwriting existing values.
+- **Rootless Docker** — Entrypoint runs as root only to fix volume ownership (PUID/PGID), then drops privileges via `gosu` before starting the app. No permission issues on shared volumes.
 
 ---
 
@@ -41,7 +45,15 @@ cp .env.example .env
 ```
 
 Open `.env` and set your LLM connection details. For local Ollama on the host:
-`LLM_BASE_URL=http://host.docker.internal:11434/v1`
+```
+LLM_BASE_URL=http://host.docker.internal:11434/v1
+```
+
+Set `PUID` and `PGID` to your host user IDs to avoid volume permission issues:
+```bash
+echo "PUID=$(id -u)" >> .env
+echo "PGID=$(id -g)" >> .env
+```
 
 ### 2. Ingestion Methods
 
@@ -54,12 +66,14 @@ Parsely monitors multiple sources for new invoices:
 
 ```bash
 docker compose build
-docker compose up -d dashboard
+docker compose up -d
 ```
 
-> **Note:** On first run, Docling downloads ~1 GB of ML models into a named volume (`docling-models`).
+This starts both the **pipeline** (watch mode, processes invoices continuously) and the **dashboard** (web UI at port 8080).
 
-### 3. Verify your setup
+> **Note:** On first run, Docling downloads ~1 GB of ML models into a named volume (`docling-models`). This happens once when the first invoice is processed.
+
+### 4. Verify your setup
 
 ```bash
 docker compose run --rm pipeline check
@@ -74,9 +88,13 @@ Open **http://localhost:8080** in your browser.
 ### Main Dashboard
 Access at **http://localhost:8080**.
 - **Upload**: Drag-and-drop or click to upload PDF invoices.
-- **Review**: Side-by-side PDF viewer and extracted data panel.
+- **Filter**: Filter by status tab (Needs Review, Ready, Exported, Rejected) and by date window (Today, Last 7 days, Last 30 days, This year, All time).
+- **Sort**: Toggle between newest-first and oldest-first to work through the queue in the order that suits you.
+- **Review**: Side-by-side PDF viewer and extracted data panel with interactive field highlighting.
 - **Correct**: Edit any extracted field inline; corrections are stored separately and applied on export.
 - **Export**: Approve individual or bulk-export all 'ready' invoices.
+- **Onboarding Tour**: Click **Tour** in the sidebar footer for a guided walkthrough of the UI. Includes a live mock invoice demonstration. Shown automatically to first-time visitors.
+- **About**: Click **About** in the sidebar footer to view version details, library attributions, and links to the GitHub repo and issue tracker.
 
 ### Admin Page
 Access at **http://localhost:8080/admin**.
@@ -87,28 +105,28 @@ Access at **http://localhost:8080/admin**.
 
 ### Screenshots
 
-**Login Page**  
+**Login Page**
 ![Login Page](screenshots/login-page.png)
 
-**Invoice Review (Dark Mode)** — Side-by-side PDF viewer with extracted data, supplier matching, and discrepancy warnings  
+**Invoice Review (Dark Mode)** — Side-by-side PDF viewer with extracted data, supplier matching, and discrepancy warnings
 ![Invoice Review Dark Mode](screenshots/invoice-review-dark.png)
 
-**Invoice Review with PO Matching (Light Mode)** — Purchase order matching with line item comparison  
+**Invoice Review with PO Matching (Light Mode)** — Purchase order matching with line item comparison
 ![PO Matching Light Mode](screenshots/po-matching-light.png)
 
-**Invoice with Discrepancies** — Detailed discrepancy detection showing tax errors and unmatched PO references  
+**Invoice with Discrepancies** — Detailed discrepancy detection showing tax errors and unmatched PO references
 ![Invoice with Discrepancies](screenshots/invoice-with-discrepancies.png)
 
-**Invoice Review with Warnings** — Invoice with line items and discrepancy warnings for date validation  
+**Invoice Review with Warnings** — Invoice with line items and discrepancy warnings for date validation
 ![Invoice Review with Warnings](screenshots/invoice-review-with-warnings.png)
 
-**Admin Settings** — Categorized configuration management for extraction, pipeline, auth, and export settings  
+**Admin Settings** — Categorized configuration management for extraction, pipeline, auth, and export settings
 ![Admin Settings](screenshots/admin-settings.png)
 
-**Help Documentation** — In-app help system with getting started guide  
+**Help Documentation** — In-app help system with getting started guide
 ![Help Documentation](screenshots/help-documentation.png)
 
-**Invoice Details (Mobile)** — Responsive mobile view of invoice details with line items  
+**Invoice Details (Mobile)** — Responsive mobile view of invoice details with line items
 ![Invoice Details Mobile](screenshots/invoice-details-mobile.png)
 
 ---
@@ -144,9 +162,15 @@ Archives are stored in the `backups/` volume as timestamped ZIP files containing
 | `LLM_BASE_URL` | API endpoint (OpenAI-compatible) |
 | `LLM_MODEL` | Model name (e.g. `qwen2.5:7b`, `llama3.2`) |
 | `LLM_API_KEY` | API key (`ollama` for local) |
+| `PUID` / `PGID` | Host user/group ID for volume ownership (default: `1000`) |
 | `AUTH_MODE` | `disabled` \| `admin_only` \| `full` |
-| `WATCH_MODE` | `true` for continuous polling; `false` for one-shot |
-| `POLL_INTERVAL` | Seconds between scans in watch mode (default: 30) |
+| `AUTH_SECRET_KEY` | Required secret for signing session cookies when auth is enabled |
+| `AUTH_SESSION_MINUTES` | Session lifetime in minutes (default: `480`) |
+| `WATCH_MODE` | `true` for continuous polling (default); `false` for one-shot batch |
+| `POLL_INTERVAL` | Seconds between scans in watch mode (default: `30`) |
+| `EXPORT_FORMAT` | `json` \| `xml` \| `both` (default: `json`) |
+| `ALLOW_CREATE_SUPPLIER` | Allow creating new suppliers from the dashboard (default: `false`) |
+| `DASHBOARD_PORT` | Host port for the dashboard (default: `8080`) |
 
 ---
 
@@ -154,12 +178,14 @@ Archives are stored in the `backups/` volume as timestamped ZIP files containing
 
 ```
 parsely-invoices/
-├── config/                      Operator-editable config (mounted)
+├── config/                      Operator-editable config (mounted volume)
 │   ├── custom_fields.json       Site-specific extraction fields
 │   ├── column_keys.json         Column header synonyms
 │   ├── pipeline_settings.json   Admin-managed settings (auto-generated)
-│   └── *.j2                     Export and Webhook templates
-├── defaults/                    Factory default config files (image bundled)
+│   └── *.j2                     Export and webhook Jinja2 templates
+├── defaults/                    Factory defaults — bootstrapped into config/ on first run
+│   ├── pipeline_settings.json   Default pipeline settings (new keys backfilled on upgrade)
+│   └── standard_fields.json     Default standard field definitions
 ├── pipeline/                    Core processing logic
 │   ├── services/                Business logic layer
 │   │   ├── export.py            Export normalization & formatting
@@ -167,10 +193,12 @@ parsely-invoices/
 │   ├── csv_manager.py           Shared CSV loading/management
 │   ├── webhook_export.py        External API integration service
 │   ├── backup.py                Automated backup logic
-│   └── ...                      Matchers, Extractors, Parsers
+│   └── ...                      Matchers, extractors, parsers
 ├── dashboard/                   FastAPI web interface
+│   ├── app.py                   API routes and server
 │   ├── models/                  Pydantic request models
-│   └── templates/               HTML templates
+│   ├── static/                  Static assets (icons, bundled JS/CSS libraries)
+│   └── templates/               Jinja2 HTML templates
 ├── tests/                       Test suite
 │   ├── unit/                    Unit tests (37 tests)
 │   └── integration/             Integration tests (9 tests)
@@ -230,5 +258,6 @@ When reviewing invoices in the dashboard:
 | `r` | Reprocess invoice |
 | `n` | Add notes |
 | `/` | Focus search |
+| `↑` / `↓` | Navigate invoice list |
 | `?` | Show keyboard shortcuts |
-| `Esc` | Close modals / Cancel edit
+| `Esc` | Close modals / Cancel edit |
