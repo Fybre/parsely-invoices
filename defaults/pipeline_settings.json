@@ -24,5 +24,6 @@
   "email_mailbox": "INBOX",
   "email_search_criteria": "UNSEEN",
   "email_processed_mailbox": "",
-  "email_check_interval_minutes": 10
+  "email_check_interval_minutes": 10,
+  "system_message": ""
 }

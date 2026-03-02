@@ -250,6 +250,31 @@ header {
   transform: scale(1.02);
 }
 
+/* ── System message banner ───────────────────────────────────────────────── */
+#system-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #1e293b;
+  border-top: 1px solid rgba(255,255,255,.1);
+  color: #cbd5e1;
+  line-height: 1.4;
+  text-align: center;
+}
+#system-banner svg { flex-shrink: 0; opacity: .6; }
+#system-banner.hidden { display: none; }
+body.has-system-banner #toast-container { bottom: calc(24px + 38px); }
+body.has-system-banner .driver-popover { /* keep tour popovers above banner */ }
+
 /* ── Toast notifications ─────────────────────────────────────────────────── */
 #toast-container {
   position: fixed;
@@ -2394,6 +2419,16 @@ kbd {
 
 <!-- Toast container -->
 <div id="toast-container"></div>
+
+<!-- System message banner (shown when configured in Admin > Settings > System) -->
+<div id="system-banner" class="hidden">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="8" x2="12" y2="8.01"/>
+    <line x1="12" y1="12" x2="12" y2="16"/>
+  </svg>
+  <span id="system-banner-text"></span>
+</div>
 
 <!-- Sidebar overlay (tablet: tap outside to close) -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -6324,9 +6359,24 @@ function showShortcutsHelp() {
 // ════════════════════════════════════════════════════════════════════════════
 
 // Check current user role and show/hide admin link
+function applySystemMessage(msg) {
+  const banner = document.getElementById('system-banner');
+  const text   = document.getElementById('system-banner-text');
+  if (!banner || !text) return;
+  if (msg && msg.trim()) {
+    text.textContent = msg.trim();
+    banner.classList.remove('hidden');
+    document.body.classList.add('has-system-banner');
+  } else {
+    banner.classList.add('hidden');
+    document.body.classList.remove('has-system-banner');
+  }
+}
+
 async function loadAuth() {
   try {
     const auth = await api.authMe();
+    applySystemMessage(auth?.config?.system_message || '');
     const adminLink = document.getElementById('admin-link');
     if (!adminLink) return;
 

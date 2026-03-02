@@ -394,6 +394,15 @@ _SETTINGS_SCHEMA: list[dict] = [
         "max":         1440,
         "step":        1,
     },
+    {
+        "key":         "system_message",
+        "group":       "System",
+        "type":        "str",
+        "ui_type":     "textarea",
+        "label":       "System Message",
+        "description": "Persistent banner shown to all users at the bottom of the dashboard. Leave blank to hide. Example: 'This is a demonstration system and is reset every day at 2am.'",
+        "default":     "",
+    },
 ]
 
 
@@ -931,6 +940,7 @@ def auth_me(request: Request):
         "allow_create_supplier": ALLOW_CREATE_SUPPLIER,
         "supplier_code_prefix":  SUPPLIER_CODE_PREFIX,
         "arithmetic_tolerance":  settings.get("arithmetic_tolerance", 0.05),
+        "system_message":        settings.get("system_message", ""),
     }
     if AUTH_MODE == "disabled":
         return {"auth_mode": "disabled", "user": None, "config": _config}
