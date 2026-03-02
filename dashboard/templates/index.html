@@ -273,7 +273,8 @@ header {
 #system-banner svg { flex-shrink: 0; opacity: .6; }
 #system-banner.hidden { display: none; }
 body.has-system-banner #toast-container { bottom: calc(24px + 38px); }
-body.has-system-banner .driver-popover { /* keep tour popovers above banner */ }
+body.has-system-banner aside,
+body.has-system-banner main { padding-bottom: 38px; }
 
 /* ── Toast notifications ─────────────────────────────────────────────────── */
 #toast-container {
