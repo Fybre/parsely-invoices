@@ -2063,6 +2063,155 @@ kbd {
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+/* About Modal */
+.about-dialog {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 540px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,.55);
+  animation: slideUp .2s ease;
+  color: #f8fafc;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.15) transparent;
+}
+.about-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 26px 28px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.about-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.about-app-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+.about-app-sub {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+.about-version-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7dd3fc;
+  background: rgba(125,211,252,.12);
+  border: 1px solid rgba(125,211,252,.25);
+  border-radius: 20px;
+  padding: 3px 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.about-body {
+  padding: 20px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.about-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+.about-desc {
+  font-size: 13px;
+  color: #cbd5e1;
+  line-height: 1.65;
+}
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.about-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7dd3fc;
+  background: rgba(125,211,252,.08);
+  border: 1px solid rgba(125,211,252,.2);
+  border-radius: 6px;
+  padding: 5px 12px;
+  text-decoration: none;
+  transition: background .15s, border-color .15s;
+}
+.about-link:hover {
+  background: rgba(125,211,252,.16);
+  border-color: rgba(125,211,252,.4);
+}
+.about-attr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.about-attr-table th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #475569;
+  padding: 0 8px 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.about-attr-table td {
+  padding: 7px 8px 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  color: #cbd5e1;
+  vertical-align: top;
+  line-height: 1.4;
+}
+.about-attr-table td:last-child { color: #64748b; }
+.about-attr-table tr:last-child td { border-bottom: none; }
+.about-attr-link { color: #7dd3fc; text-decoration: none; }
+.about-attr-link:hover { text-decoration: underline; }
+.about-build-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.about-build-item {
+  font-size: 12px;
+  color: #64748b;
+}
+.about-build-item span {
+  color: #94a3b8;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+.about-close-btn {
+  background: rgba(255,255,255,.08);
+  color: #f8fafc;
+  border: 1px solid rgba(255,255,255,.12);
+  padding: 9px 22px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  transition: background .15s;
+}
+.about-close-btn:hover { background: rgba(255,255,255,.15); }
+
 </style>
 <!-- PDF.js -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
@@ -2078,6 +2227,97 @@ kbd {
     console.log('[setTab] Called early with tab:', tab);
   };
 </script>
+
+<!-- Driver.js — onboarding tour (served locally) -->
+<link rel="stylesheet" href="/static/driver.css">
+<script src="/static/driver.browser.js"></script>
+<style>
+/* ── Parsely Tour Theme ──────────────────────────────────────────────────── */
+.driver-popover {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,.28), 0 4px 16px rgba(0,0,0,.12) !important;
+  padding: 20px 22px 16px !important;
+  max-width: 360px !important;
+  min-width: 280px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+.driver-popover-title {
+  color: var(--text) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  margin-bottom: 8px !important;
+  line-height: 1.3 !important;
+}
+.driver-popover-description {
+  color: var(--muted) !important;
+  font-size: 13px !important;
+  line-height: 1.65 !important;
+}
+.driver-popover-description b, .driver-popover-description strong {
+  color: var(--text) !important;
+  font-weight: 600 !important;
+}
+.driver-popover-description kbd {
+  background: var(--bg) !important;
+  border: 1px solid var(--border) !important;
+  border-bottom-width: 2px !important;
+  border-radius: 4px !important;
+  padding: 1px 5px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  font-family: inherit !important;
+  color: var(--text) !important;
+}
+.driver-popover-footer {
+  margin-top: 16px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid var(--border) !important;
+}
+.driver-popover-progress-text {
+  color: var(--muted) !important;
+  font-size: 11px !important;
+}
+.driver-popover-next-btn {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  font-family: inherit !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+.driver-popover-next-btn:hover,
+.driver-popover-next-btn:focus { background: #3451c7 !important; }
+.driver-popover-prev-btn {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: 6px !important;
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+  font-family: inherit !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+.driver-popover-prev-btn:hover,
+.driver-popover-prev-btn:focus { background: var(--bg) !important; }
+.driver-popover-close-btn {
+  color: var(--muted) !important;
+  opacity: .7 !important;
+}
+.driver-popover-close-btn:hover { opacity: 1 !important; color: var(--text) !important; }
+/* Arrow colour matches popover background */
+.driver-popover-arrow::before { background-color: var(--card) !important; }
+.driver-popover-arrow-side-top    { border-bottom-color: var(--border) !important; }
+.driver-popover-arrow-side-bottom { border-top-color:    var(--border) !important; }
+.driver-popover-arrow-side-left   { border-right-color:  var(--border) !important; }
+.driver-popover-arrow-side-right  { border-left-color:   var(--border) !important; }
+</style>
 </head>
 <body>
 
@@ -2213,15 +2453,30 @@ kbd {
         Export All Ready (<span id="export-all-count">0</span>)
       </button>
     </div>
-    <div class="side-footer" style="margin-top:auto;padding:12px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0">
-      <a href="/help" class="side-help-link" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;color:rgba(255,255,255,.6);text-decoration:none;font-size:12px;transition:all .15s" onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.color='rgba(255,255,255,.6)';this.style.background='transparent'">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.7">
+    <div class="side-footer" style="margin-top:auto;padding:8px 12px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;display:flex;gap:4px">
+      <a href="/help" class="side-help-link" title="Help &amp; Documentation" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 4px;border-radius:6px;color:rgba(255,255,255,.6);text-decoration:none;font-size:11px;font-weight:500;transition:all .15s" onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.color='rgba(255,255,255,.6)';this.style.background='transparent'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:.7">
           <circle cx="12" cy="12" r="10"/>
           <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
           <line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
-        Help & Documentation
+        Help
       </a>
+      <button onclick="startTour(true)" title="Take a tour" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 4px;border-radius:6px;background:transparent;border:none;cursor:pointer;color:rgba(255,255,255,.6);font-size:11px;font-weight:500;transition:all .15s" onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.color='rgba(255,255,255,.6)';this.style.background='transparent'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:.7">
+          <circle cx="12" cy="12" r="10"/>
+          <polygon points="10 8 16 12 10 16 10 8"/>
+        </svg>
+        Tour
+      </button>
+      <button onclick="showAbout()" title="About Parsely" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 4px;border-radius:6px;background:transparent;border:none;cursor:pointer;color:rgba(255,255,255,.6);font-size:11px;font-weight:500;transition:all .15s" onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.color='rgba(255,255,255,.6)';this.style.background='transparent'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:.7">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="8.01"/>
+          <line x1="12" y1="12" x2="12" y2="16"/>
+        </svg>
+        About
+      </button>
     </div>
   </aside>
 
@@ -6111,6 +6366,376 @@ loadAuth();
 loadBuildInfo();
 poll();
 setInterval(poll, 6000);
+
+// ── About Modal ──────────────────────────────────────────────────────────────
+async function showAbout() {
+  // Fetch live build info (version + python)
+  let buildCommit = document.querySelector('.build-tag')?.textContent?.replace('build ', '').trim() || 'dev';
+  let pythonVer = '';
+  try {
+    const s = await api.get('/api/admin/settings');
+    if (s?.build?.commit && s.build.commit !== 'unknown') buildCommit = s.build.commit;
+    if (s?.build?.python) pythonVer = s.build.python;
+  } catch { /* non-admin users won't have access — use header value */ }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.id = 'about-modal';
+
+  overlay.innerHTML = `
+    <div class="about-dialog" onclick="event.stopPropagation()">
+
+      <div class="about-header">
+        <img src="/static/icon-192.png" alt="Parsely" class="about-logo">
+        <div>
+          <div class="about-app-name">Parsely</div>
+          <div class="about-app-sub">AI Invoice Processing Pipeline</div>
+        </div>
+        <div class="about-version-badge">v1.1.0-dev · ${buildCommit}</div>
+      </div>
+
+      <div class="about-body">
+
+        <div>
+          <div class="about-section-title">About</div>
+          <div class="about-desc">
+            Parsely extracts structured data from PDF invoices using AI, matches suppliers and
+            purchase orders, flags discrepancies, and provides a review workflow for approving
+            and exporting to your accounting system. Self-hosted — your invoices never leave your infrastructure.
+          </div>
+        </div>
+
+        <div>
+          <div class="about-section-title">Links</div>
+          <div class="about-links">
+            <a class="about-link" href="https://github.com/Fybre/parsely-invoices" target="_blank" rel="noopener">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+              GitHub Repository
+            </a>
+            <a class="about-link" href="https://github.com/Fybre/parsely-invoices/issues" target="_blank" rel="noopener">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Report an Issue
+            </a>
+            <a class="about-link" href="https://github.com/Fybre/parsely-invoices/releases" target="_blank" rel="noopener">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Releases &amp; Changelog
+            </a>
+            <a class="about-link" href="/help" target="_blank" rel="noopener">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Documentation
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <div class="about-section-title">Frontend Libraries</div>
+          <table class="about-attr-table">
+            <thead><tr><th>Library</th><th>Version</th><th>Author</th><th>License</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><a class="about-attr-link" href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a></td>
+                <td>3.11.174</td>
+                <td>Mozilla Foundation</td>
+                <td>Apache 2.0</td>
+              </tr>
+              <tr>
+                <td><a class="about-attr-link" href="https://driverjs.com" target="_blank" rel="noopener">Driver.js</a></td>
+                <td>1.4.0</td>
+                <td>Kamran Ahmed</td>
+                <td>MIT</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div class="about-section-title">Backend Libraries</div>
+          <table class="about-attr-table">
+            <thead><tr><th>Library</th><th>Author</th><th>License</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><a class="about-attr-link" href="https://github.com/DS4SD/docling" target="_blank" rel="noopener">Docling</a></td>
+                <td>IBM Research</td>
+                <td>MIT</td>
+              </tr>
+              <tr>
+                <td><a class="about-attr-link" href="https://fastapi.tiangolo.com" target="_blank" rel="noopener">FastAPI</a></td>
+                <td>Sebastián Ramírez</td>
+                <td>MIT</td>
+              </tr>
+              <tr>
+                <td><a class="about-attr-link" href="https://www.uvicorn.org" target="_blank" rel="noopener">Uvicorn</a></td>
+                <td>Tom Christie</td>
+                <td>BSD</td>
+              </tr>
+              <tr>
+                <td><a class="about-attr-link" href="https://docs.pydantic.dev" target="_blank" rel="noopener">Pydantic</a></td>
+                <td>Samuel Colvin</td>
+                <td>MIT</td>
+              </tr>
+              <tr>
+                <td><a class="about-attr-link" href="https://github.com/maxbachmann/RapidFuzz" target="_blank" rel="noopener">RapidFuzz</a></td>
+                <td>Max Bachmann</td>
+                <td>MIT</td>
+              </tr>
+              <tr>
+                <td><a class="about-attr-link" href="https://github.com/jsvine/pdfplumber" target="_blank" rel="noopener">pdfplumber</a></td>
+                <td>Jeremy Singer-Vine</td>
+                <td>MIT</td>
+              </tr>
+              <tr>
+                <td><a class="about-attr-link" href="https://github.com/mangiucugna/json_repair" target="_blank" rel="noopener">json-repair</a></td>
+                <td>Stefano Capocchi</td>
+                <td>MIT</td>
+              </tr>
+              <tr>
+                <td><a class="about-attr-link" href="https://github.com/openai/openai-python" target="_blank" rel="noopener">openai-python</a></td>
+                <td>OpenAI</td>
+                <td>Apache 2.0</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div class="about-section-title">Build Info</div>
+          <div class="about-build-row">
+            <div class="about-build-item">Version <span>v1.1.0-dev</span></div>
+            <div class="about-build-item">Commit <span>${buildCommit}</span></div>
+            ${pythonVer ? `<div class="about-build-item">Python <span>${pythonVer}</span></div>` : ''}
+            <div class="about-build-item">License <span>MIT</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="padding:16px 28px 20px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <img src="/static/fybre_logo_small.png" alt="Fybre" style="height:28px;opacity:.85">
+          <span style="font-size:11px;color:#475569">Built by Fybre</span>
+        </div>
+        <button class="about-close-btn" onclick="document.getElementById('about-modal').remove()">Close</button>
+      </div>
+    </div>
+  `;
+
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+}
+
+// ── Onboarding Tour ──────────────────────────────────────────────────────────
+function startTour(force = false) {
+  if (!force && localStorage.getItem('parsely-tour-seen')) return;
+  const driverFn = window.driver?.driver ?? window.driver;
+  if (typeof driverFn !== 'function') {
+    console.warn('[Parsely] driver.js not loaded — tour unavailable. window.driver =', window.driver);
+    return;
+  }
+
+  const tour = driverFn({
+    animate: true,
+    showProgress: true,
+    showButtons: ['next', 'previous', 'close'],
+    steps: [
+      {
+        popover: {
+          title: 'Welcome to Parsely',
+          description: 'Parsely processes your PDF invoices with AI — extracting data, matching suppliers and POs, and flagging discrepancies for review. This tour walks you through the main features.',
+          side: 'over',
+        }
+      },
+      {
+        element: '#upload-btn',
+        popover: {
+          title: 'Upload Invoices',
+          description: 'Drop PDF invoices here to add them to the processing queue. The pipeline extracts all data automatically using AI.',
+          side: 'bottom',
+          align: 'start',
+        }
+      },
+      {
+        element: '.side-tabs',
+        popover: {
+          title: 'Filter by Status',
+          description: 'Switch between <kbd>All</kbd>, <kbd>Pending</kbd>, <kbd>Approved</kbd>, <kbd>Exported</kbd>, and <kbd>Rejected</kbd> to focus on invoices at each stage.',
+          side: 'right',
+          align: 'start',
+        }
+      },
+      {
+        element: '#date-filter',
+        popover: {
+          title: 'Filter by Date',
+          description: 'Narrow the list to invoices received within a specific window — <strong>Today</strong>, <strong>Last 7 days</strong>, <strong>Last 30 days</strong>, <strong>This year</strong>, or <strong>All time</strong>. Useful for focusing on what just arrived.',
+          side: 'right',
+          align: 'start',
+        }
+      },
+      {
+        element: '.stats-bar',
+        popover: {
+          title: 'Live Counts',
+          description: 'At-a-glance totals for each status. These update in real time as the pipeline processes invoices.',
+          side: 'bottom',
+          align: 'start',
+        }
+      },
+      {
+        element: '#search-input',
+        popover: {
+          title: 'Search Invoices',
+          description: 'Filter the list instantly by supplier name, invoice number, or amount as you type.',
+          side: 'right',
+          align: 'start',
+        }
+      },
+      {
+        element: '#sort-btn',
+        popover: {
+          title: 'Sort Order',
+          description: 'Toggle between <strong>Newest first</strong> and <strong>Oldest first</strong>. Set it to oldest-first when you want to work through the backlog in arrival order.',
+          side: 'right',
+          align: 'start',
+        }
+      },
+      {
+        element: '#side-list',
+        popover: {
+          title: 'Invoice Queue',
+          description: 'Click any invoice to open it in the review workspace. Invoices with discrepancies are flagged automatically so you know where attention is needed.',
+          side: 'right',
+          align: 'start',
+        }
+      },
+      {
+        element: '.body-wrap',
+        popover: {
+          title: 'Reviewing an Invoice',
+          description: 'Once the pipeline finishes, the right panel shows all extracted data — invoice details, supplier, line items and totals. The left panel shows the original PDF side-by-side for verification.',
+          side: 'over',
+        },
+        onHighlightStarted: () => {
+          // Back up current panel content and result state
+          const dp = document.getElementById('data-panel');
+          const pp = document.getElementById('pdf-panel');
+          if (dp) dp.__tourBackup = dp.innerHTML;
+          if (pp) pp.__tourBackup = pp.innerHTML;
+          window.__tourPrevResult = S.currentResult;
+
+          // Fake invoice card in sidebar
+          const list = document.getElementById('side-list');
+          if (list && !document.getElementById('__tour-fake-item')) {
+            const fake = document.createElement('div');
+            fake.id = '__tour-fake-item';
+            fake.className = 'side-item active';
+            fake.innerHTML = `
+              <div class="side-item-top">
+                <div class="side-status-dot needs_review"></div>
+                <span class="side-inv-num">INV-2024-0042</span>
+                <span class="side-total">$1,250.00</span>
+              </div>
+              <div class="side-supplier">Acme Supplies Ltd</div>
+              <div class="side-date">15 Nov 2024</div>`;
+            list.prepend(fake);
+          }
+
+          // Render a realistic mock invoice into the data panel
+          renderData({
+            stem: '__tour_demo__',
+            status: 'needs_review',
+            extracted_invoice: {
+              invoice_number: 'INV-2024-0042',
+              invoice_date: '2024-11-15',
+              due_date: '2024-12-15',
+              po_number: 'PO-2024-0099',
+              currency: 'AUD',
+              subtotal: 1086.96,
+              tax_amount: 163.04,
+              total: 1250.00,
+              supplier: {
+                name: 'Acme Supplies Ltd',
+                abn: '12 345 678 901',
+                email: 'accounts@acmesupplies.com',
+                phone: '+61 2 9876 5432',
+              },
+              line_items: [
+                { line_number: 1, description: 'Ergonomic Office Chair', sku: 'FURN-001', quantity: 2, unit_price: 350.00, total: 700.00 },
+                { line_number: 2, description: 'Adjustable Standing Desk', sku: 'FURN-002', quantity: 1, unit_price: 386.96, total: 386.96 },
+              ],
+              custom_fields: {},
+            },
+            matched_supplier: { supplier_id: 'SUP-001', supplier_name: 'Acme Supplies Ltd', confidence: 0.97, match_method: 'name_fuzzy' },
+            matched_po: null,
+            discrepancies: [
+              { severity: 'warning', category: 'arithmetic', field: 'total', description: 'Invoice total $1,250.00 does not match sum of line items $1,086.96 (difference: $163.04)' },
+            ],
+            corrections: {},
+            source_file: '/app/invoices/acme-invoice-2024-0042.pdf',
+            processed_at: new Date().toISOString(),
+            processing_time_seconds: 3.8,
+            llm_model_used: 'llama3.2',
+          });
+
+          // PDF panel — placeholder (no real PDF in tour)
+          if (pp) pp.innerHTML = `<div class="spinner"><span style="font-size:48px;line-height:1;opacity:.2">📄</span><span>Original PDF displayed here</span></div>`;
+        },
+      },
+      {
+        element: '.action-bar',
+        popover: {
+          title: 'Invoice Actions',
+          description: '<strong>Edit</strong> — correct any field the AI got wrong.<br><strong>Reprocess</strong> — re-run the AI extraction from scratch.<br><strong>Delete</strong> — remove this invoice entirely.<br><br><strong>Mark Ready</strong> — approve the data and queue it for export.<br><strong>Export Invoice</strong> — generate the JSON/XML output file immediately.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+      {
+        element: '.status-banner',
+        popover: {
+          title: 'Extraction Quality & Discrepancies',
+          description: 'The banner shows the overall extraction result — <strong style="color:var(--ok)">green</strong> means all checks passed, <strong style="color:var(--warn)">yellow</strong> means warnings, <strong style="color:var(--err)">red</strong> means errors.<br><br>Scroll down to see the <strong>Discrepancies</strong> card which lists exactly what needs attention — mismatched totals, missing PO numbers, arithmetic errors, and more.',
+          side: 'bottom',
+          align: 'start',
+        },
+        onDeselected: () => {
+          // Clean up all mock state
+          document.getElementById('__tour-fake-item')?.remove();
+          const dp = document.getElementById('data-panel');
+          const pp = document.getElementById('pdf-panel');
+          if (dp?.__tourBackup != null) { dp.innerHTML = dp.__tourBackup; dp.__tourBackup = null; }
+          if (pp?.__tourBackup != null) { pp.innerHTML = pp.__tourBackup; pp.__tourBackup = null; }
+          S.currentResult = window.__tourPrevResult ?? null;
+          window.__tourPrevResult = null;
+        },
+      },
+      {
+        popover: {
+          title: 'Keyboard Shortcuts',
+          description: 'Work faster with shortcuts:<br><br><kbd>A</kbd> Approve &nbsp; <kbd>R</kbd> Reject &nbsp; <kbd>E</kbd> Export<br><kbd>J</kbd> Next invoice &nbsp; <kbd>K</kbd> Previous<br><kbd>U</kbd> Upload &nbsp; <kbd>?</kbd> Show all shortcuts',
+          side: 'over',
+        }
+      },
+      {
+        element: '.side-footer',
+        popover: {
+          title: "You're all set!",
+          description: 'You can replay this tour any time with the <strong>Take a tour</strong> button below. Full documentation is available via <strong>Help & Documentation</strong>.',
+          side: 'top',
+          align: 'start',
+        }
+      },
+    ],
+    onDestroyStarted: () => {
+      localStorage.setItem('parsely-tour-seen', '1');
+      tour.destroy();
+    },
+  });
+
+  tour.drive();
+}
+
+// Auto-start for first-time visitors (after page has settled)
+setTimeout(() => startTour(), 1500);
 </script>
 </body>
 </html>
