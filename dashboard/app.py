@@ -400,7 +400,7 @@ _SETTINGS_SCHEMA: list[dict] = [
         "type":        "str",
         "ui_type":     "textarea",
         "label":       "System Message",
-        "description": "Persistent banner shown to all users at the bottom of the dashboard. Leave blank to hide. Example: 'This is a demonstration system and is reset every day at 2am.'",
+        "description": "Persistent banner shown to all users at the bottom of the dashboard. Leave blank to hide. Supports **bold**, *italic*, and [link text](https://url). Example: 'This is a **demonstration system** and is [reset every day](https://github.com/Fybre/parsely-invoices).'",
         "default":     "",
     },
 ]

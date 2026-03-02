@@ -6360,12 +6360,27 @@ function showShortcutsHelp() {
 // ════════════════════════════════════════════════════════════════════════════
 
 // Check current user role and show/hide admin link
+function renderSystemMessage(raw) {
+  // Escape HTML, then apply safe inline markup
+  let html = raw
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  // [text](url) — http/https only
+  html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;font-weight:600">$1</a>');
+  // **bold**
+  html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  // *italic*
+  html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+  return html;
+}
+
 function applySystemMessage(msg) {
   const banner = document.getElementById('system-banner');
   const text   = document.getElementById('system-banner-text');
   if (!banner || !text) return;
   if (msg && msg.trim()) {
-    text.textContent = msg.trim();
+    text.innerHTML = renderSystemMessage(msg.trim());
     banner.classList.remove('hidden');
     document.body.classList.add('has-system-banner');
   } else {
