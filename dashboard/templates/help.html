@@ -597,17 +597,31 @@ const sections = {
         <h2>Data Panel: Invoice Information</h2>
 
         <h3>Action Bar</h3>
-        <p>A sticky toolbar at the top of the data panel shows the current status badge and the available action buttons:</p>
+        <p>A sticky toolbar at the top of the data panel contains the primary action buttons:</p>
         <ul>
-          <li><strong>Edit</strong> (<kbd>E</kbd>) — enter correction mode</li>
-          <li><strong>Flag</strong> (<kbd>F</kbd>) — mark for attention or revert to Needs Review</li>
-          <li><strong>Export</strong> (<kbd>X</kbd>) — finalise (only enabled when status is Ready)</li>
-          <li><strong>Reprocess</strong> (<kbd>R</kbd>) — re-run AI extraction</li>
-          <li><strong>Delete</strong> (<kbd>Del</kbd>) — permanently remove (not available for Exported)</li>
+          <li><strong>Edit</strong> (<kbd>E</kbd>) — enter correction mode to fix extracted fields.</li>
+          <li><strong>Mark Ready</strong> (<kbd>S</kbd>) — approve the invoice and queue it for export. The button turns green. If the invoice is already Ready, this button changes to <strong>Flag for Review</strong> (<kbd>F</kbd>) and reverts it to Needs Review.</li>
+          <li><strong>Export Invoice</strong> (<kbd>X</kbd>) — generate the output file immediately. Only active when status is Ready.</li>
+          <li><strong>⋮ More</strong> — dropdown menu with additional actions:
+            <ul>
+              <li><strong>Re-evaluate</strong> — re-run supplier matching, PO matching, and validation using the current master data, without re-extracting via AI. Preserves all manual corrections and notes.</li>
+              <li><strong>Reprocess (LLM)</strong> (<kbd>R</kbd>) — delete the current record and re-queue the PDF for full AI re-extraction. Clears all corrections.</li>
+              <li><strong>Delete</strong> (<kbd>Del</kbd>) — permanently remove the invoice record and PDF. Not available for exported invoices.</li>
+            </ul>
+          </li>
         </ul>
 
+        <h3>Invoice Status Banner</h3>
+        <p>A full-width coloured banner below the action bar shows the current workflow status of the invoice:</p>
+        <ul>
+          <li><strong style="color:var(--warn)">Needs Review</strong> — the invoice has been processed and is awaiting operator review.</li>
+          <li><strong style="color:var(--ok)">Ready to Export</strong> — the invoice has been approved and is queued for export.</li>
+          <li><strong style="color:#7c3aed">Exported</strong> — the invoice has been exported and is locked.</li>
+        </ul>
+        <p>When discrepancies are present, clicking the banner scrolls directly to the Discrepancies card.</p>
+
         <h3>Extraction Quality Banner</h3>
-        <p>A coloured banner below the action bar summarises extraction quality:</p>
+        <p>A coloured banner below the status banner summarises extraction quality:</p>
         <ul>
           <li><strong>Green:</strong> No issues detected.</li>
           <li><strong>Yellow:</strong> Minor warnings (e.g., low match confidence, date proximity).</li>
@@ -708,19 +722,28 @@ const sections = {
       </div>
 
       <div class="help-section">
-        <h2>Reprocessing and Deletion</h2>
+        <h2>Re-evaluate, Reprocess, and Delete</h2>
+
+        <h3>Re-evaluate</h3>
+        <p>Click <strong>Re-evaluate</strong> in the <strong>⋮ More</strong> menu to re-run supplier matching, PO matching, and validation against the current master data — without sending the invoice back through the AI. Use this when:</p>
+        <ul>
+          <li>You have updated your suppliers CSV or PO data and want the match results refreshed.</li>
+          <li>You have manually corrected a field (e.g., supplier name or PO number) and want validation re-run against that correction.</li>
+          <li>Matching settings (fuzzy threshold, tolerance) have changed in Admin.</li>
+        </ul>
+        <p>Re-evaluate preserves all manual corrections, notes, and the original AI extraction. It will set the status to <span class="status needs_review">Needs Review</span> if new issues are found, but will never silently approve an invoice.</p>
 
         <h3>Reprocessing</h3>
-        <p>Press <kbd>R</kbd> or click <strong>Reprocess</strong> to delete the current database record and re-queue the PDF for the AI pipeline. Use this when:</p>
+        <p>Press <kbd>R</kbd> or open <strong>⋮ More → Reprocess (LLM)</strong> to delete the current database record and re-queue the PDF for the full AI pipeline. Use this when:</p>
         <ul>
           <li>The initial extraction produced obviously wrong results.</li>
           <li>You have updated the LLM settings or prompts and want a fresh extraction.</li>
-          <li>The supplier or PO master data has changed significantly.</li>
+          <li>The invoice could not be read correctly on the first attempt.</li>
         </ul>
-        <p>Reprocessing deletes all corrections, notes, and the current extraction. The PDF itself is not deleted.</p>
+        <p>Reprocessing permanently deletes all corrections, notes, and the current extraction. The PDF itself is not deleted.</p>
 
         <h3>Deleting</h3>
-        <p>Press <kbd>Del</kbd> or click <strong>Delete</strong> to permanently remove an invoice. This deletes both the database record and the original PDF file. <strong>Exported invoices cannot be deleted.</strong> A confirmation dialog is always shown before deletion.</p>
+        <p>Press <kbd>Del</kbd> or open <strong>⋮ More → Delete</strong> to permanently remove an invoice. This deletes both the database record and the original PDF file. <strong>Exported invoices cannot be deleted.</strong> A confirmation dialog is always shown before deletion.</p>
       </div>
 
     </div>
@@ -828,7 +851,15 @@ const sections = {
         </div>
         <div class="setting-row">
           <div class="setting-name">webhook_export_headers_json</div>
-          <div class="setting-desc">JSON object of custom HTTP headers (e.g., <code>{"Authorization": "Bearer token"}</code>).<div class="setting-type">JSON string</div></div>
+          <div class="setting-desc">JSON object of custom HTTP headers (e.g., <code>{"Authorization": "Bearer token"}</code>). Ignored when <code>webhook_export_headers_from_env</code> is enabled.<div class="setting-type">JSON string</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">webhook_export_headers_from_env</div>
+          <div class="setting-desc">When enabled, HTTP headers are loaded from the <code>WEBHOOK_EXPORT_HEADERS</code> environment variable instead of the field above. Use this to keep secrets (API keys, bearer tokens) out of the admin UI and <code>pipeline_settings.json</code>. Set the env var as a JSON object string in your <code>.env</code> file.<div class="setting-type">Boolean</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-name">webhook_export_delete_on_success</div>
+          <div class="setting-desc">When enabled, the JSON, XML, and PDF export files are automatically deleted from the export folder after a successful webhook delivery. Useful when the webhook is the sole consumer of the export data.<div class="setting-type">Boolean</div></div>
         </div>
         <div class="setting-row">
           <div class="setting-name">webhook_export_template</div>
@@ -1157,11 +1188,11 @@ const sections = {
           <tbody>
             <tr><td><kbd>E</kbd></td><td>Enter Edit mode</td><td>Opens the correction form</td></tr>
             <tr><td><kbd>S</kbd></td><td>Mark as Ready</td><td>Sets status to <span class="status ready">Ready</span></td></tr>
-            <tr><td><kbd>F</kbd></td><td>Flag / Unflag</td><td>Toggles the flag marker; also reverts Ready → Needs Review</td></tr>
+            <tr><td><kbd>F</kbd></td><td>Flag for Review</td><td>Reverts Ready → Needs Review; no-op if already Needs Review</td></tr>
             <tr><td><kbd>X</kbd></td><td>Export</td><td>Only active when status is <span class="status ready">Ready</span>. Shows confirmation dialog.</td></tr>
-            <tr><td><kbd>R</kbd></td><td>Reprocess</td><td>Deletes record and re-queues for AI extraction. Shows confirmation dialog.</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Reprocess (LLM)</td><td>Opens ⋮ menu action — deletes record and re-queues for full AI extraction. Shows confirmation dialog.</td></tr>
             <tr><td><kbd>N</kbd></td><td>Focus Notes field</td><td>Scrolls to and focuses the notes text area</td></tr>
-            <tr><td><kbd>Del</kbd></td><td>Delete invoice</td><td>Shows confirmation dialog. Not available for exported invoices.</td></tr>
+            <tr><td><kbd>Del</kbd></td><td>Delete invoice</td><td>Opens ⋮ menu action — shows confirmation dialog. Not available for exported invoices.</td></tr>
           </tbody>
         </table>
       </div>
